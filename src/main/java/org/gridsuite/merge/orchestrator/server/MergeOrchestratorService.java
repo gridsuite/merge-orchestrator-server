@@ -63,6 +63,9 @@ public class MergeOrchestratorService {
     @Value("${merge-orchestrator-server.tsos}")
     private String mergeTsos;
 
+    @Value("${merge-orchestrator-server.process}")
+    private String process;
+
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     CopyToNetworkStoreService copyToNetworkStoreService,
@@ -94,13 +97,13 @@ public class MergeOrchestratorService {
                 ZonedDateTime zdt = ZonedDateTime.parse(date);
                 LocalDateTime dateTime = zdt.toLocalDateTime();
 
-                mergeEventService.addMergeEvent("", tso, "TSO_IGM", dateTime, null);
+                mergeEventService.addMergeEvent("", tso, "TSO_IGM", dateTime, null, process);
 
                 List<CaseInfos> list = caseFetcherService.getCases(tsos, dateTime);
 
                 if (list.size() == tsos.size()) {
                     // all tsos are available for the merging process
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_STARTED", dateTime, null);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_STARTED", dateTime, null, process);
 
                     // creation of an empty merge network
                     Network merged = NetworkFactory.findDefault().createNetwork("merged", "iidm");
@@ -127,7 +130,7 @@ public class MergeOrchestratorService {
                     // balances adjustment on the merge network
                     balancesAdjustmentService.doBalance(mergeUuid);
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_FINISHED", dateTime, mergeUuid);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_FINISHED", dateTime, mergeUuid, process);
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : end ******");
                 }

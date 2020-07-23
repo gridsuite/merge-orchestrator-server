@@ -33,8 +33,6 @@ public class MergeEventService {
     private static final String CATEGORY_BROKER_OUTPUT = MergeEventService.class.getName()
             + ".output-broker-messages";
 
-    private static final String MERGE_PROCESS = "swe";
-
     private MergeRepository mergeRepository;
 
     private final EmitterProcessor<Message<String>> mergeInfosPublisher = EmitterProcessor.create();
@@ -48,12 +46,14 @@ public class MergeEventService {
         this.mergeRepository = mergeRepository;
     }
 
-    public void addMergeEvent(String payload, String tso, String type, LocalDateTime date, UUID networkUuid) {
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(MERGE_PROCESS, date), type, networkUuid));
+    public void addMergeEvent(String payload, String tso, String type, LocalDateTime date,
+                              UUID networkUuid, String process) {
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, date), type, networkUuid));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload(payload)
                 .setHeader("tso", tso)
                 .setHeader("type", type)
-                .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME)).build());
+                .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
+                .setHeader("process", process).build());
     }
 }

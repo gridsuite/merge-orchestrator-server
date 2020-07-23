@@ -86,7 +86,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(1, savedFr.size());
         assertEquals("TSO_IGM", savedFr.get(0).getStatus());
         assertNull(savedFr.get(0).getNetworkUuid());
-        assertEquals("swe", savedFr.get(0).getKey().getProcess());
+        assertEquals("SWE", savedFr.get(0).getKey().getProcess());
         assertEquals(dateTime, savedFr.get(0).getKey().getDate());
 
         // send second, expect single TSO_IGM message
@@ -101,7 +101,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(1, savedEs.size());
         assertEquals("TSO_IGM", savedEs.get(0).getStatus());
         assertNull(savedEs.get(0).getNetworkUuid());
-        assertEquals("swe", savedEs.get(0).getKey().getProcess());
+        assertEquals("SWE", savedEs.get(0).getKey().getProcess());
         assertEquals(dateTime, savedEs.get(0).getKey().getDate());
 
         // send out of scope tso, expect empty
@@ -132,24 +132,24 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(1, savedFinish.size());
         assertEquals("MERGE_FINISHED", savedFinish.get(0).getStatus());
         assertEquals(mergedUuid, savedFinish.get(0).getNetworkUuid());
-        assertEquals("swe", savedFinish.get(0).getKey().getProcess());
+        assertEquals("SWE", savedFinish.get(0).getKey().getProcess());
         assertEquals(dateTime, savedFinish.get(0).getKey().getDate());
 
         List<MergeInfos> mergeInfos = mergeOrchestratorService.getMergesList();
         assertEquals(1, mergeInfos.size());
-        assertEquals("swe", mergeInfos.get(0).getProcess());
+        assertEquals("SWE", mergeInfos.get(0).getProcess());
         assertEquals("MERGE_FINISHED", mergeInfos.get(0).getStatus());
         assertEquals(dateTime, mergeInfos.get(0).getDate());
 
-        mergeInfos = mergeOrchestratorService.getProcessMergesList("swe");
+        mergeInfos = mergeOrchestratorService.getProcessMergesList("SWE");
         assertEquals(1, mergeInfos.size());
-        assertEquals("swe", mergeInfos.get(0).getProcess());
+        assertEquals("SWE", mergeInfos.get(0).getProcess());
         assertEquals("MERGE_FINISHED", mergeInfos.get(0).getStatus());
         assertEquals(dateTime, mergeInfos.get(0).getDate());
 
-        Optional<MergeInfos> mergeInfo = mergeOrchestratorService.getMerge("swe", "2019-05-01T10:00:00.000");
+        Optional<MergeInfos> mergeInfo = mergeOrchestratorService.getMerge("SWE", "2019-05-01T10:00:00.000");
         assertTrue(mergeInfo.isPresent());
-        assertEquals("swe", mergeInfo.get().getProcess());
+        assertEquals("SWE", mergeInfo.get().getProcess());
         assertEquals("MERGE_FINISHED", mergeInfo.get().getStatus());
         assertEquals(dateTime, mergeInfo.get().getDate());
 
