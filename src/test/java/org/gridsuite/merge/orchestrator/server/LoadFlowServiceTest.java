@@ -6,7 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.commons.PowsyblException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,10 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
 
-import static junit.framework.TestCase.assertNull;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,8 +34,7 @@ public class LoadFlowServiceTest {
 
     private LoadFlowService loadFlowService;
 
-    private UUID randomUuid1 = UUID.randomUUID();
-    private UUID randomUuid2 = UUID.randomUUID();
+    private UUID randomUuid = UUID.randomUUID();
 
     @Before
     public void setUp() {
@@ -52,35 +47,9 @@ public class LoadFlowServiceTest {
                 eq(HttpMethod.PUT),
                 any(),
                 eq(String.class),
-                eq(randomUuid1.toString())))
+                eq(randomUuid.toString())))
                 .thenReturn(ResponseEntity.ok("{\"status\": \"TRUE\"}"));
-        Boolean res = loadFlowService.run(randomUuid1);
-        assertEquals(Boolean.TRUE, res);
-
-        when(loadFlowServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid2.toString())))
-                .thenReturn(ResponseEntity.ok("{\"status\": \"FALSE\"}"));
-        res = loadFlowService.run(randomUuid2);
-        assertEquals(Boolean.FALSE, res);
-
-        when(loadFlowServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid2.toString())))
-                .thenReturn(ResponseEntity.ok("{statut: \"FALSE\"}"));
-
-        assertTrue(assertThrows(PowsyblException.class, () -> loadFlowService.run(randomUuid2)).getMessage().contains("Error parsing loadflow result"));
-
-        when(loadFlowServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid2.toString())))
-                .thenReturn(ResponseEntity.ok("{\"statut\": \"FALSE\"}"));
-        assertNull(loadFlowService.run(randomUuid2));
+        String res = loadFlowService.run(randomUuid);
+        assertEquals("{\"status\": \"TRUE\"}", res);
     }
 }

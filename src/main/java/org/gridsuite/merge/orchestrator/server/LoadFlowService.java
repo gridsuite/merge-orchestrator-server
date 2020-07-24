@@ -6,12 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.PowsyblException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -45,23 +39,12 @@ public class LoadFlowService {
         this.loadFlowServerRest = restTemplate;
     }
 
-    public Boolean run(UUID networkUuid) {
-        try {
-            ResponseEntity<String> result = loadFlowServerRest.exchange(LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run",
-                    HttpMethod.PUT,
-                    null,
-                    String.class,
-                    networkUuid.toString());
-
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
-            JsonNode jsonTree = objectMapper.readTree(result.getBody());
-            if (jsonTree.hasNonNull("status")) {
-                return Boolean.parseBoolean(jsonTree.get("status").asText());
-            }
-        } catch (JsonProcessingException e) {
-            throw new PowsyblException("Error parsing loadflow result");
-        }
-        return null;
+    public String run(UUID networkUuid) {
+        ResponseEntity<String> res = loadFlowServerRest.exchange(LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run",
+                HttpMethod.PUT,
+                null,
+                String.class,
+                networkUuid.toString());
+        return res.getBody();
     }
 }

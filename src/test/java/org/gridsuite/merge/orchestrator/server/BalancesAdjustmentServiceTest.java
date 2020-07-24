@@ -6,8 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.balances_adjustment.balance_computation.BalanceComputationResult;
-import com.powsybl.commons.PowsyblException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,10 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
 
-import static junit.framework.TestCase.assertNull;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,8 +34,7 @@ public class BalancesAdjustmentServiceTest {
 
     private BalancesAdjustmentService balancesAdjustmentService;
 
-    private UUID randomUuid1 = UUID.randomUUID();
-    private UUID randomUuid2 = UUID.randomUUID();
+    private UUID randomUuid = UUID.randomUUID();
 
     @Before
     public void setUp() {
@@ -53,37 +47,9 @@ public class BalancesAdjustmentServiceTest {
                 eq(HttpMethod.PUT),
                 any(),
                 eq(String.class),
-                eq(randomUuid1.toString())))
+                eq(randomUuid.toString())))
                 .thenReturn(ResponseEntity.ok("{\"status\": \"SUCCESS\"}"));
-
-        BalanceComputationResult.Status status = balancesAdjustmentService.doBalance(randomUuid1);
-        assertEquals(BalanceComputationResult.Status.SUCCESS, status);
-
-        when(balancesAdjustmentServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid2.toString())))
-                .thenReturn(ResponseEntity.ok("{\"status\": \"FAILED\"}"));
-
-        status = balancesAdjustmentService.doBalance(randomUuid2);
-        assertEquals(BalanceComputationResult.Status.FAILED, status);
-
-        when(balancesAdjustmentServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid2.toString())))
-                .thenReturn(ResponseEntity.ok("{statut: \"FAILED\"}"));
-
-        assertTrue(assertThrows(PowsyblException.class, () -> balancesAdjustmentService.doBalance(randomUuid2)).getMessage().contains("Error parsing balances adjustment result"));
-
-        when(balancesAdjustmentServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid2.toString())))
-                .thenReturn(ResponseEntity.ok("{\"statut\": \"FAILED\"}"));
-        assertNull(balancesAdjustmentService.doBalance(randomUuid2));
+        String res = balancesAdjustmentService.doBalance(randomUuid);
+        assertEquals("{\"status\": \"SUCCESS\"}", res);
     }
 }
