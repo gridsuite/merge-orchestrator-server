@@ -58,6 +58,8 @@ public class MergeOrchestratorService {
 
     private CopyToNetworkStoreService copyToNetworkStoreService;
 
+    private LoadFlowService loadFlowService;
+
     private MergeEventService mergeEventService;
 
     @Value("${merge-orchestrator-server.tsos}")
@@ -66,15 +68,20 @@ public class MergeOrchestratorService {
     @Value("${merge-orchestrator-server.process}")
     private String process;
 
+    @Value("#{new Boolean('${merge-orchestrator-server.run-balances-adjustment}')}")
+    private boolean runBalancesAdjustment;
+
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     CopyToNetworkStoreService copyToNetworkStoreService,
                                     MergeEventService mergeEventService,
+                                    LoadFlowService loadFlowService,
                                     MergeRepository mergeRepository) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.copyToNetworkStoreService = copyToNetworkStoreService;
         this.mergeEventService = mergeEventService;
+        this.loadFlowService = loadFlowService;
         this.mergeRepository = mergeRepository;
     }
 
@@ -125,10 +132,15 @@ public class MergeOrchestratorService {
                     // store the merge network in the network store
                     UUID mergeUuid = copyToNetworkStoreService.copy(merged);
 
-                    LOGGER.info("**** MERGE ORCHESTRATOR : balances adjustment ******");
-
-                    // balances adjustment on the merge network
-                    balancesAdjustmentService.doBalance(mergeUuid);
+                    if (runBalancesAdjustment) {
+                        // balances adjustment on the merge network
+                        LOGGER.info("**** MERGE ORCHESTRATOR : balances adjustment ******");
+                        balancesAdjustmentService.doBalance(mergeUuid);
+                    } else {
+                        // load flow on the merged network
+                        LOGGER.info("**** MERGE ORCHESTRATOR : load flow ******");
+                        loadFlowService.run(mergeUuid);
+                    }
 
                     mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_FINISHED", dateTime, mergeUuid, process);
 
