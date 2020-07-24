@@ -6,10 +6,17 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.commons.PowsyblException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -38,11 +45,23 @@ public class LoadFlowService {
         this.loadFlowServerRest = restTemplate;
     }
 
-    public void run(UUID networkUuid) {
-        loadFlowServerRest.exchange(LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run",
-                HttpMethod.PUT,
-                null,
-                String.class,
-                networkUuid.toString());
+    public Boolean run(UUID networkUuid) {
+        try {
+            ResponseEntity<String> result = loadFlowServerRest.exchange(LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run",
+                    HttpMethod.PUT,
+                    null,
+                    String.class,
+                    networkUuid.toString());
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+            JsonNode jsonTree = objectMapper.readTree(result.getBody());
+            if (jsonTree.hasNonNull("status")) {
+                return Boolean.parseBoolean(jsonTree.get("status").asText());
+            }
+        } catch (JsonProcessingException e) {
+            throw new PowsyblException("Error parsing loadflow result");
+        }
+        return null;
     }
 }
