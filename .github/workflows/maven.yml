@@ -3,7 +3,9 @@ name: CI
 on:
   push:
   repository_dispatch:
-    types: network_store_updated
+    types:
+      - network_store_updated
+      - case_updated
 
 jobs:
   build:
