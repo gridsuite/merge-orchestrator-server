@@ -62,13 +62,13 @@ public class MergeOrchestratorService {
 
     private MergeEventService mergeEventService;
 
-    @Value("${merge-orchestrator-server.tsos}")
+    @Value("${parameters.tsos}")
     private String mergeTsos;
 
-    @Value("${merge-orchestrator-server.process}")
+    @Value("${parameters.process}")
     private String process;
 
-    @Value("${merge-orchestrator-server.run-balances-adjustment}")
+    @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
 
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
