@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
+import lombok.Getter;
 import org.springframework.data.cassandra.core.cql.PrimaryKeyType;
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyClass;
 import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
+@Getter
 @PrimaryKeyClass
 public class MergeEntityKey implements Serializable {
 
@@ -28,13 +30,5 @@ public class MergeEntityKey implements Serializable {
     public MergeEntityKey(String process, LocalDateTime date) {
         this.process = process;
         this.date = date;
-    }
-
-    public String getProcess() {
-        return process;
-    }
-
-    public LocalDateTime getDate() {
-        return date;
     }
 }

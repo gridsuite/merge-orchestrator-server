@@ -8,6 +8,7 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 
 import java.util.UUID;
 
+import lombok.Getter;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
@@ -15,6 +16,7 @@ import org.springframework.data.cassandra.core.mapping.Table;
  * @author Jon harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
+@Getter
 @Table("merges")
 public class MergeEntity {
 
@@ -29,17 +31,5 @@ public class MergeEntity {
         this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
-    }
-
-    public MergeEntityKey getKey() {
-        return key;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public UUID getNetworkUuid() {
-        return networkUuid;
     }
 }

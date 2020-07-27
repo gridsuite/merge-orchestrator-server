@@ -68,7 +68,7 @@ public class MergeOrchestratorService {
     @Value("${merge-orchestrator-server.process}")
     private String process;
 
-    @Value("#{new Boolean('${merge-orchestrator-server.run-balances-adjustment}')}")
+    @Value("${merge-orchestrator-server.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
 
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
