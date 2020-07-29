@@ -1,0 +1,39 @@
+spring:
+  rabbitmq:
+    addresses: localhost
+    port: 5672
+
+  cloud:
+    function:
+      definition: consumeNotification;publishMerge
+    stream:
+      bindings:
+        consumeNotification-in-0:
+          destination: case.import
+        publishMerge-out-0:
+          destination: merge
+
+server:
+  port: 5020
+
+backing-services:
+  case-server:
+    base-uri: http://localhost:5000
+  balances-adjustment-server:
+    base-uri: http://localhost:5010
+  loadflow-server:
+    base-uri: http://localhost:5008
+
+network-store-server:
+  preloading-strategy: COLLECTION
+  base-uri: http://localhost:8080/
+
+logging:
+  level:
+    ROOT: INFO
+
+parameters:
+  tsos: FR,ES,PT
+  process: SWE
+  run-balances-adjustment: false
+
