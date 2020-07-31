@@ -6,7 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -46,9 +46,9 @@ public class MergeEventService {
         this.mergeRepository = mergeRepository;
     }
 
-    public void addMergeEvent(String payload, String tso, String type, LocalDateTime date,
+    public void addMergeEvent(String payload, String tso, String type, ZonedDateTime date,
                               UUID networkUuid, String process) {
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, date), type, networkUuid));
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, date.toLocalDateTime()), type, networkUuid));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload(payload)
                 .setHeader("tso", tso)
