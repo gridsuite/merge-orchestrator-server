@@ -50,7 +50,7 @@
         <springfox.version>2.9.2</springfox.version>
         <embedded-cassandra.version>3.0.3</embedded-cassandra.version>
         <powsybl-network-store.version>1.0.0-SNAPSHOT</powsybl-network-store.version>
-        <powsybl-core.version>3.4.0</powsybl-core.version>
+        <powsybl-core.version>3.5.0</powsybl-core.version>
         <powsybl-case-datasource-client.version>1.0.0-SNAPSHOT</powsybl-case-datasource-client.version>
         <metricscore.version>3.2.6</metricscore.version>
         <junit.version>4.13</junit.version>
