@@ -121,10 +121,8 @@ public class MergeOrchestratorService {
                     List<Network> listNetworks = new ArrayList<>();
                     for (CaseInfos info : list) {
                         UUID id = info.getUuid();
-                        mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORK_STARTED", dateTime, id, process);
                         Network network = caseFetcherService.getCase(id);
                         listNetworks.add(network);
-                        mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORK_FINISHED", dateTime, id, process);
                     }
 
                     mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_FINISHED", dateTime, null, process);
@@ -143,7 +141,6 @@ public class MergeOrchestratorService {
                     UUID mergeUuid = copyToNetworkStoreService.copy(merged);
 
                     mergeEventService.addMergeEvent("", tsos.toString(), "MERGED_NETWORK_STORED", dateTime, mergeUuid, process);
-
 
                     if (runBalancesAdjustment) {
                         // balances adjustment on the merge network
