@@ -110,39 +110,57 @@ public class MergeOrchestratorService {
 
                 if (list.size() == tsos.size()) {
                     // all tsos are available for the merging process
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_STARTED", dateTime, null, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_STARTED", dateTime, null, process);
 
                     // creation of an empty merge network
                     Network merged = NetworkFactory.findDefault().createNetwork("merged", "iidm");
+
+                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_STARTED", dateTime, null, process);
 
                     // merge of the tsos networks into merge network
                     List<Network> listNetworks = new ArrayList<>();
                     for (CaseInfos info : list) {
                         UUID id = info.getUuid();
+                        mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORK_STARTED", dateTime, id, process);
                         Network network = caseFetcherService.getCase(id);
                         listNetworks.add(network);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORK_FINISHED", dateTime, id, process);
                     }
+
+                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_FINISHED", dateTime, null, process);
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : merging cases ******");
 
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_STARTED", dateTime, null, process);
+
                     merged.merge(listNetworks.toArray(new Network[listNetworks.size()]));
+
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_FINISHED", dateTime, null, process);
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : copy to network store ******");
 
                     // store the merge network in the network store
                     UUID mergeUuid = copyToNetworkStoreService.copy(merged);
 
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGED_NETWORK_STORED", dateTime, mergeUuid, process);
+
+
                     if (runBalancesAdjustment) {
                         // balances adjustment on the merge network
                         LOGGER.info("**** MERGE ORCHESTRATOR : balances adjustment ******");
+                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_STARTED", dateTime, mergeUuid, process);
                         balancesAdjustmentService.doBalance(mergeUuid);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_FINISHED", dateTime, mergeUuid, process);
+
                     } else {
                         // load flow on the merged network
                         LOGGER.info("**** MERGE ORCHESTRATOR : load flow ******");
+                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_STARTED", dateTime, mergeUuid, process);
                         loadFlowService.run(mergeUuid);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_FINISHED", dateTime, mergeUuid, process);
                     }
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_FINISHED", dateTime, mergeUuid, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_FINISHED", dateTime, mergeUuid, process);
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : end ******");
                 }
