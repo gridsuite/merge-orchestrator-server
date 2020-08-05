@@ -26,6 +26,7 @@ import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -73,6 +74,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
+
+
+    @Value("${parameters.run-balances-adjustment}")
+    private boolean runBalancesAdjustment;
 
     @Test
     public void test() {
@@ -142,6 +147,23 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         Message<byte[]> mergedNetworksStored = output.receive(1000);
         assertEquals("MERGED_NETWORK_STORED", mergedNetworksStored.getHeaders().get("type"));
 
+        if (runBalancesAdjustment) {
+            Message<byte[]> balanceAdjustmentStarted = output.receive(1000);
+            assertEquals("BALANCE_ADJUSTMENT_STARTED", balanceAdjustmentStarted.getHeaders().get("type"));
+
+            Message<byte[]> balanceAdjustmentFinished = output.receive(1000);
+            assertEquals("BALANCE_ADJUSTMENT_FINISHED", balanceAdjustmentFinished.getHeaders().get("type"));
+        } else {
+            Message<byte[]> loadFlowStarted = output.receive(1000);
+            assertEquals("LOAD_FLOW_STARTED", loadFlowStarted.getHeaders().get("type"));
+
+            Message<byte[]> loadFlowFinished = output.receive(1000);
+            assertEquals("LOAD_FLOW_FINISHED", loadFlowFinished.getHeaders().get("type"));
+        }
+
+        Message<byte[]> mergeProcessFinished = output.receive(1000);
+        assertEquals("MERGE_PROCESS_FINISHED", mergeProcessFinished.getHeaders().get("type"));
+
         List<MergeEntity> savedFinish = mergeRepository.findAll();
         assertEquals(1, savedFinish.size());
         assertEquals("MERGE_PROCESS_FINISHED", savedFinish.get(0).getStatus());
@@ -167,6 +189,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("MERGE_PROCESS_FINISHED", mergeInfo.get().getStatus());
         assertEquals(dateTime, mergeInfo.get().getDate());
 
-        //assertNull(output.receive(1000));
+        assertNull(output.receive(1000));
     }
 }
