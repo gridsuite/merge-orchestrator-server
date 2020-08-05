@@ -75,7 +75,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
 
-
     @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
 
