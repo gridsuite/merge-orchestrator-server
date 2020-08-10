@@ -36,7 +36,7 @@ jobs:
       - name: Build and install single line diagram with Maven
         run: mvn --batch-mode -DskipTests=true --file ../powsybl-single-line-diagram/pom.xml install
 
-      - name: Checkout network store sources
+      - name: Checkout network store sources from branch fix_mergingview_loadflow
         uses: actions/checkout@v1
         with:
           repository: powsybl/powsybl-network-store
