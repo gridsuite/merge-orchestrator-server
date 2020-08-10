@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,11 +18,12 @@ import org.springframework.data.cassandra.repository.config.EnableCassandraRepos
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Configuration
 @PropertySource(value = {"classpath:cassandra.properties"})
 @PropertySource(value = {"file:/config/cassandra.properties"}, ignoreResourceNotFound = true)
-@EnableCassandraRepositories(basePackageClasses = MergeRepository.class)
+@EnableCassandraRepositories(basePackageClasses = {MergeRepository.class, IgmQualityRepository.class})
 public class CassandraConfig extends AbstractCassandraConfiguration {
 
     static final String KEYSPACE_MERGE_ORCHESTRATOR = "merge_orchestrator";

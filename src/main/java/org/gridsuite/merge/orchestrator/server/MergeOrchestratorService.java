@@ -6,13 +6,18 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
+import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
+import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +33,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -47,8 +53,13 @@ public class MergeOrchestratorService {
 
     private static final String DATE_HEADER_KEY         = "date";
     private static final String GEO_CODE_HEADER_KEY     = "geographicalCode";
+    private static final String UUID_HEADER_KEY         = "uuid";
 
     private MergeRepository mergeRepository;
+
+    private IgmQualityRepository igmQualityRepository;
+
+    private NetworkStoreService networkStoreService;
 
     private CaseFetcherService caseFetcherService;
 
@@ -62,20 +73,28 @@ public class MergeOrchestratorService {
 
     private MergeOrchestratorConfigService mergeConfigService;
 
-    public MergeOrchestratorService(CaseFetcherService caseFetchService,
+    private IgmQualityCheckService igmQualityCheckService;
+
+    public MergeOrchestratorService(NetworkStoreService networkStoreService,
+                                    CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     CopyToNetworkStoreService copyToNetworkStoreService,
                                     MergeEventService mergeEventService,
                                     LoadFlowService loadFlowService,
+                                    IgmQualityCheckService igmQualityCheckService,
                                     MergeRepository mergeRepository,
+                                    IgmQualityRepository igmQualityRepository,
                                     MergeOrchestratorConfigService mergeConfigService) {
+        this.networkStoreService = networkStoreService;
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.copyToNetworkStoreService = copyToNetworkStoreService;
         this.mergeEventService = mergeEventService;
         this.loadFlowService = loadFlowService;
+        this.igmQualityCheckService = igmQualityCheckService;
         this.mergeRepository = mergeRepository;
         this.mergeConfigService = mergeConfigService;
+        this.igmQualityRepository = igmQualityRepository;
     }
 
     @Bean
@@ -89,6 +108,7 @@ public class MergeOrchestratorService {
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);
             String tso = (String) mh.get(GEO_CODE_HEADER_KEY);
+            UUID caseUuid = UUID.fromString((String) mh.get(UUID_HEADER_KEY));
 
             LOGGER.info("**** MERGE ORCHESTRATOR : message received : date={} tso={} ****", date, tso);
 
@@ -98,39 +118,69 @@ public class MergeOrchestratorService {
 
                 mergeEventService.addMergeEvent("", tso, "TSO_IGM", dateTime, null, mergeConfigService.getProcess());
 
+                // import IGM into the network store
+                UUID networkUuid = caseFetcherService.importCase(caseUuid);
+
+                mergeEventService.addMergeEvent("", tso, "QUALITY_CHECK_NETWORK_STARTED", dateTime, networkUuid, mergeConfigService.getProcess());
+
+                // check IGM quality
+                boolean valid = igmQualityCheckService.check(networkUuid);
+
+                // Use of UTC Zone to store in cassandra database
+                igmQualityRepository.save(new IgmQualityEntity(caseUuid, networkUuid,
+                        LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC), valid));
+
+                mergeEventService.addMergeEvent("", tso, "QUALITY_CHECK_NETWORK_FINISHED", dateTime, networkUuid, mergeConfigService.getProcess());
+
+                // get cases from the case server that matches list of tsos and date
                 List<CaseInfos> list = caseFetcherService.getCases(tsos, dateTime);
 
-                if (list.size() == tsos.size()) {
+                if (allTsosAvailable(list, tsos)) {
                     // all tsos are available for the merging process
                     mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_STARTED", dateTime, null, mergeConfigService.getProcess());
 
-                    // creation of an empty merge network
-                    Network merged = NetworkFactory.findDefault().createNetwork("merged", "iidm");
+                    boolean allIGMsValid = true;
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_STARTED", dateTime, null, mergeConfigService.getProcess());
-
-                    // merge of the tsos networks into merge network
                     List<Network> listNetworks = new ArrayList<>();
+
+                    // get all IGMs validity
                     for (CaseInfos info : list) {
-                        UUID id = info.getUuid();
-                        Network network = caseFetcherService.getCase(id);
-                        listNetworks.add(network);
+                        Optional<IgmQualityInfos> quality = getIgmQuality(info.getUuid());
+                        if (quality.isPresent()) {
+                            if (quality.get().isValid()) {
+                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is OK ****", info.getGeographicalCode(), date);
+                                listNetworks.add(networkStoreService.getNetwork(quality.get().getNetworkId(), PreloadingStrategy.COLLECTION));
+                            } else {
+                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is NOT OK ****", info.getGeographicalCode(), date);
+                                allIGMsValid = false;
+                            }
+                        } else {
+                            LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is UNDEFINED ****", info.getGeographicalCode(), date);
+                            allIGMsValid = false;
+                        }
                     }
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_FINISHED", dateTime, null, mergeConfigService.getProcess());
+                    if (!allIGMsValid) {
+                        return;
+                    }
 
+                    // all IGMs are available and valid for the merging process
                     LOGGER.info("**** MERGE ORCHESTRATOR : merging cases ******");
+
+                    // merging view creation
+                    MergingView mergingView = MergingView.create("merged", "iidm");
 
                     mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_STARTED", dateTime, null, mergeConfigService.getProcess());
 
-                    merged.merge(listNetworks.toArray(new Network[listNetworks.size()]));
+                    // merge all IGM networks
+                    mergingView.merge(listNetworks.toArray(new Network[listNetworks.size()]));
 
                     mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_FINISHED", dateTime, null, mergeConfigService.getProcess());
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : copy to network store ******");
 
-                    // store the merge network in the network store
-                    UUID mergeUuid = copyToNetworkStoreService.copy(merged);
+                    // store the merged network in the network store
+                    UUID mergeUuid = copyToNetworkStoreService.copy(mergingView);
 
                     mergeEventService.addMergeEvent("", tsos.toString(), "MERGED_NETWORK_STORED", dateTime, mergeUuid, mergeConfigService.getProcess());
 
@@ -159,6 +209,12 @@ public class MergeOrchestratorService {
         }
     }
 
+    private boolean allTsosAvailable(List<CaseInfos> list, List<String> tsos) {
+        Set<String> setGeographicalCodes = list.stream().map(CaseInfos::getGeographicalCode).collect(Collectors.toSet());
+        return setGeographicalCodes.size() == tsos.size() &&
+                tsos.stream().allMatch(setGeographicalCodes::contains);
+    }
+
     List<MergeInfos> getMergesList() {
         List<MergeEntity> mergeList = mergeRepository.findAll();
         return mergeList.stream().map(m -> new MergeInfos(m.getKey().getProcess(),
@@ -183,5 +239,14 @@ public class MergeOrchestratorService {
         return new MergeInfos(mergeEntity.getKey().getProcess(),
                 ZonedDateTime.ofInstant(mergeEntity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")),
                 mergeEntity.getStatus());
+    }
+
+    Optional<IgmQualityInfos> getIgmQuality(UUID caseInfo) {
+        Optional<IgmQualityEntity> quality = igmQualityRepository.findById(caseInfo);
+        return quality.map(this::toQualityInfo);
+    }
+
+    private IgmQualityInfos toQualityInfo(IgmQualityEntity qualityEntity) {
+        return new IgmQualityInfos(qualityEntity.getCaseUuid(), qualityEntity.getNetworkUuid(), qualityEntity.isValid());
     }
 }

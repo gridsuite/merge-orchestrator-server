@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,8 +20,12 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
+import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.junit.Test;
@@ -43,6 +48,7 @@ import com.powsybl.iidm.network.NetworkFactory;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(
@@ -59,6 +65,15 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Inject
     MergeRepository mergeRepository;
+
+    @Inject
+    IgmQualityRepository igmQualityRepository;
+
+    @MockBean
+    private IgmQualityCheckService igmQualityCheckService;
+
+    @MockBean
+    private NetworkStoreService networkStoreService;
 
     @MockBean
     private CaseFetcherService caseFetcherService;
@@ -78,65 +93,119 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
 
+    private static final UUID UUID_CASE_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    private static final UUID UUID_NETWORK_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+
+    private static final UUID UUID_CASE_ID_ES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
+    private static final UUID UUID_NETWORK_ID_ES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
+
+    private static final UUID UUID_CASE_ID_PT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
+    private static final UUID UUID_NETWORK_ID_PT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
+
+    private static final UUID UUID_CASE_ID_UNKNOWN = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e9");
+
     @Test
     public void test() {
         ZonedDateTime dateTime = ZonedDateTime.of(2019, 05, 01, 9, 00, 00, 00, ZoneId.of("UTC"));
 
+        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR))
+                .thenReturn(UUID_NETWORK_ID_FR);
+        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_ES))
+                .thenReturn(UUID_NETWORK_ID_ES);
+        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_PT))
+                .thenReturn(UUID_NETWORK_ID_PT);
+
+        NetworkFactory networkFactory = NetworkFactory.find("Default");
+
+        Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_FR, PreloadingStrategy.COLLECTION))
+                .thenReturn(networkFactory.createNetwork("fr", "iidm"));
+        Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_ES, PreloadingStrategy.COLLECTION))
+                .thenReturn(networkFactory.createNetwork("es", "iidm"));
+        Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_PT, PreloadingStrategy.COLLECTION))
+                .thenReturn(networkFactory.createNetwork("pt", "iidm"));
+
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR))
+                .thenReturn(true);
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_ES))
+                .thenReturn(true);
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT))
+                .thenReturn(true);
+
         // send first, expect single TSO_IGM message
         Mockito.when(caseFetcherService.getCases(any(), any()))
-                .thenReturn(List.of(new CaseInfos("fr", UUID.randomUUID(), "")));
-        input.send(MessageBuilder.withPayload("").setHeader("geographicalCode", "FR").setHeader("date", "2019-05-01T10:00:00.000+01:00").build());
+                .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR")));
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("geographicalCode", "FR")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .build());
         Message<byte[]> messageFrIGM = output.receive(1000);
         assertEquals("TSO_IGM", messageFrIGM.getHeaders().get("type"));
+        messageFrIGM = output.receive(1000);
+        assertEquals("QUALITY_CHECK_NETWORK_STARTED", messageFrIGM.getHeaders().get("type"));
+        messageFrIGM = output.receive(1000);
+        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", messageFrIGM.getHeaders().get("type"));
         List<MergeEntity> savedFr = mergeRepository.findAll();
         assertEquals(1, savedFr.size());
-        assertEquals("TSO_IGM", savedFr.get(0).getStatus());
-        assertNull(savedFr.get(0).getNetworkUuid());
+        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", savedFr.get(0).getStatus());
+        assertEquals(UUID_NETWORK_ID_FR, savedFr.get(0).getNetworkUuid());
         assertEquals("SWE", savedFr.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), savedFr.get(0).getKey().getDate());
 
         // send second, expect single TSO_IGM message
         Mockito.when(caseFetcherService.getCases(any(), any()))
                 .thenReturn(
-                        List.of(new CaseInfos("fr", UUID.randomUUID(), ""),
-                                new CaseInfos("es", UUID.randomUUID(), "")));
-        input.send(MessageBuilder.withPayload("").setHeader("geographicalCode", "ES").setHeader("date", "2019-05-01T10:00:00.000+01:00").build());
+                        List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR"),
+                                new CaseInfos("es", UUID_CASE_ID_ES, "", "ES")));
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("geographicalCode", "ES")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_ES.toString())
+                .build());
         Message<byte[]> messageEsIGM = output.receive(1000);
         assertEquals("TSO_IGM", messageEsIGM.getHeaders().get("type"));
+        messageEsIGM = output.receive(1000);
+        assertEquals("QUALITY_CHECK_NETWORK_STARTED", messageEsIGM.getHeaders().get("type"));
+        messageEsIGM = output.receive(1000);
+        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", messageEsIGM.getHeaders().get("type"));
         List<MergeEntity> savedEs = mergeRepository.findAll();
         assertEquals(1, savedEs.size());
-        assertEquals("TSO_IGM", savedEs.get(0).getStatus());
-        assertNull(savedEs.get(0).getNetworkUuid());
+        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", savedEs.get(0).getStatus());
+        assertEquals(UUID_NETWORK_ID_ES, savedEs.get(0).getNetworkUuid());
         assertEquals("SWE", savedEs.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), savedEs.get(0).getKey().getDate());
 
         // send out of scope tso, expect empty
-        input.send(MessageBuilder.withPayload("").setHeader("geographicalCode", "XX").setHeader("date", "2019-05-01T10:00:00.000+01:00").build());
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("geographicalCode", "XX")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_UNKNOWN.toString())
+                .build());
         assertNull(output.receive(1000));
 
         // send third, expect TSO_IGM message, MERGE_STARTED and MERGE_FINISHED messages
         Mockito.when(caseFetcherService.getCases(any(), any()))
                 .thenReturn(List.of(
-                        new CaseInfos("fr", UUID.randomUUID(), ""),
-                        new CaseInfos("es", UUID.randomUUID(), ""),
-                        new CaseInfos("pt", UUID.randomUUID(), "")));
-        NetworkFactory networkFactory = NetworkFactory.find("Default");
-        Mockito.when(caseFetcherService.getCase(any()))
-                .thenReturn(networkFactory.createNetwork("fr", "iidm"))
-                .thenReturn(networkFactory.createNetwork("es", "iidm"))
-                .thenReturn(networkFactory.createNetwork("pt", "iidm"));
+                        new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR"),
+                        new CaseInfos("es", UUID_CASE_ID_ES, "", "ES"),
+                        new CaseInfos("pt", UUID_CASE_ID_PT, "", "PT")));
+
         UUID mergedUuid = UUID.randomUUID();
         Mockito.when(copyToNetworkStoreService.copy(any())).thenReturn(mergedUuid);
-        input.send(MessageBuilder.withPayload("").setHeader("geographicalCode", "PT").setHeader("date", "2019-05-01T10:00:00.000+01:00").build());
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("geographicalCode", "PT")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_PT.toString())
+                .build());
         Message<byte[]> messagePrIGM = output.receive(1000);
         assertEquals("TSO_IGM", messagePrIGM.getHeaders().get("type"));
+        messagePrIGM = output.receive(1000);
+        assertEquals("QUALITY_CHECK_NETWORK_STARTED", messagePrIGM.getHeaders().get("type"));
+        messagePrIGM = output.receive(1000);
+        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", messagePrIGM.getHeaders().get("type"));
+
         Message<byte[]> messageMergeStarted = output.receive(1000);
         assertEquals("MERGE_PROCESS_STARTED", messageMergeStarted.getHeaders().get("type"));
-
-        Message<byte[]> readNetworksStarted = output.receive(1000);
-        assertEquals("READ_NETWORKS_STARTED", readNetworksStarted.getHeaders().get("type"));
-        Message<byte[]> readNetworksFinished = output.receive(1000);
-        assertEquals("READ_NETWORKS_FINISHED", readNetworksFinished.getHeaders().get("type"));
 
         Message<byte[]> mergeNetworksStarted = output.receive(1000);
         assertEquals("MERGE_NETWORKS_STARTED", mergeNetworksStarted.getHeaders().get("type"));
@@ -186,6 +255,27 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("SWE", mergeInfo.get().getProcess());
         assertEquals("MERGE_PROCESS_FINISHED", mergeInfo.get().getStatus());
         assertEquals(dateTime.toLocalDateTime(), mergeInfo.get().getDate().toLocalDateTime());
+
+        Optional<IgmQualityInfos> qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_FR);
+        assertTrue(qualityInfo.isPresent());
+        assertEquals(UUID_CASE_ID_FR, qualityInfo.get().getCaseUuid());
+        assertEquals(UUID_NETWORK_ID_FR, qualityInfo.get().getNetworkId());
+        assertTrue(qualityInfo.get().isValid());
+
+        qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_ES);
+        assertTrue(qualityInfo.isPresent());
+        assertEquals(UUID_CASE_ID_ES, qualityInfo.get().getCaseUuid());
+        assertEquals(UUID_NETWORK_ID_ES, qualityInfo.get().getNetworkId());
+        assertTrue(qualityInfo.get().isValid());
+
+        qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_PT);
+        assertTrue(qualityInfo.isPresent());
+        assertEquals(UUID_CASE_ID_PT, qualityInfo.get().getCaseUuid());
+        assertEquals(UUID_NETWORK_ID_PT, qualityInfo.get().getNetworkId());
+        assertTrue(qualityInfo.get().isValid());
+
+        qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_UNKNOWN);
+        assertFalse(qualityInfo.isPresent());
 
         assertNull(output.receive(1000));
     }

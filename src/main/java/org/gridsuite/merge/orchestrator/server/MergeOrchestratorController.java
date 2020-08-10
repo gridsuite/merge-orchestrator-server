@@ -12,6 +12,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.gridsuite.merge.orchestrator.server.dto.MergeConfig;
+import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
@@ -28,6 +29,7 @@ import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -88,6 +90,16 @@ public class MergeOrchestratorController {
         } catch (UnsupportedEncodingException e) {
             throw new PowsyblException("Error parsing date");
         }
+    }
+
+    @GetMapping(value = "/merges/{caseUuid}/quality", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "get the igm quality", response = IgmQualityInfos.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "The quality information"),
+            @ApiResponse(code = 404, message = "The case doesn't exist")})
+    public ResponseEntity<IgmQualityInfos> getIgmQuality(@PathVariable("caseUuid") String caseId) {
+        Optional<IgmQualityInfos> quality = mergeOrchestratorService.getIgmQuality(UUID.fromString(caseId));
+        return ResponseEntity.of(quality);
     }
 }
 

@@ -17,6 +17,7 @@ import com.powsybl.network.store.client.NetworkStoreService;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Service
 @ComponentScan(basePackageClasses = { NetworkStoreService.class })
@@ -28,8 +29,8 @@ public class CopyToNetworkStoreService {
         this.networkStoreService = networkStoreService;
     }
 
-    public UUID copy(Network merged) {
-        Network copy = NetworkXml.copy(merged, networkStoreService.getNetworkFactory());
+    public UUID copy(Network network) {
+        Network copy = NetworkXml.copy(network, networkStoreService.getNetworkFactory());
         networkStoreService.flush(copy);
         return networkStoreService.getNetworkUuid(copy);
     }
