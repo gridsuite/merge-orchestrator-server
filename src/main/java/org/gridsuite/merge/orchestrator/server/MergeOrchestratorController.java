@@ -6,19 +6,25 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.PowsyblException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
+import org.gridsuite.merge.orchestrator.server.repositories.BoundaryEntity;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -65,6 +71,32 @@ public class MergeOrchestratorController {
                                                @PathVariable("date") String date) {
         Optional<MergeInfos> merge = mergeOrchestratorService.getMerge(process, date);
         return ResponseEntity.of(merge);
+    }
+
+    @GetMapping(value = "/boundaries", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "Get all boundaries", response = List.class)
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of all boundaries")})
+    public ResponseEntity<List<BoundaryInfo>> getBoundariesList() {
+        List<BoundaryInfo> boundaries = mergeOrchestratorService.getBoundariesList();
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(boundaries);
+    }
+
+    @GetMapping(value = "/boundaries/{boundaryId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "Get a boundary", response = String.class)
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "The boundary identified by boundaryId")})
+    public ResponseEntity<BoundaryEntity> getBoundary(@PathVariable("boundaryId") String boundaryId) {
+        Optional<BoundaryEntity> boundary = mergeOrchestratorService.getBoundary(boundaryId);
+        if (!boundary.isPresent()) {
+            throw new PowsyblException("Boundary not found for id " + boundaryId);
+        }
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(boundary.get());
+    }
+
+    @PostMapping(value = "/boundaries")
+    @ApiOperation(value = "import a boundary file in the database")
+    public ResponseEntity<String> importBoundary(@RequestParam("file") MultipartFile boundaryFile) {
+        String id = mergeOrchestratorService.importBoundary(boundaryFile);
+        return ResponseEntity.ok().body(id);
     }
 }
 

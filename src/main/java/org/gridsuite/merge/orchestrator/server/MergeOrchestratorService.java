@@ -6,6 +6,12 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -17,8 +23,12 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
+import org.gridsuite.merge.orchestrator.server.fullmodel.FullModel;
+import org.gridsuite.merge.orchestrator.server.repositories.BoundaryEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.BoundaryRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
@@ -33,6 +43,7 @@ import org.springframework.stereotype.Service;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.NetworkFactory;
 
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 /**
@@ -62,6 +73,8 @@ public class MergeOrchestratorService {
 
     private MergeEventService mergeEventService;
 
+    private BoundaryRepository boundaryRepository;
+
     @Value("${parameters.tsos}")
     private String mergeTsos;
 
@@ -76,13 +89,15 @@ public class MergeOrchestratorService {
                                     CopyToNetworkStoreService copyToNetworkStoreService,
                                     MergeEventService mergeEventService,
                                     LoadFlowService loadFlowService,
-                                    MergeRepository mergeRepository) {
+                                    MergeRepository mergeRepository,
+                                    BoundaryRepository boundaryRepository) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.copyToNetworkStoreService = copyToNetworkStoreService;
         this.mergeEventService = mergeEventService;
         this.loadFlowService = loadFlowService;
         this.mergeRepository = mergeRepository;
+        this.boundaryRepository = boundaryRepository;
     }
 
     @Bean
@@ -185,5 +200,34 @@ public class MergeOrchestratorService {
 
     private MergeInfos toMergeInfo(MergeEntity mergeEntity) {
         return new MergeInfos(mergeEntity.getKey().getProcess(), mergeEntity.getKey().getDate(), mergeEntity.getStatus());
+    }
+
+    Optional<BoundaryEntity> getBoundary(String boundaryId) {
+        Optional<BoundaryEntity> boundary = boundaryRepository.findById(boundaryId);
+        return boundary;
+    }
+
+    String importBoundary(MultipartFile mpfFile) {
+        String id;
+        try {
+            Reader reader = new InputStreamReader(new ByteArrayInputStream(mpfFile.getBytes()));
+            FullModel fullModel = FullModel.parse(reader);
+            id = fullModel.getId();
+
+            ByteBuffer buf = ByteBuffer.wrap(mpfFile.getBytes());
+            String filename = mpfFile.getOriginalFilename();
+
+            BoundaryEntity entity = new BoundaryEntity(fullModel.getId(), buf, filename);
+            boundaryRepository.insert(entity);
+
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return id;
+    }
+
+    List<BoundaryInfo> getBoundariesList() {
+        List<BoundaryEntity> boundaries = boundaryRepository.findAll();
+        return boundaries.stream().map(b -> new BoundaryInfo(b.getId(), b.getFilename())).collect(Collectors.toList());
     }
 }

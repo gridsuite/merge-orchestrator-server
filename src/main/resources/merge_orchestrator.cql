@@ -1,4 +1,4 @@
-CREATE TABLE merge_orchestrator.merges (
+CREATE TABLE IF NOT EXISTS merge_orchestrator.merges (
     process text,
     date timestamp,
     status text,
@@ -6,3 +6,9 @@ CREATE TABLE merge_orchestrator.merges (
     PRIMARY KEY (process, date)
 );
 
+CREATE TABLE IF NOT EXISTS merge_orchestrator.boundaries (
+    id text,
+    boundary blob,
+    filename text,
+    PRIMARY KEY (id)
+);
