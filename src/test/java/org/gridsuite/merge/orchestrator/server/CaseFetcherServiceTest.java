@@ -60,22 +60,22 @@ public class CaseFetcherServiceTest {
 
     @Test
     public void test() {
-        when(caseServerRest.exchange(eq("/v1/cases/search?q=date:20200701_1030%20AND%20tsos:(DE)"),
+        when(caseServerRest.exchange(eq("/v1/cases/search?q=date:%222020-07-01T10%253A30%253A00%252B01%253A00%22%20AND%20geographicalCode:(DE)"),
                 eq(HttpMethod.GET),
                 eq(HttpEntity.EMPTY),
                 eq(new ParameterizedTypeReference<List<Map<String, String>>>() { })))
                 .thenReturn(ResponseEntity.ok(Collections.emptyList()));
 
-        List<CaseInfos> infos = caseFetcherService.getCases(asList("DE"), ZonedDateTime.parse("2020-07-01T10:30:00.000+01:00").toLocalDateTime());
+        List<CaseInfos> infos = caseFetcherService.getCases(asList("DE"), ZonedDateTime.parse("2020-07-01T10:30:00.000+01:00"));
         assertTrue(infos.isEmpty());
 
-        when(caseServerRest.exchange(eq("/v1/cases/search?q=date:20200702_0030%20AND%20tsos:(FR%20OR%20ES%20OR%20PT)"),
+        when(caseServerRest.exchange(eq("/v1/cases/search?q=date:%222020-07-02T00%253A30%253A00%252B01%253A00%22%20AND%20geographicalCode:(FR%20OR%20ES%20OR%20PT)"),
                 eq(HttpMethod.GET),
                 eq(HttpEntity.EMPTY),
                 eq(new ParameterizedTypeReference<List<Map<String, String>>>() { })))
                 .thenReturn(ResponseEntity.ok(listCases));
 
-        infos = caseFetcherService.getCases(asList("FR", "ES", "PT"), ZonedDateTime.parse("2020-07-02T00:30:00.000+01:00").toLocalDateTime());
+        infos = caseFetcherService.getCases(asList("FR", "ES", "PT"), ZonedDateTime.parse("2020-07-02T00:30:00.000+01:00"));
         assertEquals(3, infos.size());
         assertEquals("20200702_0030_2D1_FR1.zip", infos.get(0).getName());
         assertEquals(randomUuid1.toString(), infos.get(0).getUuid().toString());

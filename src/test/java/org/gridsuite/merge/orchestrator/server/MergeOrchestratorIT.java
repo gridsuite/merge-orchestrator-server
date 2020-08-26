@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
-import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -80,8 +80,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void test() {
-        ZonedDateTime zdt = ZonedDateTime.parse("2019-05-01T10:00:00.000+01:00");
-        LocalDateTime dateTime = zdt.toLocalDateTime();
+        ZonedDateTime dateTime = ZonedDateTime.of(2019, 05, 01, 9, 00, 00, 00, ZoneId.of("UTC"));
 
         // send first, expect single TSO_IGM message
         Mockito.when(caseFetcherService.getCases(any(), any()))
@@ -94,7 +93,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("TSO_IGM", savedFr.get(0).getStatus());
         assertNull(savedFr.get(0).getNetworkUuid());
         assertEquals("SWE", savedFr.get(0).getKey().getProcess());
-        assertEquals(dateTime, savedFr.get(0).getKey().getDate());
+        assertEquals(dateTime.toLocalDateTime(), savedFr.get(0).getKey().getDate());
 
         // send second, expect single TSO_IGM message
         Mockito.when(caseFetcherService.getCases(any(), any()))
@@ -109,7 +108,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("TSO_IGM", savedEs.get(0).getStatus());
         assertNull(savedEs.get(0).getNetworkUuid());
         assertEquals("SWE", savedEs.get(0).getKey().getProcess());
-        assertEquals(dateTime, savedEs.get(0).getKey().getDate());
+        assertEquals(dateTime.toLocalDateTime(), savedEs.get(0).getKey().getDate());
 
         // send out of scope tso, expect empty
         input.send(MessageBuilder.withPayload("").setHeader("geographicalCode", "XX").setHeader("date", "2019-05-01T10:00:00.000+01:00").build());
@@ -168,25 +167,25 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("MERGE_PROCESS_FINISHED", savedFinish.get(0).getStatus());
         assertEquals(mergedUuid, savedFinish.get(0).getNetworkUuid());
         assertEquals("SWE", savedFinish.get(0).getKey().getProcess());
-        assertEquals(dateTime, savedFinish.get(0).getKey().getDate());
+        assertEquals(dateTime.toLocalDateTime(), savedFinish.get(0).getKey().getDate());
 
         List<MergeInfos> mergeInfos = mergeOrchestratorService.getMergesList();
         assertEquals(1, mergeInfos.size());
         assertEquals("SWE", mergeInfos.get(0).getProcess());
         assertEquals("MERGE_PROCESS_FINISHED", mergeInfos.get(0).getStatus());
-        assertEquals(dateTime, mergeInfos.get(0).getDate());
+        assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
 
         mergeInfos = mergeOrchestratorService.getProcessMergesList("SWE");
         assertEquals(1, mergeInfos.size());
         assertEquals("SWE", mergeInfos.get(0).getProcess());
         assertEquals("MERGE_PROCESS_FINISHED", mergeInfos.get(0).getStatus());
-        assertEquals(dateTime, mergeInfos.get(0).getDate());
+        assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
 
-        Optional<MergeInfos> mergeInfo = mergeOrchestratorService.getMerge("SWE", "2019-05-01T10:00:00.000");
+        Optional<MergeInfos> mergeInfo = mergeOrchestratorService.getMerge("SWE", ZonedDateTime.parse("2019-05-01T10:00:00.000+01:00"));
         assertTrue(mergeInfo.isPresent());
         assertEquals("SWE", mergeInfo.get().getProcess());
         assertEquals("MERGE_PROCESS_FINISHED", mergeInfo.get().getStatus());
-        assertEquals(dateTime, mergeInfo.get().getDate());
+        assertEquals(dateTime.toLocalDateTime(), mergeInfo.get().getDate().toLocalDateTime());
 
         assertNull(output.receive(1000));
     }

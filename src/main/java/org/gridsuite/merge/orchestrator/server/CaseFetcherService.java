@@ -6,7 +6,9 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import java.time.LocalDateTime;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
@@ -62,13 +64,19 @@ public class CaseFetcherService {
         this.caseServerRest = restTemplate;
     }
 
-    public List<CaseInfos> getCases(List<String> tsos, LocalDateTime dateTime) {
+    private String getDateSearchTerm(ZonedDateTime dateTime) {
+        String formattedDate = dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
+        try {
+            return "date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"";
+        } catch (UnsupportedEncodingException e) {
+            throw new PowsyblException("Error when decoding the query string");
+        }
+    }
+
+    public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime) {
         // construct the search query
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
         StringBuilder query = new StringBuilder();
-        query.append("date:")
-                .append(dateTime.format(formatter))
-                .append(" AND tsos:(");
+        query.append(getDateSearchTerm(dateTime)).append(" AND geographicalCode:(");
         for (int i = 0; i < tsos.size() - 1; ++i) {
             query.append(tsos.get(i))
                     .append(" OR ");

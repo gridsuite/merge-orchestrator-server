@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.PowsyblException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -20,6 +21,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,8 +67,14 @@ public class MergeOrchestratorController {
             @ApiResponse(code = 404, message = "The merge doesn't exist")})
     public ResponseEntity<MergeInfos> getMerge(@PathVariable("process") String process,
                                                @PathVariable("date") String date) {
-        Optional<MergeInfos> merge = mergeOrchestratorService.getMerge(process, date);
-        return ResponseEntity.of(merge);
+        try {
+            String decodedDate = URLDecoder.decode(date, "UTF-8");
+            ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
+            Optional<MergeInfos> merge = mergeOrchestratorService.getMerge(process, dateTime);
+            return ResponseEntity.of(merge);
+        } catch (UnsupportedEncodingException e) {
+            throw new PowsyblException("Error parsing date");
+        }
     }
 }
 

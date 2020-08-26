@@ -23,7 +23,9 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import javax.inject.Inject;
 
-import java.time.LocalDateTime;
+import java.net.URLEncoder;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
@@ -72,10 +74,10 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
 
     @Test
     public void test() throws Exception {
-        LocalDateTime dateTime = LocalDateTime.of(2020, 07, 20, 10, 00);
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime), "TSO_IGM", uuid));
+        ZonedDateTime dateTime = ZonedDateTime.of(2020, 07, 20, 10, 00, 00, 00, ZoneId.of("UTC"));
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "TSO_IGM", uuid));
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
         String resExpected = "[{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"TSO_IGM\"}]";
 
         MvcResult result = mvc.perform(get("/" + VERSION + "/merges")
@@ -93,8 +95,8 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
         assertEquals(resExpected, result.getResponse().getContentAsString());
 
         resExpected = "{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"MERGE_STARTED\"}";
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime), "MERGE_STARTED", null));
-        result = mvc.perform(get("/" + VERSION + "/merges/swe/" + dateTime.toString())
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "MERGE_STARTED", null));
+        result = mvc.perform(get("/" + VERSION + "/merges/swe/" + URLEncoder.encode(formatter.format(dateTime), "UTF-8"))
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))

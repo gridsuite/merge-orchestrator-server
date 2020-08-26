@@ -11,7 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -25,7 +25,7 @@ public class MergeInfos {
 
     String process;
 
-    LocalDateTime date;
+    ZonedDateTime date;
 
     String status;
 }
