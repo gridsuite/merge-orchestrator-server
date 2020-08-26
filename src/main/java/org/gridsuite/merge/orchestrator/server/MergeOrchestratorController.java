@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,7 +69,8 @@ public class MergeOrchestratorController {
                                                @PathVariable("date") String date) {
         try {
             String decodedDate = URLDecoder.decode(date, "UTF-8");
-            Optional<MergeInfos> merge = mergeOrchestratorService.getMerge(process, decodedDate);
+            ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
+            Optional<MergeInfos> merge = mergeOrchestratorService.getMerge(process, dateTime);
             return ResponseEntity.of(merge);
         } catch (UnsupportedEncodingException e) {
             throw new PowsyblException("Error parsing date");

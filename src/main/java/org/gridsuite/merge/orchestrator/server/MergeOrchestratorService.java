@@ -6,7 +6,9 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -168,21 +170,27 @@ public class MergeOrchestratorService {
 
     List<MergeInfos> getMergesList() {
         List<MergeEntity> mergeList = mergeRepository.findAll();
-        return mergeList.stream().map(m -> new MergeInfos(m.getKey().getProcess(), m.getKey().getDate().atZone(ZoneId.systemDefault()), m.getStatus())).collect(Collectors.toList());
+        return mergeList.stream().map(m -> new MergeInfos(m.getKey().getProcess(),
+                ZonedDateTime.ofInstant(m.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")),
+                m.getStatus())).collect(Collectors.toList());
     }
 
     List<MergeInfos> getProcessMergesList(String process) {
         List<MergeEntity> mergeList = mergeRepository.findByProcess(process);
-        return mergeList.stream().map(m -> new MergeInfos(m.getKey().getProcess(), m.getKey().getDate().atZone(ZoneId.systemDefault()), m.getStatus())).collect(Collectors.toList());
+        return mergeList.stream().map(m -> new MergeInfos(m.getKey().getProcess(),
+                ZonedDateTime.ofInstant(m.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")),
+                m.getStatus())).collect(Collectors.toList());
     }
 
-    Optional<MergeInfos> getMerge(String process, String date) {
-        ZonedDateTime dateTime = ZonedDateTime.parse(date);
-        Optional<MergeEntity> merge = mergeRepository.findById(new MergeEntityKey(process, dateTime.toLocalDateTime()));
+    Optional<MergeInfos> getMerge(String process, ZonedDateTime dateTime) {
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
+        Optional<MergeEntity> merge = mergeRepository.findById(new MergeEntityKey(process, localDateTime));
         return merge.map(this::toMergeInfo);
     }
 
     private MergeInfos toMergeInfo(MergeEntity mergeEntity) {
-        return new MergeInfos(mergeEntity.getKey().getProcess(), mergeEntity.getKey().getDate().atZone(ZoneId.systemDefault()), mergeEntity.getStatus());
+        return new MergeInfos(mergeEntity.getKey().getProcess(),
+                ZonedDateTime.ofInstant(mergeEntity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")),
+                mergeEntity.getStatus());
     }
 }

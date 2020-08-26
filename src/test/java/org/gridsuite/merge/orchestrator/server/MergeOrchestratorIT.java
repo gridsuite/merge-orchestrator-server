@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -79,7 +80,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void test() {
-        ZonedDateTime dateTime = ZonedDateTime.parse("2019-05-01T10:00:00.000+01:00");
+        ZonedDateTime dateTime = ZonedDateTime.of(2019, 05, 01, 9, 00, 00, 00, ZoneId.of("UTC"));
 
         // send first, expect single TSO_IGM message
         Mockito.when(caseFetcherService.getCases(any(), any()))
@@ -180,7 +181,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("MERGE_PROCESS_FINISHED", mergeInfos.get(0).getStatus());
         assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
 
-        Optional<MergeInfos> mergeInfo = mergeOrchestratorService.getMerge("SWE", "2019-05-01T10:00:00.000+01:00");
+        Optional<MergeInfos> mergeInfo = mergeOrchestratorService.getMerge("SWE", ZonedDateTime.parse("2019-05-01T10:00:00.000+01:00"));
         assertTrue(mergeInfo.isPresent());
         assertEquals("SWE", mergeInfo.get().getProcess());
         assertEquals("MERGE_PROCESS_FINISHED", mergeInfo.get().getStatus());

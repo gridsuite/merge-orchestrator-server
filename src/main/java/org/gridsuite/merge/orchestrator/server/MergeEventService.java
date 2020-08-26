@@ -6,6 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -48,7 +50,9 @@ public class MergeEventService {
 
     public void addMergeEvent(String payload, String tso, String type, ZonedDateTime date,
                               UUID networkUuid, String process) {
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, date.toLocalDateTime()), type, networkUuid));
+        // Use of UTC Zone to store in cassandra database
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), type, networkUuid));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload(payload)
                 .setHeader("tso", tso)

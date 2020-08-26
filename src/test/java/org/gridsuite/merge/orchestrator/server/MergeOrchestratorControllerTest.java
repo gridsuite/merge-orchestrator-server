@@ -74,7 +74,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
 
     @Test
     public void test() throws Exception {
-        ZonedDateTime dateTime = ZonedDateTime.of(2020, 07, 20, 10, 00, 00, 00, ZoneId.systemDefault());
+        ZonedDateTime dateTime = ZonedDateTime.of(2020, 07, 20, 10, 00, 00, 00, ZoneId.of("UTC"));
         mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "TSO_IGM", uuid));
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
