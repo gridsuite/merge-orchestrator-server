@@ -13,6 +13,8 @@ import com.powsybl.iidm.import_.Importer;
 import com.powsybl.iidm.import_.Importers;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.NetworkFactory;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -60,18 +62,25 @@ public class CaseFetcherService {
         this.caseServerRest = restTemplate;
     }
 
-    public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime) {
-        // construct the search query
+    private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime) {
         StringBuilder query = new StringBuilder();
-        query.append("date:\"" + dateTime.format(DateTimeFormatter.ISO_INSTANT) + "\"")
-                .append(" AND geographicalCode:")
-                .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")).toString());
-
-        String path = UriComponentsBuilder.fromPath(DELIMITER + CASE_API_VERSION + "/cases/search")
-                .queryParam("q", query.toString())
-                .toUriString();
+        String formattedDate = dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
         try {
-            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(path, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
+            query.append("date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"")
+                    .append(" AND geographicalCode:")
+                    .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")));
+        } catch (UnsupportedEncodingException e) {
+            throw new PowsyblException(String.format("Error when encoding the date query string : %s", formattedDate));
+        }
+        return query.toString();
+    }
+
+    public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime) {
+        String uri = UriComponentsBuilder.fromPath(DELIMITER + CASE_API_VERSION + "/cases/search")
+                .queryParam("q", getSearchQuery(tsos, dateTime)).build().toUriString();
+
+        try {
+            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
             return responseEntity.getBody().stream().map(c -> new CaseInfos(c.get("name"), UUID.fromString(c.get("uuid")), c.get("format"))).collect(Collectors.toList());
         } catch (HttpStatusCodeException e) {
             LOGGER.error("Error searching cases: {}", e.getMessage());
