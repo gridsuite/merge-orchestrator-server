@@ -6,8 +6,13 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import com.powsybl.cases.datasource.CaseDataSourceClient;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.import_.Importer;
+import com.powsybl.iidm.import_.Importers;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.NetworkFactory;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -15,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,14 +34,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
-
-import com.powsybl.cases.datasource.CaseDataSourceClient;
-import com.powsybl.commons.PowsyblException;
-import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.import_.Importer;
-import com.powsybl.iidm.import_.Importers;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
@@ -64,27 +60,12 @@ public class CaseFetcherService {
         this.caseServerRest = restTemplate;
     }
 
-    private String getDateSearchTerm(ZonedDateTime dateTime) {
-        String formattedDate = dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
-        try {
-            return "date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"";
-        } catch (UnsupportedEncodingException e) {
-            throw new PowsyblException("Error when decoding the query string");
-        }
-    }
-
     public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime) {
         // construct the search query
         StringBuilder query = new StringBuilder();
-        query.append(getDateSearchTerm(dateTime)).append(" AND geographicalCode:(");
-        for (int i = 0; i < tsos.size() - 1; ++i) {
-            query.append(tsos.get(i))
-                    .append(" OR ");
-        }
-        if (!tsos.isEmpty()) {
-            query.append(tsos.get(tsos.size() - 1));
-        }
-        query.append(")");
+        query.append("date:\"" + dateTime.format(DateTimeFormatter.ISO_INSTANT) + "\"")
+                .append(" AND geographicalCode:")
+                .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")).toString());
 
         String path = UriComponentsBuilder.fromPath(DELIMITER + CASE_API_VERSION + "/cases/search")
                 .queryParam("q", query.toString())
