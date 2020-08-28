@@ -6,19 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.NetworkFactory;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
@@ -31,11 +20,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
-
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
-
 import reactor.core.publisher.Flux;
+
+import javax.annotation.PostConstruct;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -87,6 +82,17 @@ public class MergeOrchestratorService {
         this.mergeRepository = mergeRepository;
     }
 
+    @PostConstruct
+    public void logParameters() {
+        LOGGER.info("TSOs to merge: {}", getTsos());
+        LOGGER.info("Process: {}", process);
+        LOGGER.info("Run balance adjustment: {}", runBalancesAdjustment);
+    }
+
+    private List<String> getTsos() {
+        return mergeTsos != null ? Arrays.asList(mergeTsos.split(",")) : Collections.emptyList();
+    }
+
     @Bean
     public Consumer<Flux<Message<String>>> consumeNotification() {
         return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).subscribe(this::consume);
@@ -94,14 +100,14 @@ public class MergeOrchestratorService {
 
     public void consume(Message<String> message) {
         try {
-            List<String> tsos = Arrays.asList(mergeTsos.split(","));
+            List<String> tsos = getTsos();
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);
             String tso = (String) mh.get(GEO_CODE_HEADER_KEY);
 
             LOGGER.info("**** MERGE ORCHESTRATOR : message received : date={} tso={} ****", date, tso);
 
-            if (tso != null && tsos.contains(tso)) {
+            if (tsos.contains(tso)) {
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
