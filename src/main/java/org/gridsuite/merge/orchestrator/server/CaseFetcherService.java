@@ -6,6 +6,13 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.cases.datasource.CaseDataSourceClient;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.import_.Importer;
+import com.powsybl.iidm.import_.Importers;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.NetworkFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.time.ZonedDateTime;
@@ -15,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,14 +36,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
-
-import com.powsybl.cases.datasource.CaseDataSourceClient;
-import com.powsybl.commons.PowsyblException;
-import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.import_.Importer;
-import com.powsybl.iidm.import_.Importers;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
@@ -64,33 +62,25 @@ public class CaseFetcherService {
         this.caseServerRest = restTemplate;
     }
 
-    private String getDateSearchTerm(ZonedDateTime dateTime) {
+    private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime) {
+        StringBuilder query = new StringBuilder();
         String formattedDate = dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
         try {
-            return "date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"";
+            query.append("date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"")
+                    .append(" AND geographicalCode:")
+                    .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")));
         } catch (UnsupportedEncodingException e) {
-            throw new PowsyblException("Error when decoding the query string");
+            throw new PowsyblException(String.format("Error when encoding the date query string : %s", formattedDate));
         }
+        return query.toString();
     }
 
     public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime) {
-        // construct the search query
-        StringBuilder query = new StringBuilder();
-        query.append(getDateSearchTerm(dateTime)).append(" AND geographicalCode:(");
-        for (int i = 0; i < tsos.size() - 1; ++i) {
-            query.append(tsos.get(i))
-                    .append(" OR ");
-        }
-        if (!tsos.isEmpty()) {
-            query.append(tsos.get(tsos.size() - 1));
-        }
-        query.append(")");
+        String uri = UriComponentsBuilder.fromPath(DELIMITER + CASE_API_VERSION + "/cases/search")
+                .queryParam("q", getSearchQuery(tsos, dateTime)).build().toUriString();
 
-        String path = UriComponentsBuilder.fromPath(DELIMITER + CASE_API_VERSION + "/cases/search")
-                .queryParam("q", query.toString())
-                .toUriString();
         try {
-            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(path, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
+            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
             return responseEntity.getBody().stream().map(c -> new CaseInfos(c.get("name"), UUID.fromString(c.get("uuid")), c.get("format"))).collect(Collectors.toList());
         } catch (HttpStatusCodeException e) {
             LOGGER.error("Error searching cases: {}", e.getMessage());
