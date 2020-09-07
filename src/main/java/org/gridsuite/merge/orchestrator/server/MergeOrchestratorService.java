@@ -10,6 +10,7 @@ import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
@@ -52,8 +53,12 @@ public class MergeOrchestratorService {
             + ".input-broker-messages";
 
     private static final String DATE_HEADER_KEY         = "date";
-    private static final String GEO_CODE_HEADER_KEY     = "geographicalCode";
+    private static final String TSO_CODE_HEADER_KEY     = "tso";
     private static final String UUID_HEADER_KEY         = "uuid";
+    private static final String FORMAT_HEADER_KEY       = "format";
+    private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
+
+    private static final String ACCEPTED_FORMAT = "CGMES";
 
     private MergeRepository mergeRepository;
 
@@ -102,17 +107,23 @@ public class MergeOrchestratorService {
         return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).subscribe(this::consume);
     }
 
+    private boolean checkTso(List<String> tsos, String tso, String format, String businessProcess) {
+        return tsos.contains(tso) && StringUtils.equals(format, ACCEPTED_FORMAT) && StringUtils.isNotEmpty(businessProcess);
+    }
+
     public void consume(Message<String> message) {
         try {
             List<String> tsos = mergeConfigService.getTsos();
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);
-            String tso = (String) mh.get(GEO_CODE_HEADER_KEY);
+            String tso = (String) mh.get(TSO_CODE_HEADER_KEY);
             UUID caseUuid = UUID.fromString((String) mh.get(UUID_HEADER_KEY));
+            String format = (String) mh.get(FORMAT_HEADER_KEY);
+            String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
 
             LOGGER.info("**** MERGE ORCHESTRATOR : message received : date={} tso={} ****", date, tso);
 
-            if (tsos.contains(tso)) {
+            if (checkTso(tsos, tso, format, businessProcess)) {
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
@@ -132,8 +143,8 @@ public class MergeOrchestratorService {
 
                 mergeEventService.addMergeEvent("", tso, "QUALITY_CHECK_NETWORK_FINISHED", dateTime, networkUuid, mergeConfigService.getProcess());
 
-                // get cases from the case server that matches list of tsos and date
-                List<CaseInfos> list = caseFetcherService.getCases(tsos, dateTime);
+                // get cases from the case server that matches list of tsos, date, forecastDistance and format
+                List<CaseInfos> list = caseFetcherService.getCases(tsos, dateTime, format, businessProcess);
 
                 if (allTsosAvailable(list, tsos)) {
                     // all tsos are available for the merging process
@@ -148,14 +159,14 @@ public class MergeOrchestratorService {
                         Optional<IgmQualityInfos> quality = getIgmQuality(info.getUuid());
                         if (quality.isPresent()) {
                             if (quality.get().isValid()) {
-                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is OK ****", info.getGeographicalCode(), date);
+                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is OK ****", info.getTso(), date);
                                 listNetworks.add(networkStoreService.getNetwork(quality.get().getNetworkId(), PreloadingStrategy.COLLECTION));
                             } else {
-                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is NOT OK ****", info.getGeographicalCode(), date);
+                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is NOT OK ****", info.getTso(), date);
                                 allIGMsValid = false;
                             }
                         } else {
-                            LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is UNDEFINED ****", info.getGeographicalCode(), date);
+                            LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is UNDEFINED ****", info.getTso(), date);
                             allIGMsValid = false;
                         }
                     }
@@ -210,9 +221,9 @@ public class MergeOrchestratorService {
     }
 
     private boolean allTsosAvailable(List<CaseInfos> list, List<String> tsos) {
-        Set<String> setGeographicalCodes = list.stream().map(CaseInfos::getGeographicalCode).collect(Collectors.toSet());
-        return setGeographicalCodes.size() == tsos.size() &&
-                tsos.stream().allMatch(setGeographicalCodes::contains);
+        Set<String> setTsos = list.stream().map(CaseInfos::getTso).collect(Collectors.toSet());
+        return setTsos.size() == tsos.size() &&
+                tsos.stream().allMatch(setTsos::contains);
     }
 
     List<MergeInfos> getMergesList() {

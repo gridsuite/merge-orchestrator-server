@@ -16,16 +16,18 @@ public class CaseInfosTest {
     @Test
     public void test() {
         UUID uuid = UUID.randomUUID();
-        CaseInfos caseInfos = new CaseInfos("case", uuid, "XIIDM", "FR");
+        CaseInfos caseInfos = new CaseInfos("case", uuid, "XIIDM", "FR", "1D");
         assertEquals("XIIDM", caseInfos.getFormat());
         assertEquals("case", caseInfos.getName());
         assertEquals(uuid, caseInfos.getUuid());
-        assertEquals("FR", caseInfos.getGeographicalCode());
+        assertEquals("FR", caseInfos.getTso());
+        assertEquals("1D", caseInfos.getBusinessProcess());
 
         CaseInfos caseInfos2 = new CaseInfos();
         assertNull(caseInfos2.getFormat());
         assertNull(caseInfos2.getName());
         assertNull(caseInfos2.getUuid());
-        assertNull(caseInfos2.getGeographicalCode());
+        assertNull(caseInfos2.getTso());
+        assertNull(caseInfos2.getBusinessProcess());
     }
 }

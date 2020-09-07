@@ -67,22 +67,26 @@ public class CaseFetcherService {
         this.caseServerRest = restTemplate;
     }
 
-    private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime) {
+    private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {
         StringBuilder query = new StringBuilder();
         String formattedDate = dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
         try {
             query.append("date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"")
-                    .append(" AND geographicalCode:")
-                    .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")));
+                    .append(" AND tso:")
+                    .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")))
+                    .append(" AND format:")
+                    .append(format)
+                    .append(" AND businessProcess:")
+                    .append(businessProcess);
         } catch (UnsupportedEncodingException e) {
             throw new PowsyblException(String.format("Error when encoding the date query string : %s", formattedDate));
         }
         return query.toString();
     }
 
-    public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime) {
+    public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {
         String uri = UriComponentsBuilder.fromPath(DELIMITER + CASE_API_VERSION + "/cases/search")
-                .queryParam("q", getSearchQuery(tsos, dateTime)).build().toUriString();
+                .queryParam("q", getSearchQuery(tsos, dateTime, format, businessProcess)).build().toUriString();
 
         try {
             ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
@@ -91,7 +95,8 @@ public class CaseFetcherService {
                 return body.stream().map(c -> new CaseInfos(c.get("name"),
                         UUID.fromString(c.get("uuid")),
                         c.get("format"),
-                        c.get("geographicalCode")))
+                        c.get("tso"),
+                        c.get("businessProcess")))
                         .collect(Collectors.toList());
             } else {
                 LOGGER.error("Error searching cases: body is null {}", responseEntity);
