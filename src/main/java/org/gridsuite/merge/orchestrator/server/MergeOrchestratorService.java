@@ -121,7 +121,7 @@ public class MergeOrchestratorService {
             String format = (String) mh.get(FORMAT_HEADER_KEY);
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
 
-            LOGGER.info("**** MERGE ORCHESTRATOR : message received : date={} tso={} ****", date, tso);
+            LOGGER.info("**** MERGE ORCHESTRATOR : message received : date={} tso={} format={} businessProcess={} ****", date, tso, format, businessProcess);
 
             if (checkTso(tsos, tso, format, businessProcess)) {
                 // required tso received
