@@ -86,11 +86,15 @@ public class CaseFetcherService {
 
         try {
             ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
-            return responseEntity.getBody().stream().map(c -> new CaseInfos(c.get("name"),
-                    UUID.fromString(c.get("uuid")),
-                    c.get("format"),
-                    c.get("geographicalCode")))
-                    .collect(Collectors.toList());
+            if (responseEntity.getBody() == null) {
+                LOGGER.error("Error searching cases: body is null {}", responseEntity);
+            } else {
+                return responseEntity.getBody().stream().map(c -> new CaseInfos(c.get("name"),
+                        UUID.fromString(c.get("uuid")),
+                        c.get("format"),
+                        c.get("geographicalCode")))
+                        .collect(Collectors.toList());
+            }
         } catch (HttpStatusCodeException e) {
             LOGGER.error("Error searching cases: {}", e.getMessage());
         }
