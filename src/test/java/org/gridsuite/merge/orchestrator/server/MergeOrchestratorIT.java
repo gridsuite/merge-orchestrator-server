@@ -132,12 +132,14 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(true);
 
         // send first, expect single TSO_IGM message
-        Mockito.when(caseFetcherService.getCases(any(), any()))
-                .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR")));
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+                .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
         input.send(MessageBuilder.withPayload("")
-                .setHeader("geographicalCode", "FR")
+                .setHeader("tso", "FR")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
                 .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "1D")
                 .build());
         Message<byte[]> messageFrIGM = output.receive(1000);
         assertEquals("TSO_IGM", messageFrIGM.getHeaders().get("type"));
@@ -153,14 +155,16 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(dateTime.toLocalDateTime(), savedFr.get(0).getKey().getDate());
 
         // send second, expect single TSO_IGM message
-        Mockito.when(caseFetcherService.getCases(any(), any()))
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(
-                        List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR"),
-                                new CaseInfos("es", UUID_CASE_ID_ES, "", "ES")));
+                        List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D"),
+                                new CaseInfos("es", UUID_CASE_ID_ES, "", "ES", "1D")));
         input.send(MessageBuilder.withPayload("")
-                .setHeader("geographicalCode", "ES")
+                .setHeader("tso", "ES")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
                 .setHeader("uuid", UUID_CASE_ID_ES.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "1D")
                 .build());
         Message<byte[]> messageEsIGM = output.receive(1000);
         assertEquals("TSO_IGM", messageEsIGM.getHeaders().get("type"));
@@ -177,25 +181,29 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send out of scope tso, expect empty
         input.send(MessageBuilder.withPayload("")
-                .setHeader("geographicalCode", "XX")
+                .setHeader("tso", "XX")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
                 .setHeader("uuid", UUID_CASE_ID_UNKNOWN.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "1D")
                 .build());
         assertNull(output.receive(1000));
 
         // send third, expect TSO_IGM message, MERGE_STARTED and MERGE_FINISHED messages
-        Mockito.when(caseFetcherService.getCases(any(), any()))
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(
-                        new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR"),
-                        new CaseInfos("es", UUID_CASE_ID_ES, "", "ES"),
-                        new CaseInfos("pt", UUID_CASE_ID_PT, "", "PT")));
+                        new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D"),
+                        new CaseInfos("es", UUID_CASE_ID_ES, "", "ES", "1D"),
+                        new CaseInfos("pt", UUID_CASE_ID_PT, "", "PT", "1D")));
 
         UUID mergedUuid = UUID.randomUUID();
         Mockito.when(copyToNetworkStoreService.copy(any())).thenReturn(mergedUuid);
         input.send(MessageBuilder.withPayload("")
-                .setHeader("geographicalCode", "PT")
+                .setHeader("tso", "PT")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
                 .setHeader("uuid", UUID_CASE_ID_PT.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "1D")
                 .build());
         Message<byte[]> messagePrIGM = output.receive(1000);
         assertEquals("TSO_IGM", messagePrIGM.getHeaders().get("type"));

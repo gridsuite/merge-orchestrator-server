@@ -24,5 +24,6 @@ public class CaseInfos {
     private String   name;
     private UUID     uuid;
     private String   format;
-    private String   geographicalCode;
+    private String   tso;
+    private String   businessProcess;
 }
