@@ -15,19 +15,20 @@ import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
-import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -59,38 +60,22 @@ public class MergeOrchestratorService {
 
     private MergeEventService mergeEventService;
 
-    @Value("${parameters.tsos}")
-    private String mergeTsos;
-
-    @Value("${parameters.process}")
-    private String process;
-
-    @Value("${parameters.run-balances-adjustment}")
-    private boolean runBalancesAdjustment;
+    private MergeOrchestratorConfigService mergeConfigService;
 
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     CopyToNetworkStoreService copyToNetworkStoreService,
                                     MergeEventService mergeEventService,
                                     LoadFlowService loadFlowService,
-                                    MergeRepository mergeRepository) {
+                                    MergeRepository mergeRepository,
+                                    MergeOrchestratorConfigService mergeConfigService) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.copyToNetworkStoreService = copyToNetworkStoreService;
         this.mergeEventService = mergeEventService;
         this.loadFlowService = loadFlowService;
         this.mergeRepository = mergeRepository;
-    }
-
-    @PostConstruct
-    public void logParameters() {
-        LOGGER.info("TSOs to merge: {}", getTsos());
-        LOGGER.info("Process: {}", process);
-        LOGGER.info("Run balance adjustment: {}", runBalancesAdjustment);
-    }
-
-    private List<String> getTsos() {
-        return mergeTsos != null ? Arrays.asList(mergeTsos.split(",")) : Collections.emptyList();
+        this.mergeConfigService = mergeConfigService;
     }
 
     @Bean
@@ -100,7 +85,7 @@ public class MergeOrchestratorService {
 
     public void consume(Message<String> message) {
         try {
-            List<String> tsos = getTsos();
+            List<String> tsos = mergeConfigService.getTsos();
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);
             String tso = (String) mh.get(GEO_CODE_HEADER_KEY);
@@ -111,18 +96,18 @@ public class MergeOrchestratorService {
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
-                mergeEventService.addMergeEvent("", tso, "TSO_IGM", dateTime, null, process);
+                mergeEventService.addMergeEvent("", tso, "TSO_IGM", dateTime, null, mergeConfigService.getProcess());
 
                 List<CaseInfos> list = caseFetcherService.getCases(tsos, dateTime);
 
                 if (list.size() == tsos.size()) {
                     // all tsos are available for the merging process
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_STARTED", dateTime, null, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_STARTED", dateTime, null, mergeConfigService.getProcess());
 
                     // creation of an empty merge network
                     Network merged = NetworkFactory.findDefault().createNetwork("merged", "iidm");
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_STARTED", dateTime, null, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_STARTED", dateTime, null, mergeConfigService.getProcess());
 
                     // merge of the tsos networks into merge network
                     List<Network> listNetworks = new ArrayList<>();
@@ -132,39 +117,39 @@ public class MergeOrchestratorService {
                         listNetworks.add(network);
                     }
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_FINISHED", dateTime, null, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "READ_NETWORKS_FINISHED", dateTime, null, mergeConfigService.getProcess());
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : merging cases ******");
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_STARTED", dateTime, null, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_STARTED", dateTime, null, mergeConfigService.getProcess());
 
                     merged.merge(listNetworks.toArray(new Network[listNetworks.size()]));
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_FINISHED", dateTime, null, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_FINISHED", dateTime, null, mergeConfigService.getProcess());
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : copy to network store ******");
 
                     // store the merge network in the network store
                     UUID mergeUuid = copyToNetworkStoreService.copy(merged);
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGED_NETWORK_STORED", dateTime, mergeUuid, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGED_NETWORK_STORED", dateTime, mergeUuid, mergeConfigService.getProcess());
 
-                    if (runBalancesAdjustment) {
+                    if (mergeConfigService.isRunBalancesAdjustment()) {
                         // balances adjustment on the merge network
                         LOGGER.info("**** MERGE ORCHESTRATOR : balances adjustment ******");
-                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_STARTED", dateTime, mergeUuid, process);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_STARTED", dateTime, mergeUuid, mergeConfigService.getProcess());
                         balancesAdjustmentService.doBalance(mergeUuid);
-                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_FINISHED", dateTime, mergeUuid, process);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_FINISHED", dateTime, mergeUuid, mergeConfigService.getProcess());
 
                     } else {
                         // load flow on the merged network
                         LOGGER.info("**** MERGE ORCHESTRATOR : load flow ******");
-                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_STARTED", dateTime, mergeUuid, process);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_STARTED", dateTime, mergeUuid, mergeConfigService.getProcess());
                         loadFlowService.run(mergeUuid);
-                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_FINISHED", dateTime, mergeUuid, process);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_FINISHED", dateTime, mergeUuid, mergeConfigService.getProcess());
                     }
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_FINISHED", dateTime, mergeUuid, process);
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_FINISHED", dateTime, mergeUuid, mergeConfigService.getProcess());
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : end ******");
                 }
