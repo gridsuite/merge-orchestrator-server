@@ -36,26 +36,6 @@ jobs:
       - name: Build and install single line diagram with Maven
         run: mvn --batch-mode -DskipTests=true --file ../powsybl-single-line-diagram/pom.xml install
 
-################### TEMPORARY ################################
-      - name: Checkout powsybl core sources from branch integration/mergingview
-        uses: actions/checkout@v1
-        with:
-          repository: powsybl/powsybl-core
-          ref: refs/heads/integration/mergingview
-
-      - name: Build and install powsybl core with Maven
-        run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install
-
-      - name: Checkout network store sources from branch fix_mergingview_loadflow
-        uses: actions/checkout@v1
-        with:
-          repository: powsybl/powsybl-network-store
-          ref: refs/heads/fix_mergingview_loadflow
-
-      - name: Build and install network store client with Maven
-        run: mvn --batch-mode -Pclient -DskipTests=true --file ../powsybl-network-store/pom.xml install
-###############################################################
-
       - name: Checkout sources
         uses: actions/checkout@v1
 
