@@ -14,15 +14,18 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@Getter
+
 @AllArgsConstructor
 @NoArgsConstructor
-@ApiModel("Case infos")
-public class CaseInfos {
-    private String   name;
-    private UUID     uuid;
-    private String   format;
-    private String   geographicalCode;
+@Getter
+@ApiModel("IGM quality attributes")
+public class IgmQualityInfos {
+
+    private UUID caseUuid;
+
+    private UUID networkId;
+
+    private boolean valid;
 }

@@ -8,11 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.cases.datasource.CaseDataSourceClient;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.import_.Importer;
-import com.powsybl.iidm.import_.Importers;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.time.ZonedDateTime;
@@ -22,12 +18,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -36,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
@@ -43,6 +43,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Service
+@ComponentScan(basePackageClasses = { NetworkStoreService.class })
 public class CaseFetcherService {
     private static final Logger LOGGER = LoggerFactory.getLogger(CaseFetcherService.class);
 
@@ -51,9 +52,13 @@ public class CaseFetcherService {
 
     private RestTemplate caseServerRest;
 
+    private NetworkStoreService networkStoreService;
+
     @Autowired
-    public CaseFetcherService(RestTemplateBuilder builder,
-            @Value("${backing-services.case-server.base-uri:http://case-server/}") String caseServerBaseUri) {
+    public CaseFetcherService(NetworkStoreService networkStoreService,
+                              RestTemplateBuilder builder,
+                              @Value("${backing-services.case-server.base-uri:http://case-server/}") String caseServerBaseUri) {
+        this.networkStoreService = networkStoreService;
         this.caseServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseServerBaseUri))
                 .build();
     }
@@ -81,25 +86,25 @@ public class CaseFetcherService {
 
         try {
             ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
-            return responseEntity.getBody().stream().map(c -> new CaseInfos(c.get("name"), UUID.fromString(c.get("uuid")), c.get("format"))).collect(Collectors.toList());
+            List<Map<String, String>> body = responseEntity.getBody();
+            if (body != null) {
+                return body.stream().map(c -> new CaseInfos(c.get("name"),
+                        UUID.fromString(c.get("uuid")),
+                        c.get("format"),
+                        c.get("geographicalCode")))
+                        .collect(Collectors.toList());
+            } else {
+                LOGGER.error("Error searching cases: body is null {}", responseEntity);
+            }
         } catch (HttpStatusCodeException e) {
             LOGGER.error("Error searching cases: {}", e.getMessage());
         }
         return Collections.emptyList();
     }
 
-    public Network getCase(UUID caseUuid) {
+    public UUID importCase(UUID caseUuid) {
         CaseDataSourceClient dataSource = new CaseDataSourceClient(caseServerRest, caseUuid);
-        Importer importer = Importers.findImporter(dataSource, LocalComputationManager.getDefault());
-        if (importer == null) {
-            throw new PowsyblException("No importer found");
-        }
-        Network network = null;
-        try {
-            network = importer.importData(dataSource, NetworkFactory.findDefault(), null);
-        } catch (Exception e) {
-            LOGGER.error("Error fetching case: {}", e.getMessage());
-        }
-        return network;
+        Network network = networkStoreService.importNetwork(dataSource);
+        return networkStoreService.getNetworkUuid(network);
     }
 }

@@ -6,3 +6,11 @@ CREATE TABLE merge_orchestrator.merges (
     PRIMARY KEY (process, date)
 );
 
+CREATE TABLE merge_orchestrator.igms_qualities (
+    caseUuid uuid,
+    networkUuid uuid,
+    date timestamp,
+    valid boolean,
+    PRIMARY KEY (caseUuid)
+);
+

@@ -23,6 +23,8 @@ backing-services:
     base-uri: http://localhost:5010
   loadflow-server:
     base-uri: http://localhost:5008
+  case-validation-server:
+    base-uri: http://localhost:5011
 
 network-store-server:
   preloading-strategy: COLLECTION

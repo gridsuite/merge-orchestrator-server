@@ -6,6 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
@@ -50,6 +52,12 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Inject
     MergeRepository mergeRepository;
 
+    @Inject
+    IgmQualityRepository igmQualityRepository;
+
+    @MockBean
+    private IgmQualityCheckService igmQualityCheckService;
+
     @MockBean
     private CaseFetcherService caseFetcherService;
 
@@ -71,6 +79,9 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     }
 
     private UUID uuid = UUID.randomUUID();
+
+    private static final UUID UUID_CASE = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    private static final UUID UUID_NETWORK = UUID.fromString("3f9985d2-94f5-4a5f-8e5a-ee218525d656");
 
     @Test
     public void configTest() throws Exception {
@@ -106,6 +117,15 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
         resExpected = "{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"MERGE_STARTED\"}";
         mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "MERGE_STARTED", null));
         result = mvc.perform(get("/" + VERSION + "/merges/swe/" + URLEncoder.encode(formatter.format(dateTime), "UTF-8"))
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andReturn();
+        assertEquals(resExpected, result.getResponse().getContentAsString());
+
+        resExpected = "{\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e4\",\"networkId\":\"3f9985d2-94f5-4a5f-8e5a-ee218525d656\",\"valid\":true}";
+        igmQualityRepository.insert(new IgmQualityEntity(UUID_CASE, UUID_NETWORK, dateTime.toLocalDateTime(), true));
+        result = mvc.perform(get("/" + VERSION + "/merges/" + UUID_CASE.toString() + "/quality")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
