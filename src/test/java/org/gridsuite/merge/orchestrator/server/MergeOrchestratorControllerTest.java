@@ -73,6 +73,15 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     private UUID uuid = UUID.randomUUID();
 
     @Test
+    public void configTest() throws Exception {
+        mvc.perform(get("/" + VERSION + "/configs")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(content().json("[{\"process\":\"SWE\",\"tsos\":[\"FR\",\"ES\",\"PT\"]}]"));
+    }
+
+    @Test
     public void test() throws Exception {
         ZonedDateTime dateTime = ZonedDateTime.of(2020, 07, 20, 10, 00, 00, 00, ZoneId.of("UTC"));
         mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "TSO_IGM", uuid));
