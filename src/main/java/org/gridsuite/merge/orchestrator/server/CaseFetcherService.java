@@ -86,8 +86,9 @@ public class CaseFetcherService {
 
         try {
             ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
-            if (responseEntity.getBody() != null) {
-                return responseEntity.getBody().stream().map(c -> new CaseInfos(c.get("name"),
+            List<Map<String, String>> body = responseEntity.getBody();
+            if (body != null) {
+                return body.stream().map(c -> new CaseInfos(c.get("name"),
                         UUID.fromString(c.get("uuid")),
                         c.get("format"),
                         c.get("geographicalCode")))
