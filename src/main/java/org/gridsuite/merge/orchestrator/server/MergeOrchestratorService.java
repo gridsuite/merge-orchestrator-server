@@ -56,8 +56,6 @@ public class MergeOrchestratorService {
 
     private static final String ACCEPTED_FORMAT = "CGMES";
 
-    private ParametersRepository parametersRepository;
-
     private MergeRepository mergeRepository;
 
     private IgmQualityRepository igmQualityRepository;
@@ -257,17 +255,5 @@ public class MergeOrchestratorService {
 
     private IgmQualityInfos toQualityInfo(IgmQualityEntity qualityEntity) {
         return new IgmQualityInfos(qualityEntity.getCaseUuid(), qualityEntity.getNetworkUuid(), qualityEntity.isValid());
-    }
-
-    List<ParametersEntity> getParameters() {
-        return parametersRepository.findAll();
-    }
-
-    Optional<ParametersEntity> getParametersByProcess(String process) {
-        return parametersRepository.findById(process);
-    }
-
-    void addParameters(ParametersEntity parametersEntity) {
-        parametersRepository.save(parametersEntity);
     }
 }

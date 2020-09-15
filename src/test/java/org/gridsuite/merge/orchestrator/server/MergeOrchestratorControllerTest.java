@@ -6,11 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,6 +25,7 @@ import java.net.URLEncoder;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
@@ -55,6 +52,9 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Inject
     IgmQualityRepository igmQualityRepository;
 
+    @Inject
+    ParametersRepository parametersRepository;
+
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
 
@@ -76,6 +76,11 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        ArrayList<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
+        parametersRepository.save(new ParametersEntity("SWE", tsos, false));
     }
 
     private UUID uuid = UUID.randomUUID();

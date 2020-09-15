@@ -26,39 +26,39 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/" + MergeOrchestratorApi.API_VERSION)
 @Transactional
-@Api(value = "Merge orchestrator config processes")
+@Api(value = "Merge orchestrator parameters")
 @ComponentScan(basePackageClasses = MergeOrchestratorService.class)
 public class ParametersConfigController {
 
-    private final MergeOrchestratorService mergeOrchestratorService;
+    private final MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
-    public ParametersConfigController(MergeOrchestratorService mergeOrchestratorService) {
-        this.mergeOrchestratorService = mergeOrchestratorService;
+    public ParametersConfigController(MergeOrchestratorConfigService mergeOrchestratorConfigService) {
+        this.mergeOrchestratorConfigService = mergeOrchestratorConfigService;
     }
 
-    @GetMapping(value = "/parameters", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/configs", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Get all merge configurations", response = List.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of all merge configurations")})
     public ResponseEntity<List<ParametersEntity>> getMerges() {
-        List<ParametersEntity> configs = mergeOrchestratorService.getParameters();
+        List<ParametersEntity> configs = mergeOrchestratorConfigService.getParameters();
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(configs);
     }
 
-    @GetMapping(value = "/parameters/{process}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/configs/{process}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Get merge configuration by process", response = List.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The merge configurations by the process")})
     public ResponseEntity<ParametersEntity> getMerges(@PathVariable String process) {
-        ParametersEntity config = mergeOrchestratorService.getParametersByProcess(process).orElse(null);
+        ParametersEntity config = mergeOrchestratorConfigService.getParametersByProcess(process).orElse(null);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(config);
     }
 
-    @PostMapping(value = "/parameters")
+    @PostMapping(value = "/configs")
     @ApiOperation(value = "add a new merge process")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "The new merge process added"),
             @ApiResponse(code = 409, message = "The study already exist or the case doesn't exists")})
     public ResponseEntity<Void> createStudyFromExistingCase(@RequestBody ParametersEntity parametersEntity) {
-        mergeOrchestratorService.addParameters(parametersEntity);
+        mergeOrchestratorConfigService.addParameters(parametersEntity);
         return ResponseEntity.ok().build();
     }
 

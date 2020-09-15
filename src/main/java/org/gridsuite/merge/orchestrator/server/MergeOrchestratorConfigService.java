@@ -6,6 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.gridsuite.merge.orchestrator.server.repositories.ParametersEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.ParametersRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +17,7 @@ import javax.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,6 +27,8 @@ public class MergeOrchestratorConfigService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorConfigService.class);
 
+    private final ParametersRepository parametersRepository;
+
     @Value("${parameters.tsos}")
     private String mergeTsos;
 
@@ -32,6 +37,10 @@ public class MergeOrchestratorConfigService {
 
     @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
+
+    public MergeOrchestratorConfigService(ParametersRepository parametersRepository) {
+        this.parametersRepository = parametersRepository;
+    }
 
     @PostConstruct
     public void logParameters() {
@@ -50,5 +59,17 @@ public class MergeOrchestratorConfigService {
 
     public boolean isRunBalancesAdjustment() {
         return runBalancesAdjustment;
+    }
+
+    List<ParametersEntity> getParameters() {
+        return parametersRepository.findAll();
+    }
+
+    Optional<ParametersEntity> getParametersByProcess(String process) {
+        return parametersRepository.findById(process);
+    }
+
+    void addParameters(ParametersEntity parametersEntity) {
+        parametersRepository.save(parametersEntity);
     }
 }
