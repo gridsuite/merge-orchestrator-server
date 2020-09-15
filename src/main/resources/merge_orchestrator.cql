@@ -14,3 +14,11 @@ CREATE TABLE merge_orchestrator.igms_qualities (
     PRIMARY KEY (caseUuid)
 );
 
+
+CREATE TABLE merge_orchestrator.parameters (
+    process text,
+    tsos frozen<List<text>>,
+    runBalancesAdjustment boolean,
+    PRIMARY KEY (process)
+);
+

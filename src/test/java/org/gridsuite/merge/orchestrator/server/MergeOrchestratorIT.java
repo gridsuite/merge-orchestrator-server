@@ -14,9 +14,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import javax.inject.Inject;
 
@@ -25,9 +23,7 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -68,6 +64,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Inject
     IgmQualityRepository igmQualityRepository;
+
+    @Inject
+    ParametersRepository parametersRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -286,5 +285,21 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertFalse(qualityInfo.isPresent());
 
         assertNull(output.receive(1000));
+    }
+
+    @Test
+    public void parametersRepositoryTest() {
+        assertEquals(parametersRepository.findAll().size(), 0);
+        List<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
+        ParametersEntity parametersEntity = new ParametersEntity("SWE", tsos, false);
+        parametersRepository.save(parametersEntity);
+        assertEquals(1, parametersRepository.findAll().size());
+        assertTrue(parametersRepository.findById("SWE").isPresent());
+        assertEquals("SWE", parametersRepository.findById("SWE").get().getProcess());
+        assertFalse(parametersRepository.findById("SWE").get().isRunBalancesAdjustment());
+        assertEquals(3, parametersRepository.findById("SWE").get().getTsos().size());
     }
 }

@@ -14,11 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
 import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -59,6 +55,8 @@ public class MergeOrchestratorService {
     private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
 
     private static final String ACCEPTED_FORMAT = "CGMES";
+
+    private ParametersRepository parametersRepository;
 
     private MergeRepository mergeRepository;
 
@@ -259,5 +257,17 @@ public class MergeOrchestratorService {
 
     private IgmQualityInfos toQualityInfo(IgmQualityEntity qualityEntity) {
         return new IgmQualityInfos(qualityEntity.getCaseUuid(), qualityEntity.getNetworkUuid(), qualityEntity.isValid());
+    }
+
+    List<ParametersEntity> getParameters() {
+        return parametersRepository.findAll();
+    }
+
+    Optional<ParametersEntity> getParametersByProcess(String process) {
+        return parametersRepository.findById(process);
+    }
+
+    void addParameters(ParametersEntity parametersEntity) {
+        parametersRepository.save(parametersEntity);
     }
 }
