@@ -8,6 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.UUID;
 
 import com.powsybl.commons.PowsyblException;
@@ -26,6 +27,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -35,6 +37,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 public class BalancesAdjustmentService {
 
     private static final String BALANCE_ADJUSTEMENT_API_VERSION = "v1";
+    private static final String DELIMITER = "/";
 
     private RestTemplate balancesAdjustmentServerRest;
 
@@ -50,7 +53,7 @@ public class BalancesAdjustmentService {
         this.balancesAdjustmentServerRest = restTemplate;
     }
 
-    public String doBalance(UUID networkUuid) {
+    public String doBalance(List<UUID> networksIds) {
         try {
             File targetNetPositionsFile = ResourceUtils.getFile("classpath:targetNetPositions.json");
 
@@ -63,11 +66,17 @@ public class BalancesAdjustmentService {
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<String> res = balancesAdjustmentServerRest.exchange(BALANCE_ADJUSTEMENT_API_VERSION + "/networks/{networkUuid}/run",
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + BALANCE_ADJUSTEMENT_API_VERSION + "/networks/{networkUuid}/run");
+            for (int i = 1; i < networksIds.size(); ++i) {
+                uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
+            }
+            String uri = uriBuilder.build().toUriString();
+
+            ResponseEntity<String> res = balancesAdjustmentServerRest.exchange(uri,
                     HttpMethod.PUT,
                     requestEntity,
                     String.class,
-                    networkUuid.toString());
+                    networksIds.get(0).toString());
             return res.getBody();
         } catch (FileNotFoundException e) {
             throw new PowsyblException("No target net positions file found");
