@@ -6,14 +6,12 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.commons.PowsyblException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.gridsuite.merge.orchestrator.server.dto.MergeConfig;
-import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
-import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
+import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +21,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -54,52 +51,30 @@ public class MergeOrchestratorController {
     @GetMapping(value = "/configs", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Get all merge configurations", response = List.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of all merge configurations")})
-    public ResponseEntity<List<MergeConfig>> getMerges() {
+    public ResponseEntity<List<MergeConfig>> getConfigs() {
         List<MergeConfig> configs = Collections.singletonList(new MergeConfig(mergeConfigService.getProcess(), mergeConfigService.getTsos()));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(configs);
     }
 
-    @GetMapping(value = "/merges", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Get all merges", response = List.class)
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of all merges")})
-    public ResponseEntity<List<MergeInfos>> getMergesList() {
-        List<MergeInfos> merges = mergeOrchestratorService.getMergesList();
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(merges);
-    }
-
-    @GetMapping(value = "/merges/{process}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "{process}/merges", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Get all merges for a process", response = List.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of all merges for a process")})
-    public ResponseEntity<List<MergeInfos>> getProcessMergesList(@PathVariable("process") String process) {
-        List<MergeInfos> merges = mergeOrchestratorService.getProcessMergesList(process);
+    public ResponseEntity<List<Merge>> getMerges(@PathVariable("process") String process) {
+        List<Merge> merges = mergeOrchestratorService.getMerges(process);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(merges);
     }
 
-    @GetMapping(value = "/merges/{process}/{date}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "get a merge by process and date", response = MergeInfos.class)
+    @GetMapping(value = "{process}/merges/{date}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "get a merge by process and date", response = Merge.class)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "The merge information"),
             @ApiResponse(code = 404, message = "The merge doesn't exist")})
-    public ResponseEntity<MergeInfos> getMerge(@PathVariable("process") String process,
-                                               @PathVariable("date") String date) {
-        try {
-            String decodedDate = URLDecoder.decode(date, "UTF-8");
-            ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
-            Optional<MergeInfos> merge = mergeOrchestratorService.getMerge(process, dateTime);
-            return ResponseEntity.of(merge);
-        } catch (UnsupportedEncodingException e) {
-            throw new PowsyblException("Error parsing date");
-        }
-    }
-
-    @GetMapping(value = "/merges/{caseUuid}/quality", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "get the igm quality", response = IgmQualityInfos.class)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "The quality information"),
-            @ApiResponse(code = 404, message = "The case doesn't exist")})
-    public ResponseEntity<IgmQualityInfos> getIgmQuality(@PathVariable("caseUuid") String caseId) {
-        Optional<IgmQualityInfos> quality = mergeOrchestratorService.getIgmQuality(UUID.fromString(caseId));
-        return ResponseEntity.of(quality);
+    public ResponseEntity<Merge> getMerge(@PathVariable("process") String process,
+                                          @PathVariable("date") String date) {
+        String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
+        ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
+        Optional<Merge> merge = mergeOrchestratorService.getMerge(process, dateTime);
+        return ResponseEntity.of(merge);
     }
 }
 

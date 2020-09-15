@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -21,11 +22,13 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor
 @Getter
 @ApiModel("Merge attributes")
-public class MergeInfos {
+public class Merge {
 
     String process;
 
     ZonedDateTime date;
 
-    String status;
+    MergeStatus status;
+
+    List<Igm> igms;
 }

@@ -20,6 +20,6 @@ import java.util.List;
 @Repository
 public interface MergeRepository extends CassandraRepository<MergeEntity, MergeEntityKey> {
 
-    @Query("SELECT * FROM merges WHERE process = :process")
+    @Query("SELECT * FROM merge WHERE process = :process")
     List<MergeEntity> findByProcess(@Param("process") String process);
 }

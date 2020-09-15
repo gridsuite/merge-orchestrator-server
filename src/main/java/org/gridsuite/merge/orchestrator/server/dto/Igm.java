@@ -11,8 +11,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
@@ -20,12 +18,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
-@ApiModel("IGM quality attributes")
-public class IgmQualityInfos {
+@ApiModel("IGM attributes")
+public class Igm {
 
-    private UUID caseUuid;
+    String tso;
 
-    private UUID networkId;
-
-    private boolean valid;
+    IgmStatus status;
 }

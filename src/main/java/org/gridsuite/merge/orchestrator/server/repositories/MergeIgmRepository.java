@@ -7,13 +7,22 @@
 package org.gridsuite.merge.orchestrator.server.repositories;
 
 import org.springframework.data.cassandra.repository.CassandraRepository;
+import org.springframework.data.cassandra.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Repository
-public interface IgmQualityRepository extends CassandraRepository<IgmQualityEntity, UUID> {
+public interface MergeIgmRepository extends CassandraRepository<MergeIgmEntity, UUID> {
+
+    @Query("SELECT * FROM merge_igm WHERE process = :process")
+    List<MergeIgmEntity> findByProcess(String process);
+
+    @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date")
+    List<MergeIgmEntity> findByProcessAndDate(String process, LocalDateTime date);
 }

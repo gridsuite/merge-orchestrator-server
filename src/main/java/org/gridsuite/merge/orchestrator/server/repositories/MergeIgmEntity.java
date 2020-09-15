@@ -10,29 +10,28 @@ import lombok.Getter;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Getter
-@Table("igms_qualities")
-public class IgmQualityEntity {
+@Table("merge_igm")
+public class MergeIgmEntity {
 
     @PrimaryKey
-    private UUID caseUuid;
+    private MergeEntityKey key;
+
+    private String tso;
+
+    private String status;
 
     private UUID networkUuid;
 
-    private LocalDateTime date;
-
-    private boolean valid;
-
-    public IgmQualityEntity(UUID caseUuid, UUID networkUuid, LocalDateTime date, boolean valid) {
-        this.caseUuid = caseUuid;
+    public MergeIgmEntity(MergeEntityKey key, String tso, String status, UUID networkUuid) {
+        this.key = key;
+        this.tso = tso;
+        this.status = status;
         this.networkUuid = networkUuid;
-        this.date = date;
-        this.valid = valid;
     }
 }
