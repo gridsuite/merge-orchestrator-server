@@ -18,11 +18,11 @@ import java.util.UUID;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Repository
-public interface MergeIgmRepository extends CassandraRepository<MergeIgmEntity, UUID> {
+public interface IgmRepository extends CassandraRepository<IgmEntity, UUID> {
 
     @Query("SELECT * FROM merge_igm WHERE process = :process")
-    List<MergeIgmEntity> findByProcess(String process);
+    List<IgmEntity> findByProcess(String process);
 
     @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date")
-    List<MergeIgmEntity> findByProcessAndDate(String process, LocalDateTime date);
+    List<IgmEntity> findByProcessAndDate(String process, LocalDateTime date);
 }

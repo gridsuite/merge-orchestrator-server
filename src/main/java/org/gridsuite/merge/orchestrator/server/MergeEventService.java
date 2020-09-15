@@ -37,7 +37,7 @@ public class MergeEventService {
 
     private MergeRepository mergeRepository;
 
-    private MergeIgmRepository mergeIgmRepository;
+    private IgmRepository igmRepository;
 
     private final EmitterProcessor<Message<String>> mergeInfosPublisher = EmitterProcessor.create();
 
@@ -46,16 +46,16 @@ public class MergeEventService {
         return () -> mergeInfosPublisher.log(CATEGORY_BROKER_OUTPUT, Level.FINE);
     }
 
-    public MergeEventService(MergeRepository mergeRepository, MergeIgmRepository mergeIgmRepository) {
+    public MergeEventService(MergeRepository mergeRepository, IgmRepository igmRepository) {
         this.mergeRepository = mergeRepository;
-        this.mergeIgmRepository = mergeIgmRepository;
+        this.igmRepository = igmRepository;
     }
 
     public void addMergeIgmEvent(String process, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), null));
-        mergeIgmRepository.save(new MergeIgmEntity(new MergeEntityKey(process, localDateTime), tso, status.name(), networkUuid));
+        igmRepository.save(new IgmEntity(new MergeEntityKey(process, localDateTime), tso, status.name(), networkUuid));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
                 .setHeader("process", process)

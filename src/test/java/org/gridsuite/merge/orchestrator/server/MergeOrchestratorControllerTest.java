@@ -51,7 +51,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     MergeRepository mergeRepository;
 
     @Inject
-    MergeIgmRepository mergeIgmRepository;
+    IgmRepository igmRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -86,7 +86,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     public void test() throws Exception {
         ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 10, 0, 0, 0, ZoneId.of("UTC"));
         mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
-        mergeIgmRepository.insert(new MergeIgmEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "FR", IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
+        igmRepository.insert(new IgmEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "FR", IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
         String resExpected = "[{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";

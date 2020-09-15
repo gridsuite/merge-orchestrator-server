@@ -51,7 +51,7 @@ public class MergeOrchestratorService {
 
     private MergeRepository mergeRepository;
 
-    private MergeIgmRepository mergeIgmRepository;
+    private IgmRepository igmRepository;
 
     private CaseFetcherService caseFetcherService;
 
@@ -71,7 +71,7 @@ public class MergeOrchestratorService {
                                     LoadFlowService loadFlowService,
                                     IgmQualityCheckService igmQualityCheckService,
                                     MergeRepository mergeRepository,
-                                    MergeIgmRepository mergeIgmRepository,
+                                    IgmRepository igmRepository,
                                     MergeOrchestratorConfigService mergeConfigService) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
@@ -80,7 +80,7 @@ public class MergeOrchestratorService {
         this.igmQualityCheckService = igmQualityCheckService;
         this.mergeRepository = mergeRepository;
         this.mergeConfigService = mergeConfigService;
-        this.mergeIgmRepository = mergeIgmRepository;
+        this.igmRepository = igmRepository;
     }
 
     @Bean
@@ -156,9 +156,9 @@ public class MergeOrchestratorService {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
 
-        return mergeIgmRepository.findByProcessAndDate(mergeConfigService.getProcess(), localDateTime).stream()
+        return igmRepository.findByProcessAndDate(mergeConfigService.getProcess(), localDateTime).stream()
                 .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
-                .map(MergeIgmEntity::getNetworkUuid)
+                .map(IgmEntity::getNetworkUuid)
                 .collect(Collectors.toList());
     }
 
@@ -168,7 +168,7 @@ public class MergeOrchestratorService {
                 .collect(Collectors.toMap(Merge::getDate, merge -> merge, (v1, v2) -> {
                     throw new IllegalStateException();
                 }, TreeMap::new));
-        for (MergeIgmEntity entity : mergeIgmRepository.findByProcess(process)) {
+        for (IgmEntity entity : igmRepository.findByProcess(process)) {
             ZonedDateTime date = ZonedDateTime.ofInstant(entity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
             mergesByDate.get(date).getIgms().add(toIgm(entity));
         }
@@ -180,14 +180,14 @@ public class MergeOrchestratorService {
         return mergeRepository.findById(new MergeEntityKey(process, localDateTime))
                 .map(MergeOrchestratorService::toMerge)
                 .map(merge -> {
-                    for (MergeIgmEntity entity : mergeIgmRepository.findByProcessAndDate(process, localDateTime)) {
+                    for (IgmEntity entity : igmRepository.findByProcessAndDate(process, localDateTime)) {
                         merge.getIgms().add(toIgm(entity));
                     }
                     return merge;
                 });
     }
 
-    private static Igm toIgm(MergeIgmEntity entity) {
+    private static Igm toIgm(IgmEntity entity) {
         return new Igm(entity.getTso(), IgmStatus.valueOf(entity.getStatus()));
     }
 

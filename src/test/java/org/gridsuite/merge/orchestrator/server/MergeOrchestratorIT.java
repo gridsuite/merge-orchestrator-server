@@ -14,8 +14,8 @@ import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeIgmEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeIgmRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,7 +64,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     MergeRepository mergeRepository;
 
     @Inject
-    MergeIgmRepository mergeIgmRepository;
+    IgmRepository igmRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -144,7 +144,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("SWE", mergeEntities.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertNull(mergeEntities.get(0).getStatus());
-        List<MergeIgmEntity> igmEntities = mergeIgmRepository.findAll();
+        List<IgmEntity> igmEntities = igmRepository.findAll();
         assertEquals(1, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
@@ -169,7 +169,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("VALIDATION_SUCCEED", messageEsIGM.getHeaders().get("status"));
         mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
-        igmEntities = mergeIgmRepository.findAll();
+        igmEntities = igmRepository.findAll();
         assertEquals(2, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());

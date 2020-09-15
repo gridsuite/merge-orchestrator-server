@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 @Getter
 @Table("merge_igm")
-public class MergeIgmEntity {
+public class IgmEntity {
 
     @PrimaryKey
     private MergeEntityKey key;
@@ -28,7 +28,7 @@ public class MergeIgmEntity {
 
     private UUID networkUuid;
 
-    public MergeIgmEntity(MergeEntityKey key, String tso, String status, UUID networkUuid) {
+    public IgmEntity(MergeEntityKey key, String tso, String status, UUID networkUuid) {
         this.key = key;
         this.tso = tso;
         this.status = status;
