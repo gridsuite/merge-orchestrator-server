@@ -95,6 +95,12 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json("[{\"process\":\"SWE\",\"tsos\":[\"FR\",\"ES\",\"PT\"]}]"));
+
+        mvc.perform(get("/" + VERSION + "/configs/SWE")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(content().json("{\"process\":\"SWE\",\"tsos\":[\"FR\",\"ES\",\"PT\"]}"));
     }
 
     @Test
