@@ -289,7 +289,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void parametersRepositoryTest() {
-        assertEquals(parametersRepository.findAll().size(), 0);
+        assertEquals(0, parametersRepository.findAll().size());
         List<String> tsos = new ArrayList<>();
         tsos.add("FR");
         tsos.add("ES");
