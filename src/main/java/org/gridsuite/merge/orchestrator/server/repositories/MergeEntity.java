@@ -6,8 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
-import java.util.UUID;
-
 import lombok.Getter;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
@@ -17,7 +15,7 @@ import org.springframework.data.cassandra.core.mapping.Table;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Getter
-@Table("merges")
+@Table("merge")
 public class MergeEntity {
 
     @PrimaryKey
@@ -25,11 +23,8 @@ public class MergeEntity {
 
     private String status;
 
-    private UUID networkUuid;
-
-    public MergeEntity(MergeEntityKey key, String status, UUID networkUuid) {
+    public MergeEntity(MergeEntityKey key, String status) {
         this.key = key;
         this.status = status;
-        this.networkUuid = networkUuid;
     }
 }
