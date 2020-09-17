@@ -55,7 +55,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     IgmRepository igmRepository;
 
     @Inject
-    ParametersRepository parametersRepository;
+    ProcessConfigRepository processConfigRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -79,7 +79,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
-        parametersRepository.save(new ParametersEntity("SWE", tsos, false));
+        processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
     }
 
     @Test

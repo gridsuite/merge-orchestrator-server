@@ -13,5 +13,5 @@ import org.springframework.stereotype.Repository;
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com
  */
 @Repository
-public interface ParametersRepository extends CassandraRepository<ParametersEntity, String> {
+public interface ProcessConfigRepository extends CassandraRepository<ProcessConfigEntity, String> {
 }

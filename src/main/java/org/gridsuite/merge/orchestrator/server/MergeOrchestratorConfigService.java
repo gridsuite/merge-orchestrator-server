@@ -6,18 +6,13 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.gridsuite.merge.orchestrator.server.repositories.ParametersEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.ParametersRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -25,51 +20,29 @@ import java.util.Optional;
 @Service
 public class MergeOrchestratorConfigService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorConfigService.class);
+    private final ProcessConfigRepository processConfigRepository;
 
-    private final ParametersRepository parametersRepository;
-
-    @Value("${parameters.tsos}")
-    private String mergeTsos;
-
-    @Value("${parameters.process}")
-    private String process;
-
-    @Value("${parameters.run-balances-adjustment}")
-    private boolean runBalancesAdjustment;
-
-    public MergeOrchestratorConfigService(ParametersRepository parametersRepository) {
-        this.parametersRepository = parametersRepository;
-    }
-
-    @PostConstruct
-    public void logParameters() {
-        LOGGER.info("TSOs to merge: {}", getTsos());
-        LOGGER.info("Process: {}", process);
-        LOGGER.info("Run balance adjustment: {}", runBalancesAdjustment);
+    public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository) {
+        this.processConfigRepository = processConfigRepository;
     }
 
     public List<String> getTsos() {
-        return mergeTsos != null ? Arrays.asList(mergeTsos.split(",")) : Collections.emptyList();
+        return getConfigs().stream().flatMap(config -> config.getTsos().stream()).collect(Collectors.toList());
     }
 
-    public String getProcess() {
-        return process;
+    List<ProcessConfigEntity> getConfigs() {
+        return processConfigRepository.findAll();
     }
 
-    public boolean isRunBalancesAdjustment() {
-        return runBalancesAdjustment;
+    Optional<ProcessConfigEntity> getConfig(String process) {
+        return processConfigRepository.findById(process);
     }
 
-    List<ParametersEntity> getParameters() {
-        return parametersRepository.findAll();
+    void addConfig(ProcessConfigEntity processConfigEntity) {
+        processConfigRepository.save(processConfigEntity);
     }
 
-    Optional<ParametersEntity> getParametersByProcess(String process) {
-        return parametersRepository.findById(process);
-    }
-
-    void addParameters(ParametersEntity parametersEntity) {
-        parametersRepository.save(parametersEntity);
+    public void deleteConfig(String process) {
+        processConfigRepository.deleteById(process);
     }
 }

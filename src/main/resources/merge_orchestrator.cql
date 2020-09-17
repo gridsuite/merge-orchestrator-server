@@ -14,7 +14,7 @@ CREATE TABLE merge_orchestrator.merge (
     PRIMARY KEY (process, date)
 );
 
-CREATE TABLE merge_orchestrator.parameters (
+CREATE TABLE merge_orchestrator.configs (
     process text,
     tsos frozen<List<text>>,
     runBalancesAdjustment boolean,

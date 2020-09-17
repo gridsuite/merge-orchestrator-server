@@ -16,8 +16,8 @@ import java.util.List;
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com
  */
 @Getter
-@Table("parameters")
-public class ParametersEntity {
+@Table("configs")
+public class ProcessConfigEntity {
 
     @PrimaryKey
     private String process;
@@ -26,7 +26,7 @@ public class ParametersEntity {
 
     private boolean runBalancesAdjustment;
 
-    public ParametersEntity(String process, List<String> tsos, boolean runBalancesAdjustment) {
+    public ProcessConfigEntity(String process, List<String> tsos, boolean runBalancesAdjustment) {
         this.process = process;
         this.tsos = tsos;
         this.runBalancesAdjustment = runBalancesAdjustment;

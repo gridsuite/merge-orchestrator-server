@@ -30,9 +30,11 @@ import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -73,7 +75,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     IgmRepository igmRepository;
 
     @Inject
-    ParametersRepository parametersRepository;
+    ProcessConfigRepository processConfigRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -106,6 +108,16 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     private static final UUID UUID_NETWORK_ID_PT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
 
     private static final UUID UUID_CASE_ID_UNKNOWN = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e9");
+
+    @Before
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
+        ArrayList<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
+        processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
+    }
 
     @Test
     public void test() {
@@ -248,17 +260,20 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void parametersRepositoryTest() {
-        assertEquals(0, parametersRepository.findAll().size());
+        assertEquals(1, processConfigRepository.findAll().size());
         List<String> tsos = new ArrayList<>();
         tsos.add("FR");
         tsos.add("ES");
-        tsos.add("PT");
-        ParametersEntity parametersEntity = new ParametersEntity("SWE", tsos, false);
-        parametersRepository.save(parametersEntity);
-        assertEquals(1, parametersRepository.findAll().size());
-        assertTrue(parametersRepository.findById("SWE").isPresent());
-        assertEquals("SWE", parametersRepository.findById("SWE").get().getProcess());
-        assertFalse(parametersRepository.findById("SWE").get().isRunBalancesAdjustment());
-        assertEquals(3, parametersRepository.findById("SWE").get().getTsos().size());
+        ProcessConfigEntity processConfigEntity = new ProcessConfigEntity("XYZ", tsos, true);
+        processConfigRepository.save(processConfigEntity);
+        assertEquals(2, processConfigRepository.findAll().size());
+        assertTrue(processConfigRepository.findById("SWE").isPresent());
+        assertTrue(processConfigRepository.findById("XYZ").isPresent());
+        assertEquals("SWE", processConfigRepository.findById("SWE").get().getProcess());
+        assertEquals("XYZ", processConfigRepository.findById("XYZ").get().getProcess());
+        assertFalse(processConfigRepository.findById("SWE").get().isRunBalancesAdjustment());
+        assertTrue(processConfigRepository.findById("XYZ").get().isRunBalancesAdjustment());
+        assertEquals(3, processConfigRepository.findById("SWE").get().getTsos().size());
+        assertEquals(2, processConfigRepository.findById("XYZ").get().getTsos().size());
     }
 }
