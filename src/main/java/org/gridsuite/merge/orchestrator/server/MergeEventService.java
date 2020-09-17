@@ -55,7 +55,7 @@ public class MergeEventService {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), null));
-        igmRepository.save(new IgmEntity(new MergeEntityKey(process, localDateTime), tso, status.name(), networkUuid));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(process, localDateTime, tso), status.name(), networkUuid));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
                 .setHeader("process", process)

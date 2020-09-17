@@ -232,7 +232,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("PT", mergeInfos.get(0).getIgms().get(2).getTso());
         assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(2).getStatus());
 
-        assertFalse(mergeOrchestratorService.getMerge("SWE", dateTime).isEmpty());
+        assertFalse(mergeOrchestratorService.getMerges("SWE", dateTime, dateTime).isEmpty());
 
         assertNull(output.receive(1000));
     }

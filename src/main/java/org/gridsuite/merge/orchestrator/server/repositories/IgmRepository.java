@@ -12,17 +12,19 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Repository
-public interface IgmRepository extends CassandraRepository<IgmEntity, UUID> {
+public interface IgmRepository extends CassandraRepository<IgmEntity, IgmEntityKey> {
 
     @Query("SELECT * FROM merge_igm WHERE process = :process")
     List<IgmEntity> findByProcess(String process);
 
     @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date")
     List<IgmEntity> findByProcessAndDate(String process, LocalDateTime date);
+
+    @Query("SELECT * FROM merge_igm WHERE process = :process AND date >= :minDate AND date <= :maxDate")
+    List<IgmEntity> findByProcessAndInterval(String process, LocalDateTime minDate, LocalDateTime maxDate);
 }

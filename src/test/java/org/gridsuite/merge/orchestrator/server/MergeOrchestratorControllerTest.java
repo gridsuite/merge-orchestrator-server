@@ -29,10 +29,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -86,7 +86,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     public void test() throws Exception {
         ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 10, 0, 0, 0, ZoneId.of("UTC"));
         mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
-        igmRepository.insert(new IgmEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "FR", IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
         String resExpected = "[{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
@@ -97,17 +97,36 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json(resExpected));
 
-        resExpected = "{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}";
-        mvc.perform(get("/" + VERSION + "/swe/merges/" + URLEncoder.encode(formatter.format(dateTime), StandardCharsets.UTF_8))
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json(resExpected));
-
         mvc.perform(get("/" + VERSION + "/aaa/merges")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json("[]"));
+
+        String date = URLEncoder.encode(formatter.format(dateTime), StandardCharsets.UTF_8);
+        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + date + "&maxDate=" + date)
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(content().json(resExpected));
+
+        ZonedDateTime dateTime2 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime2.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime2.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
+        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + date + "&maxDate=" + date)
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        ZonedDateTime minDateTime = ZonedDateTime.of(2020, 7, 20, 9, 0, 0, 0, ZoneId.of("UTC"));
+        ZonedDateTime maxDateTime = ZonedDateTime.of(2020, 7, 20, 12, 0, 0, 0, ZoneId.of("UTC"));
+        String minDate = URLEncoder.encode(formatter.format(minDateTime), StandardCharsets.UTF_8);
+        String maxDate = URLEncoder.encode(formatter.format(maxDateTime), StandardCharsets.UTF_8);
+        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + minDate + "&maxDate=" + maxDate)
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(2)));
     }
 }

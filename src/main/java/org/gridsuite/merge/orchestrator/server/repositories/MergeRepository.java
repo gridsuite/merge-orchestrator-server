@@ -11,6 +11,7 @@ import org.springframework.data.cassandra.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -22,4 +23,7 @@ public interface MergeRepository extends CassandraRepository<MergeEntity, MergeE
 
     @Query("SELECT * FROM merge WHERE process = :process")
     List<MergeEntity> findByProcess(@Param("process") String process);
+
+    @Query("SELECT * FROM merge WHERE process = :process AND date >= :minDate AND date <= :maxDate")
+    List<MergeEntity> findByProcessAndInterval(String process, LocalDateTime minDate, LocalDateTime maxDate);
 }

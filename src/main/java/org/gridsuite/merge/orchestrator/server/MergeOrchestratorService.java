@@ -11,7 +11,10 @@ import org.gridsuite.merge.orchestrator.server.dto.Igm;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
-import org.gridsuite.merge.orchestrator.server.repositories.*;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -175,20 +178,22 @@ public class MergeOrchestratorService {
         return new ArrayList<>(mergesByDate.values());
     }
 
-    Optional<Merge> getMerge(String process, ZonedDateTime dateTime) {
-        LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
-        return mergeRepository.findById(new MergeEntityKey(process, localDateTime))
+    List<Merge> getMerges(String process, ZonedDateTime minDateTime, ZonedDateTime maxDateTime) {
+        LocalDateTime minLocalDateTime = LocalDateTime.ofInstant(minDateTime.toInstant(), ZoneOffset.UTC);
+        LocalDateTime maxLocalDateTime = LocalDateTime.ofInstant(maxDateTime.toInstant(), ZoneOffset.UTC);
+        return mergeRepository.findByProcessAndInterval(process, minLocalDateTime, maxLocalDateTime)
+                .stream()
                 .map(MergeOrchestratorService::toMerge)
-                .map(merge -> {
-                    for (IgmEntity entity : igmRepository.findByProcessAndDate(process, localDateTime)) {
+                .peek(merge -> {
+                    for (IgmEntity entity : igmRepository.findByProcessAndInterval(process, minLocalDateTime, maxLocalDateTime)) {
                         merge.getIgms().add(toIgm(entity));
                     }
-                    return merge;
-                });
+                })
+                .collect(Collectors.toList());
     }
 
     private static Igm toIgm(IgmEntity entity) {
-        return new Igm(entity.getTso(), IgmStatus.valueOf(entity.getStatus()));
+        return new Igm(entity.getKey().getTso(), IgmStatus.valueOf(entity.getStatus()));
     }
 
     private static Merge toMerge(MergeEntity mergeEntity) {

@@ -20,17 +20,14 @@ import java.util.UUID;
 public class IgmEntity {
 
     @PrimaryKey
-    private MergeEntityKey key;
-
-    private String tso;
+    private IgmEntityKey key;
 
     private String status;
 
     private UUID networkUuid;
 
-    public IgmEntity(MergeEntityKey key, String tso, String status, UUID networkUuid) {
+    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid) {
         this.key = key;
-        this.tso = tso;
         this.status = status;
         this.networkUuid = networkUuid;
     }
