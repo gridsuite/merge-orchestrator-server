@@ -6,10 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.iidm.mergingview.MergingView;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
@@ -64,13 +60,9 @@ public class MergeOrchestratorService {
 
     private IgmQualityRepository igmQualityRepository;
 
-    private NetworkStoreService networkStoreService;
-
     private CaseFetcherService caseFetcherService;
 
     private BalancesAdjustmentService balancesAdjustmentService;
-
-    private CopyToNetworkStoreService copyToNetworkStoreService;
 
     private LoadFlowService loadFlowService;
 
@@ -80,20 +72,16 @@ public class MergeOrchestratorService {
 
     private IgmQualityCheckService igmQualityCheckService;
 
-    public MergeOrchestratorService(NetworkStoreService networkStoreService,
-                                    CaseFetcherService caseFetchService,
+    public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
-                                    CopyToNetworkStoreService copyToNetworkStoreService,
                                     MergeEventService mergeEventService,
                                     LoadFlowService loadFlowService,
                                     IgmQualityCheckService igmQualityCheckService,
                                     MergeRepository mergeRepository,
                                     IgmQualityRepository igmQualityRepository,
                                     MergeOrchestratorConfigService mergeConfigService) {
-        this.networkStoreService = networkStoreService;
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
-        this.copyToNetworkStoreService = copyToNetworkStoreService;
         this.mergeEventService = mergeEventService;
         this.loadFlowService = loadFlowService;
         this.igmQualityCheckService = igmQualityCheckService;
@@ -152,7 +140,7 @@ public class MergeOrchestratorService {
 
                     boolean allIGMsValid = true;
 
-                    List<Network> listNetworks = new ArrayList<>();
+                    List<UUID> listNetworks = new ArrayList<>();
 
                     // get all IGMs validity
                     for (CaseInfos info : list) {
@@ -160,7 +148,7 @@ public class MergeOrchestratorService {
                         if (quality.isPresent()) {
                             if (quality.get().isValid()) {
                                 LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is OK ****", info.getTso(), date);
-                                listNetworks.add(networkStoreService.getNetwork(quality.get().getNetworkId(), PreloadingStrategy.COLLECTION));
+                                listNetworks.add(quality.get().getNetworkId());
                             } else {
                                 LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is NOT OK ****", info.getTso(), date);
                                 allIGMsValid = false;
@@ -178,39 +166,22 @@ public class MergeOrchestratorService {
                     // all IGMs are available and valid for the merging process
                     LOGGER.info("**** MERGE ORCHESTRATOR : merging cases ******");
 
-                    // merging view creation
-                    MergingView mergingView = MergingView.create("merged", "iidm");
-
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_STARTED", dateTime, null, mergeConfigService.getProcess());
-
-                    // merge all IGM networks
-                    mergingView.merge(listNetworks.toArray(new Network[listNetworks.size()]));
-
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_NETWORKS_FINISHED", dateTime, null, mergeConfigService.getProcess());
-
-                    LOGGER.info("**** MERGE ORCHESTRATOR : copy to network store ******");
-
-                    // store the merged network in the network store
-                    UUID mergeUuid = copyToNetworkStoreService.copy(mergingView);
-
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGED_NETWORK_STORED", dateTime, mergeUuid, mergeConfigService.getProcess());
-
                     if (mergeConfigService.isRunBalancesAdjustment()) {
-                        // balances adjustment on the merge network
+                        // balances adjustment on merging view
                         LOGGER.info("**** MERGE ORCHESTRATOR : balances adjustment ******");
-                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_STARTED", dateTime, mergeUuid, mergeConfigService.getProcess());
-                        balancesAdjustmentService.doBalance(mergeUuid);
-                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_FINISHED", dateTime, mergeUuid, mergeConfigService.getProcess());
+                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_STARTED", dateTime, null, mergeConfigService.getProcess());
+                        balancesAdjustmentService.doBalance(listNetworks);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_FINISHED", dateTime, null, mergeConfigService.getProcess());
 
                     } else {
-                        // load flow on the merged network
+                        // load flow on merging view
                         LOGGER.info("**** MERGE ORCHESTRATOR : load flow ******");
-                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_STARTED", dateTime, mergeUuid, mergeConfigService.getProcess());
-                        loadFlowService.run(mergeUuid);
-                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_FINISHED", dateTime, mergeUuid, mergeConfigService.getProcess());
+                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_STARTED", dateTime, null, mergeConfigService.getProcess());
+                        loadFlowService.run(listNetworks);
+                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_FINISHED", dateTime, null, mergeConfigService.getProcess());
                     }
 
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_FINISHED", dateTime, mergeUuid, mergeConfigService.getProcess());
+                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_FINISHED", dateTime, null, mergeConfigService.getProcess());
 
                     LOGGER.info("**** MERGE ORCHESTRATOR : end ******");
                 }
