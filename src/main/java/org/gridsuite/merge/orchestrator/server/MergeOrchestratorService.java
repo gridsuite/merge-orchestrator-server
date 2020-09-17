@@ -198,6 +198,6 @@ public class MergeOrchestratorService {
 
     private static Merge toMerge(MergeEntity mergeEntity) {
         ZonedDateTime date = ZonedDateTime.ofInstant(mergeEntity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-        return new Merge(mergeEntity.getKey().getProcess(), date, MergeStatus.valueOf(mergeEntity.getStatus()), new ArrayList<>());
+        return new Merge(mergeEntity.getKey().getProcess(), date, mergeEntity.getStatus() != null ? MergeStatus.valueOf(mergeEntity.getStatus()) : null, new ArrayList<>());
     }
 }
