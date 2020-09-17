@@ -7,14 +7,14 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.lang3.StringUtils;
-import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
-import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
-import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityEntity;
+import org.gridsuite.merge.orchestrator.server.dto.Igm;
+import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
+import org.gridsuite.merge.orchestrator.server.dto.Merge;
+import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -27,11 +27,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -58,7 +54,7 @@ public class MergeOrchestratorService {
 
     private MergeRepository mergeRepository;
 
-    private IgmQualityRepository igmQualityRepository;
+    private IgmRepository igmRepository;
 
     private CaseFetcherService caseFetcherService;
 
@@ -78,7 +74,7 @@ public class MergeOrchestratorService {
                                     LoadFlowService loadFlowService,
                                     IgmQualityCheckService igmQualityCheckService,
                                     MergeRepository mergeRepository,
-                                    IgmQualityRepository igmQualityRepository,
+                                    IgmRepository igmRepository,
                                     MergeOrchestratorConfigService mergeConfigService) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
@@ -87,7 +83,7 @@ public class MergeOrchestratorService {
         this.igmQualityCheckService = igmQualityCheckService;
         this.mergeRepository = mergeRepository;
         this.mergeConfigService = mergeConfigService;
-        this.igmQualityRepository = igmQualityRepository;
+        this.igmRepository = igmRepository;
     }
 
     @Bean
@@ -109,81 +105,49 @@ public class MergeOrchestratorService {
             String format = (String) mh.get(FORMAT_HEADER_KEY);
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
 
-            LOGGER.info("**** MERGE ORCHESTRATOR : message received : date={} tso={} format={} businessProcess={} ****", date, tso, format, businessProcess);
-
             if (checkTso(tsos, tso, format, businessProcess)) {
+                LOGGER.info("Merge {} of process {}: IGM in format {} from TSO {} received", date, mergeConfigService.getProcess(), format, tso);
+
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
-                mergeEventService.addMergeEvent("", tso, "TSO_IGM", dateTime, null, mergeConfigService.getProcess());
+                mergeEventService.addMergeIgmEvent(mergeConfigService.getProcess(), dateTime, tso, IgmStatus.AVAILABLE, null);
 
                 // import IGM into the network store
                 UUID networkUuid = caseFetcherService.importCase(caseUuid);
 
-                mergeEventService.addMergeEvent("", tso, "QUALITY_CHECK_NETWORK_STARTED", dateTime, networkUuid, mergeConfigService.getProcess());
-
                 // check IGM quality
                 boolean valid = igmQualityCheckService.check(networkUuid);
 
-                // Use of UTC Zone to store in cassandra database
-                igmQualityRepository.save(new IgmQualityEntity(caseUuid, networkUuid,
-                        LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC), valid));
+                LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid",  date, mergeConfigService.getProcess(), tso, valid ? " " : "not ");
 
-                mergeEventService.addMergeEvent("", tso, "QUALITY_CHECK_NETWORK_FINISHED", dateTime, networkUuid, mergeConfigService.getProcess());
+                mergeEventService.addMergeIgmEvent(mergeConfigService.getProcess(), dateTime, tso,
+                        valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
 
-                // get cases from the case server that matches list of tsos, date, forecastDistance and format
-                List<CaseInfos> list = caseFetcherService.getCases(tsos, dateTime, format, businessProcess);
+                // get list of network UUID for validated IGMs
+                List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime);
 
-                if (allTsosAvailable(list, tsos)) {
-                    // all tsos are available for the merging process
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_STARTED", dateTime, null, mergeConfigService.getProcess());
-
-                    boolean allIGMsValid = true;
-
-                    List<UUID> listNetworks = new ArrayList<>();
-
-                    // get all IGMs validity
-                    for (CaseInfos info : list) {
-                        Optional<IgmQualityInfos> quality = getIgmQuality(info.getUuid());
-                        if (quality.isPresent()) {
-                            if (quality.get().isValid()) {
-                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is OK ****", info.getTso(), date);
-                                listNetworks.add(quality.get().getNetworkId());
-                            } else {
-                                LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is NOT OK ****", info.getTso(), date);
-                                allIGMsValid = false;
-                            }
-                        } else {
-                            LOGGER.info("**** MERGE ORCHESTRATOR : IGM quality of tso={} for date={} is UNDEFINED ****", info.getTso(), date);
-                            allIGMsValid = false;
-                        }
-                    }
-
-                    if (!allIGMsValid) {
-                        return;
-                    }
-
+                if (networkUuids.size() == tsos.size()) {
                     // all IGMs are available and valid for the merging process
-                    LOGGER.info("**** MERGE ORCHESTRATOR : merging cases ******");
+                    LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, mergeConfigService.getProcess());
 
                     if (mergeConfigService.isRunBalancesAdjustment()) {
-                        // balances adjustment on merging view
-                        LOGGER.info("**** MERGE ORCHESTRATOR : balances adjustment ******");
-                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_STARTED", dateTime, null, mergeConfigService.getProcess());
-                        balancesAdjustmentService.doBalance(listNetworks);
-                        mergeEventService.addMergeEvent("", tsos.toString(), "BALANCE_ADJUSTMENT_FINISHED", dateTime, null, mergeConfigService.getProcess());
+                        // balances adjustment on the merge network
+                        balancesAdjustmentService.doBalance(networkUuids);
 
+                        LOGGER.info("Merge {} of process {}: balance adjustment complete", date, mergeConfigService.getProcess());
+
+                        // TODO check balance adjustment status
+                        mergeEventService.addMergeEvent(mergeConfigService.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
                     } else {
-                        // load flow on merging view
-                        LOGGER.info("**** MERGE ORCHESTRATOR : load flow ******");
-                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_STARTED", dateTime, null, mergeConfigService.getProcess());
-                        loadFlowService.run(listNetworks);
-                        mergeEventService.addMergeEvent("", tsos.toString(), "LOAD_FLOW_FINISHED", dateTime, null, mergeConfigService.getProcess());
+                        // load flow on the merged network
+                        loadFlowService.run(networkUuids);
+
+                        LOGGER.info("Merge {} of process {}: loadflow complete", date, mergeConfigService.getProcess());
+
+                        // TODO check loadflow status
+                        mergeEventService.addMergeEvent(mergeConfigService.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
                     }
-
-                    mergeEventService.addMergeEvent("", tsos.toString(), "MERGE_PROCESS_FINISHED", dateTime, null, mergeConfigService.getProcess());
-
-                    LOGGER.info("**** MERGE ORCHESTRATOR : end ******");
                 }
             }
         } catch (Exception e) {
@@ -191,44 +155,49 @@ public class MergeOrchestratorService {
         }
     }
 
-    private boolean allTsosAvailable(List<CaseInfos> list, List<String> tsos) {
-        Set<String> setTsos = list.stream().map(CaseInfos::getTso).collect(Collectors.toSet());
-        return setTsos.size() == tsos.size() &&
-                tsos.stream().allMatch(setTsos::contains);
-    }
-
-    List<MergeInfos> getMergesList() {
-        List<MergeEntity> mergeList = mergeRepository.findAll();
-        return mergeList.stream().map(m -> new MergeInfos(m.getKey().getProcess(),
-                ZonedDateTime.ofInstant(m.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")),
-                m.getStatus())).collect(Collectors.toList());
-    }
-
-    List<MergeInfos> getProcessMergesList(String process) {
-        List<MergeEntity> mergeList = mergeRepository.findByProcess(process);
-        return mergeList.stream().map(m -> new MergeInfos(m.getKey().getProcess(),
-                ZonedDateTime.ofInstant(m.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")),
-                m.getStatus())).collect(Collectors.toList());
-    }
-
-    Optional<MergeInfos> getMerge(String process, ZonedDateTime dateTime) {
+    private List<UUID> findNetworkUuidsOfValidatedIgms(ZonedDateTime dateTime) {
+        // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
-        Optional<MergeEntity> merge = mergeRepository.findById(new MergeEntityKey(process, localDateTime));
-        return merge.map(this::toMergeInfo);
+
+        return igmRepository.findByProcessAndDate(mergeConfigService.getProcess(), localDateTime).stream()
+                .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
+                .map(IgmEntity::getNetworkUuid)
+                .collect(Collectors.toList());
     }
 
-    private MergeInfos toMergeInfo(MergeEntity mergeEntity) {
-        return new MergeInfos(mergeEntity.getKey().getProcess(),
-                ZonedDateTime.ofInstant(mergeEntity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")),
-                mergeEntity.getStatus());
+    List<Merge> getMerges(String process) {
+        Map<ZonedDateTime, Merge> mergesByDate = mergeRepository.findByProcess(process).stream()
+                .map(MergeOrchestratorService::toMerge)
+                .collect(Collectors.toMap(Merge::getDate, merge -> merge, (v1, v2) -> {
+                    throw new IllegalStateException();
+                }, TreeMap::new));
+        for (IgmEntity entity : igmRepository.findByProcess(process)) {
+            ZonedDateTime date = ZonedDateTime.ofInstant(entity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+            mergesByDate.get(date).getIgms().add(toIgm(entity));
+        }
+        return new ArrayList<>(mergesByDate.values());
     }
 
-    Optional<IgmQualityInfos> getIgmQuality(UUID caseInfo) {
-        Optional<IgmQualityEntity> quality = igmQualityRepository.findById(caseInfo);
-        return quality.map(this::toQualityInfo);
+    List<Merge> getMerges(String process, ZonedDateTime minDateTime, ZonedDateTime maxDateTime) {
+        LocalDateTime minLocalDateTime = LocalDateTime.ofInstant(minDateTime.toInstant(), ZoneOffset.UTC);
+        LocalDateTime maxLocalDateTime = LocalDateTime.ofInstant(maxDateTime.toInstant(), ZoneOffset.UTC);
+        return mergeRepository.findByProcessAndInterval(process, minLocalDateTime, maxLocalDateTime)
+                .stream()
+                .map(MergeOrchestratorService::toMerge)
+                .peek(merge -> {
+                    for (IgmEntity entity : igmRepository.findByProcessAndInterval(process, minLocalDateTime, maxLocalDateTime)) {
+                        merge.getIgms().add(toIgm(entity));
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
-    private IgmQualityInfos toQualityInfo(IgmQualityEntity qualityEntity) {
-        return new IgmQualityInfos(qualityEntity.getCaseUuid(), qualityEntity.getNetworkUuid(), qualityEntity.isValid());
+    private static Igm toIgm(IgmEntity entity) {
+        return new Igm(entity.getKey().getTso(), IgmStatus.valueOf(entity.getStatus()));
+    }
+
+    private static Merge toMerge(MergeEntity mergeEntity) {
+        ZonedDateTime date = ZonedDateTime.ofInstant(mergeEntity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+        return new Merge(mergeEntity.getKey().getProcess(), date, mergeEntity.getStatus() != null ? MergeStatus.valueOf(mergeEntity.getStatus()) : null, new ArrayList<>());
     }
 }

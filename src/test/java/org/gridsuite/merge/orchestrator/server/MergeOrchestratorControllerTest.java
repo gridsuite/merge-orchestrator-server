@@ -6,11 +6,9 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmQualityRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
+import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,22 +19,20 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import javax.inject.Inject;
-
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static junit.framework.TestCase.assertEquals;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -46,6 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {MergeOrchestratorApplication.class})
 public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSetup {
 
+    private static final UUID UUID_NETWORK = UUID.fromString("3f9985d2-94f5-4a5f-8e5a-ee218525d656");
+
     @Autowired
     private MockMvc mvc;
 
@@ -53,7 +51,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     MergeRepository mergeRepository;
 
     @Inject
-    IgmQualityRepository igmQualityRepository;
+    IgmRepository igmRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -75,11 +73,6 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
         MockitoAnnotations.initMocks(this);
     }
 
-    private UUID uuid = UUID.randomUUID();
-
-    private static final UUID UUID_CASE = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
-    private static final UUID UUID_NETWORK = UUID.fromString("3f9985d2-94f5-4a5f-8e5a-ee218525d656");
-
     @Test
     public void configTest() throws Exception {
         mvc.perform(get("/" + VERSION + "/configs")
@@ -91,42 +84,49 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
 
     @Test
     public void test() throws Exception {
-        ZonedDateTime dateTime = ZonedDateTime.of(2020, 07, 20, 10, 00, 00, 00, ZoneId.of("UTC"));
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "TSO_IGM", uuid));
+        ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 10, 0, 0, 0, ZoneId.of("UTC"));
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
-        String resExpected = "[{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"TSO_IGM\"}]";
+        String resExpected = "[{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
 
-        MvcResult result = mvc.perform(get("/" + VERSION + "/merges")
+        mvc.perform(get("/" + VERSION + "/swe/merges")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andReturn();
-        assertEquals(resExpected, result.getResponse().getContentAsString());
+                .andExpect(content().json(resExpected));
 
-        result = mvc.perform(get("/" + VERSION + "/merges/swe")
+        mvc.perform(get("/" + VERSION + "/aaa/merges")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andReturn();
-        assertEquals(resExpected, result.getResponse().getContentAsString());
+                .andExpect(content().json("[]"));
 
-        resExpected = "{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"MERGE_STARTED\"}";
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), "MERGE_STARTED", null));
-        result = mvc.perform(get("/" + VERSION + "/merges/swe/" + URLEncoder.encode(formatter.format(dateTime), "UTF-8"))
+        String date = URLEncoder.encode(formatter.format(dateTime), StandardCharsets.UTF_8);
+        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + date + "&maxDate=" + date)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andReturn();
-        assertEquals(resExpected, result.getResponse().getContentAsString());
+                .andExpect(content().json(resExpected));
 
-        resExpected = "{\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e4\",\"networkId\":\"3f9985d2-94f5-4a5f-8e5a-ee218525d656\",\"valid\":true}";
-        igmQualityRepository.insert(new IgmQualityEntity(UUID_CASE, UUID_NETWORK, dateTime.toLocalDateTime(), true));
-        result = mvc.perform(get("/" + VERSION + "/merges/" + UUID_CASE.toString() + "/quality")
+        ZonedDateTime dateTime2 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime2.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime2.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
+        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + date + "&maxDate=" + date)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andReturn();
-        assertEquals(resExpected, result.getResponse().getContentAsString());
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        ZonedDateTime minDateTime = ZonedDateTime.of(2020, 7, 20, 9, 0, 0, 0, ZoneId.of("UTC"));
+        ZonedDateTime maxDateTime = ZonedDateTime.of(2020, 7, 20, 12, 0, 0, 0, ZoneId.of("UTC"));
+        String minDate = URLEncoder.encode(formatter.format(minDateTime), StandardCharsets.UTF_8);
+        String maxDate = URLEncoder.encode(formatter.format(maxDateTime), StandardCharsets.UTF_8);
+        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + minDate + "&maxDate=" + maxDate)
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(2)));
     }
 }

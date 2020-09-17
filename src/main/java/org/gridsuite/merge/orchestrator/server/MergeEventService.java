@@ -14,9 +14,9 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
+import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -37,6 +37,8 @@ public class MergeEventService {
 
     private MergeRepository mergeRepository;
 
+    private IgmRepository igmRepository;
+
     private final EmitterProcessor<Message<String>> mergeInfosPublisher = EmitterProcessor.create();
 
     @Bean
@@ -44,20 +46,34 @@ public class MergeEventService {
         return () -> mergeInfosPublisher.log(CATEGORY_BROKER_OUTPUT, Level.FINE);
     }
 
-    public MergeEventService(MergeRepository mergeRepository) {
+    public MergeEventService(MergeRepository mergeRepository, IgmRepository igmRepository) {
         this.mergeRepository = mergeRepository;
+        this.igmRepository = igmRepository;
     }
 
-    public void addMergeEvent(String payload, String tso, String type, ZonedDateTime date,
-                              UUID networkUuid, String process) {
+    public void addMergeIgmEvent(String process, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), type, networkUuid));
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(process, localDateTime, tso), status.name(), networkUuid));
         mergeInfosPublisher.onNext(MessageBuilder
-                .withPayload(payload)
-                .setHeader("tso", tso)
-                .setHeader("type", type)
+                .withPayload("")
+                .setHeader("process", process)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
-                .setHeader("process", process).build());
+                .setHeader("tso", tso)
+                .setHeader("status", status.name())
+                .build());
+    }
+
+    public void addMergeEvent(String process, ZonedDateTime date, MergeStatus status) {
+        // Use of UTC Zone to store in cassandra database
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), status.name()));
+        mergeInfosPublisher.onNext(MessageBuilder
+                .withPayload("")
+                .setHeader("process", process)
+                .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
+                .setHeader("status", status.name())
+                .build());
     }
 }

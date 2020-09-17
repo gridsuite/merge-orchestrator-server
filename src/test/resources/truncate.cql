@@ -1,1 +1,2 @@
-TRUNCATE merge_orchestrator.merges;
+TRUNCATE merge_orchestrator.merge;
+TRUNCATE merge_orchestrator.merge_igm;
