@@ -81,9 +81,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     private BalancesAdjustmentService balancesAdjustmentService;
 
     @MockBean
-    private CopyToNetworkStoreService copyToNetworkStoreService;
-
-    @MockBean
     private LoadFlowService loadFlowService;
 
     @Inject
@@ -195,8 +192,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                         new CaseInfos("es", UUID_CASE_ID_ES, "", "ES", "1D"),
                         new CaseInfos("pt", UUID_CASE_ID_PT, "", "PT", "1D")));
 
-        UUID mergedUuid = UUID.randomUUID();
-        Mockito.when(copyToNetworkStoreService.copy(any())).thenReturn(mergedUuid);
         input.send(MessageBuilder.withPayload("")
                 .setHeader("tso", "PT")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
@@ -213,13 +208,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         Message<byte[]> messageMergeStarted = output.receive(1000);
         assertEquals("MERGE_PROCESS_STARTED", messageMergeStarted.getHeaders().get("type"));
-
-        Message<byte[]> mergeNetworksStarted = output.receive(1000);
-        assertEquals("MERGE_NETWORKS_STARTED", mergeNetworksStarted.getHeaders().get("type"));
-        Message<byte[]> mergeNetworksFinished = output.receive(1000);
-        assertEquals("MERGE_NETWORKS_FINISHED", mergeNetworksFinished.getHeaders().get("type"));
-        Message<byte[]> mergedNetworksStored = output.receive(1000);
-        assertEquals("MERGED_NETWORK_STORED", mergedNetworksStored.getHeaders().get("type"));
 
         if (runBalancesAdjustment) {
             Message<byte[]> balanceAdjustmentStarted = output.receive(1000);
@@ -241,7 +229,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         List<MergeEntity> savedFinish = mergeRepository.findAll();
         assertEquals(1, savedFinish.size());
         assertEquals("MERGE_PROCESS_FINISHED", savedFinish.get(0).getStatus());
-        assertEquals(mergedUuid, savedFinish.get(0).getNetworkUuid());
         assertEquals("SWE", savedFinish.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), savedFinish.get(0).getKey().getDate());
 

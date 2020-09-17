@@ -15,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -34,7 +35,9 @@ public class LoadFlowServiceTest {
 
     private LoadFlowService loadFlowService;
 
-    private UUID randomUuid = UUID.randomUUID();
+    private UUID randomUuid1 = UUID.randomUUID();
+    private UUID randomUuid2 = UUID.randomUUID();
+    private UUID randomUuid3 = UUID.randomUUID();
 
     @Before
     public void setUp() {
@@ -47,9 +50,9 @@ public class LoadFlowServiceTest {
                 eq(HttpMethod.PUT),
                 any(),
                 eq(String.class),
-                eq(randomUuid.toString())))
+                eq(randomUuid1.toString())))
                 .thenReturn(ResponseEntity.ok("{\"status\": \"TRUE\"}"));
-        String res = loadFlowService.run(randomUuid);
+        String res = loadFlowService.run(Arrays.asList(randomUuid1, randomUuid2, randomUuid3));
         assertEquals("{\"status\": \"TRUE\"}", res);
     }
 }

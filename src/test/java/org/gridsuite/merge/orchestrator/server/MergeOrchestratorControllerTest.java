@@ -65,9 +65,6 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     private BalancesAdjustmentService balancesAdjustmentService;
 
     @MockBean
-    private CopyToNetworkStoreService copyToNetworkStoreService;
-
-    @MockBean
     private LoadFlowService loadFlowService;
 
     @Inject
