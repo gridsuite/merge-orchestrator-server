@@ -21,9 +21,15 @@ import javax.inject.Inject;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
-import org.gridsuite.merge.orchestrator.server.dto.IgmQualityInfos;
-import org.gridsuite.merge.orchestrator.server.dto.MergeInfos;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
+import com.powsybl.iidm.network.NetworkFactory;
+import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
+import org.gridsuite.merge.orchestrator.server.dto.Merge;
+import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -40,7 +46,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.powsybl.iidm.network.NetworkFactory;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -63,7 +70,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     MergeRepository mergeRepository;
 
     @Inject
-    IgmQualityRepository igmQualityRepository;
+    IgmRepository igmRepository;
 
     @Inject
     ParametersRepository parametersRepository;
@@ -102,7 +109,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void test() {
-        ZonedDateTime dateTime = ZonedDateTime.of(2019, 05, 01, 9, 00, 00, 00, ZoneId.of("UTC"));
+        ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 0, 0, 0, ZoneId.of("UTC"));
 
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR))
                 .thenReturn(UUID_NETWORK_ID_FR);
@@ -127,7 +134,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT))
                 .thenReturn(true);
 
-        // send first, expect single TSO_IGM message
+        // send first
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
         input.send(MessageBuilder.withPayload("")
@@ -138,17 +145,20 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .setHeader("businessProcess", "1D")
                 .build());
         Message<byte[]> messageFrIGM = output.receive(1000);
-        assertEquals("TSO_IGM", messageFrIGM.getHeaders().get("type"));
+        assertEquals("AVAILABLE", messageFrIGM.getHeaders().get("status"));
         messageFrIGM = output.receive(1000);
-        assertEquals("QUALITY_CHECK_NETWORK_STARTED", messageFrIGM.getHeaders().get("type"));
-        messageFrIGM = output.receive(1000);
-        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", messageFrIGM.getHeaders().get("type"));
-        List<MergeEntity> savedFr = mergeRepository.findAll();
-        assertEquals(1, savedFr.size());
-        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", savedFr.get(0).getStatus());
-        assertEquals(UUID_NETWORK_ID_FR, savedFr.get(0).getNetworkUuid());
-        assertEquals("SWE", savedFr.get(0).getKey().getProcess());
-        assertEquals(dateTime.toLocalDateTime(), savedFr.get(0).getKey().getDate());
+        assertEquals("VALIDATION_SUCCEED", messageFrIGM.getHeaders().get("status"));
+        List<MergeEntity> mergeEntities = mergeRepository.findAll();
+        assertEquals(1, mergeEntities.size());
+        assertEquals("SWE", mergeEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertNull(mergeEntities.get(0).getStatus());
+        List<IgmEntity> igmEntities = igmRepository.findAll();
+        assertEquals(1, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals("SWE", igmEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
 
         // send second, expect single TSO_IGM message
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
@@ -163,17 +173,21 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .setHeader("businessProcess", "1D")
                 .build());
         Message<byte[]> messageEsIGM = output.receive(1000);
-        assertEquals("TSO_IGM", messageEsIGM.getHeaders().get("type"));
+        assertEquals("AVAILABLE", messageEsIGM.getHeaders().get("status"));
         messageEsIGM = output.receive(1000);
-        assertEquals("QUALITY_CHECK_NETWORK_STARTED", messageEsIGM.getHeaders().get("type"));
-        messageEsIGM = output.receive(1000);
-        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", messageEsIGM.getHeaders().get("type"));
-        List<MergeEntity> savedEs = mergeRepository.findAll();
-        assertEquals(1, savedEs.size());
-        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", savedEs.get(0).getStatus());
-        assertEquals(UUID_NETWORK_ID_ES, savedEs.get(0).getNetworkUuid());
-        assertEquals("SWE", savedEs.get(0).getKey().getProcess());
-        assertEquals(dateTime.toLocalDateTime(), savedEs.get(0).getKey().getDate());
+        assertEquals("VALIDATION_SUCCEED", messageEsIGM.getHeaders().get("status"));
+        mergeEntities = mergeRepository.findAll();
+        assertEquals(1, mergeEntities.size());
+        igmEntities = igmRepository.findAll();
+        assertEquals(2, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals("SWE", igmEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(1).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
+        assertEquals("SWE", igmEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
 
         // send out of scope tso, expect empty
         input.send(MessageBuilder.withPayload("")
@@ -200,76 +214,34 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .setHeader("businessProcess", "1D")
                 .build());
         Message<byte[]> messagePrIGM = output.receive(1000);
-        assertEquals("TSO_IGM", messagePrIGM.getHeaders().get("type"));
+        assertEquals("AVAILABLE", messagePrIGM.getHeaders().get("status"));
         messagePrIGM = output.receive(1000);
-        assertEquals("QUALITY_CHECK_NETWORK_STARTED", messagePrIGM.getHeaders().get("type"));
-        messagePrIGM = output.receive(1000);
-        assertEquals("QUALITY_CHECK_NETWORK_FINISHED", messagePrIGM.getHeaders().get("type"));
+        assertEquals("VALIDATION_SUCCEED", messagePrIGM.getHeaders().get("status"));
 
         Message<byte[]> messageMergeStarted = output.receive(1000);
-        assertEquals("MERGE_PROCESS_STARTED", messageMergeStarted.getHeaders().get("type"));
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
-        if (runBalancesAdjustment) {
-            Message<byte[]> balanceAdjustmentStarted = output.receive(1000);
-            assertEquals("BALANCE_ADJUSTMENT_STARTED", balanceAdjustmentStarted.getHeaders().get("type"));
+        mergeEntities = mergeRepository.findAll();
+        assertEquals(1, mergeEntities.size());
+        assertEquals("SWE", mergeEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
 
-            Message<byte[]> balanceAdjustmentFinished = output.receive(1000);
-            assertEquals("BALANCE_ADJUSTMENT_FINISHED", balanceAdjustmentFinished.getHeaders().get("type"));
-        } else {
-            Message<byte[]> loadFlowStarted = output.receive(1000);
-            assertEquals("LOAD_FLOW_STARTED", loadFlowStarted.getHeaders().get("type"));
-
-            Message<byte[]> loadFlowFinished = output.receive(1000);
-            assertEquals("LOAD_FLOW_FINISHED", loadFlowFinished.getHeaders().get("type"));
-        }
-
-        Message<byte[]> mergeProcessFinished = output.receive(1000);
-        assertEquals("MERGE_PROCESS_FINISHED", mergeProcessFinished.getHeaders().get("type"));
-
-        List<MergeEntity> savedFinish = mergeRepository.findAll();
-        assertEquals(1, savedFinish.size());
-        assertEquals("MERGE_PROCESS_FINISHED", savedFinish.get(0).getStatus());
-        assertEquals("SWE", savedFinish.get(0).getKey().getProcess());
-        assertEquals(dateTime.toLocalDateTime(), savedFinish.get(0).getKey().getDate());
-
-        List<MergeInfos> mergeInfos = mergeOrchestratorService.getMergesList();
+        assertTrue(mergeOrchestratorService.getMerges("FOO").isEmpty());
+        List<Merge> mergeInfos = mergeOrchestratorService.getMerges("SWE");
         assertEquals(1, mergeInfos.size());
         assertEquals("SWE", mergeInfos.get(0).getProcess());
-        assertEquals("MERGE_PROCESS_FINISHED", mergeInfos.get(0).getStatus());
+        assertEquals(runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED, mergeInfos.get(0).getStatus());
         assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
+        assertEquals(3, mergeInfos.get(0).getIgms().size());
+        assertEquals("ES", mergeInfos.get(0).getIgms().get(0).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(0).getStatus());
+        assertEquals("FR", mergeInfos.get(0).getIgms().get(1).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(1).getStatus());
+        assertEquals("PT", mergeInfos.get(0).getIgms().get(2).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(2).getStatus());
 
-        mergeInfos = mergeOrchestratorService.getProcessMergesList("SWE");
-        assertEquals(1, mergeInfos.size());
-        assertEquals("SWE", mergeInfos.get(0).getProcess());
-        assertEquals("MERGE_PROCESS_FINISHED", mergeInfos.get(0).getStatus());
-        assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
-
-        Optional<MergeInfos> mergeInfo = mergeOrchestratorService.getMerge("SWE", ZonedDateTime.parse("2019-05-01T10:00:00.000+01:00"));
-        assertTrue(mergeInfo.isPresent());
-        assertEquals("SWE", mergeInfo.get().getProcess());
-        assertEquals("MERGE_PROCESS_FINISHED", mergeInfo.get().getStatus());
-        assertEquals(dateTime.toLocalDateTime(), mergeInfo.get().getDate().toLocalDateTime());
-
-        Optional<IgmQualityInfos> qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_FR);
-        assertTrue(qualityInfo.isPresent());
-        assertEquals(UUID_CASE_ID_FR, qualityInfo.get().getCaseUuid());
-        assertEquals(UUID_NETWORK_ID_FR, qualityInfo.get().getNetworkId());
-        assertTrue(qualityInfo.get().isValid());
-
-        qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_ES);
-        assertTrue(qualityInfo.isPresent());
-        assertEquals(UUID_CASE_ID_ES, qualityInfo.get().getCaseUuid());
-        assertEquals(UUID_NETWORK_ID_ES, qualityInfo.get().getNetworkId());
-        assertTrue(qualityInfo.get().isValid());
-
-        qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_PT);
-        assertTrue(qualityInfo.isPresent());
-        assertEquals(UUID_CASE_ID_PT, qualityInfo.get().getCaseUuid());
-        assertEquals(UUID_NETWORK_ID_PT, qualityInfo.get().getNetworkId());
-        assertTrue(qualityInfo.get().isValid());
-
-        qualityInfo = mergeOrchestratorService.getIgmQuality(UUID_CASE_ID_UNKNOWN);
-        assertFalse(qualityInfo.isPresent());
+        assertFalse(mergeOrchestratorService.getMerges("SWE", dateTime, dateTime).isEmpty());
 
         assertNull(output.receive(1000));
     }

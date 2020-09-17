@@ -8,22 +8,23 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 
 import org.springframework.data.cassandra.repository.CassandraRepository;
 import org.springframework.data.cassandra.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * @author Jon Harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Repository
-public interface MergeRepository extends CassandraRepository<MergeEntity, MergeEntityKey> {
+public interface IgmRepository extends CassandraRepository<IgmEntity, IgmEntityKey> {
 
-    @Query("SELECT * FROM merge WHERE process = :process")
-    List<MergeEntity> findByProcess(@Param("process") String process);
+    @Query("SELECT * FROM merge_igm WHERE process = :process")
+    List<IgmEntity> findByProcess(String process);
 
-    @Query("SELECT * FROM merge WHERE process = :process AND date >= :minDate AND date <= :maxDate")
-    List<MergeEntity> findByProcessAndInterval(String process, LocalDateTime minDate, LocalDateTime maxDate);
+    @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date")
+    List<IgmEntity> findByProcessAndDate(String process, LocalDateTime date);
+
+    @Query("SELECT * FROM merge_igm WHERE process = :process AND date >= :minDate AND date <= :maxDate")
+    List<IgmEntity> findByProcessAndInterval(String process, LocalDateTime minDate, LocalDateTime maxDate);
 }
