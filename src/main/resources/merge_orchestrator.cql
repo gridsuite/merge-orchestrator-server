@@ -20,4 +20,3 @@ CREATE TABLE merge_orchestrator.configs (
     runBalancesAdjustment boolean,
     PRIMARY KEY (process)
 );
-
