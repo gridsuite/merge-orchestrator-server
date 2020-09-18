@@ -128,14 +128,7 @@ public class MergeOrchestratorService {
                 boolean valid = igmQualityCheckService.check(networkUuid);
 
                 for (ProcessConfigEntity processConfigEntity : processConfigEntities) {
-                    if (processConfigEntity.getTsos().contains(tso)) {
-                        LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid", date, processConfigEntity.getProcess(), tso, valid ? " " : "not ");
-                        mergeEventService.addMergeIgmEvent(processConfigEntity.getProcess(), dateTime, tso,
-                                valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
-
-                        merge(processConfigEntity.getProcess(), processConfigEntity.isRunBalancesAdjustment(),
-                                processConfigEntity.getTsos(), dateTime, date);
-                    }
+                    merge(processConfigEntity, dateTime, date, tso, valid, networkUuid);
                 }
             }
         } catch (Exception e) {
@@ -143,30 +136,36 @@ public class MergeOrchestratorService {
         }
     }
 
-    void merge(String process, boolean runBalancesAdjustment, List<String> tsos, ZonedDateTime dateTime, String date) {
-        // get list of network UUID for validated IGMs
-        List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime, process);
+    void merge(ProcessConfigEntity processConfigEntity, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
+        if (processConfigEntity.getTsos().contains(tso)) {
+            LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid", date, processConfigEntity.getProcess(), tso, valid ? " " : "not ");
+            mergeEventService.addMergeIgmEvent(processConfigEntity.getProcess(), dateTime, tso,
+                    valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
 
-        if (networkUuids.size() == tsos.size()) {
-            // all IGMs are available and valid for the merging process
-            LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, process);
+            // get list of network UUID for validated IGMs
+            List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime, processConfigEntity.getProcess());
 
-            if (runBalancesAdjustment) {
-                // balances adjustment on the merge network
-                balancesAdjustmentService.doBalance(networkUuids);
+            if (networkUuids.size() == processConfigEntity.getTsos().size()) {
+                // all IGMs are available and valid for the merging process
+                LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, processConfigEntity.getProcess());
 
-                LOGGER.info("Merge {} of process {}: balance adjustment complete", date, process);
+                if (processConfigEntity.isRunBalancesAdjustment()) {
+                    // balances adjustment on the merge network
+                    balancesAdjustmentService.doBalance(networkUuids);
 
-                // TODO check balance adjustment status
-                mergeEventService.addMergeEvent(process, dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
-            } else {
-                // load flow on the merged network
-                loadFlowService.run(networkUuids);
+                    LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfigEntity.getProcess());
 
-                LOGGER.info("Merge {} of process {}: loadflow complete", date, process);
+                    // TODO check balance adjustment status
+                    mergeEventService.addMergeEvent(processConfigEntity.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
+                } else {
+                    // load flow on the merged network
+                    loadFlowService.run(networkUuids);
 
-                // TODO check loadflow status
-                mergeEventService.addMergeEvent(process, dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                    LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfigEntity.getProcess());
+
+                    // TODO check loadflow status
+                    mergeEventService.addMergeEvent(processConfigEntity.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                }
             }
         }
     }
