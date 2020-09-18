@@ -133,36 +133,41 @@ public class MergeOrchestratorService {
                         mergeEventService.addMergeIgmEvent(processConfigEntity.getProcess(), dateTime, tso,
                                 valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
 
-                        // get list of network UUID for validated IGMs
-                        List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime, processConfigEntity.getProcess());
-
-                        if (networkUuids.size() == processConfigEntity.getTsos().size()) {
-                            // all IGMs are available and valid for the merging process
-                            LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, processConfigEntity.getProcess());
-
-                            if (processConfigEntity.isRunBalancesAdjustment()) {
-                                // balances adjustment on the merge network
-                                balancesAdjustmentService.doBalance(networkUuids);
-
-                                LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfigEntity.getProcess());
-
-                                // TODO check balance adjustment status
-                                mergeEventService.addMergeEvent(processConfigEntity.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
-                            } else {
-                                // load flow on the merged network
-                                loadFlowService.run(networkUuids);
-
-                                LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfigEntity.getProcess());
-
-                                // TODO check loadflow status
-                                mergeEventService.addMergeEvent(processConfigEntity.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
-                            }
-                        }
+                        merge(processConfigEntity.getProcess(), processConfigEntity.isRunBalancesAdjustment(),
+                                processConfigEntity.getTsos(), dateTime, date);
                     }
                 }
             }
         } catch (Exception e) {
             LOGGER.error("Error : {}", e.getMessage());
+        }
+    }
+
+    void merge(String process, boolean runBalancesAdjustment, List<String> tsos, ZonedDateTime dateTime, String date) {
+        // get list of network UUID for validated IGMs
+        List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime, process);
+
+        if (networkUuids.size() == tsos.size()) {
+            // all IGMs are available and valid for the merging process
+            LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, process);
+
+            if (runBalancesAdjustment) {
+                // balances adjustment on the merge network
+                balancesAdjustmentService.doBalance(networkUuids);
+
+                LOGGER.info("Merge {} of process {}: balance adjustment complete", date, process);
+
+                // TODO check balance adjustment status
+                mergeEventService.addMergeEvent(process, dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
+            } else {
+                // load flow on the merged network
+                loadFlowService.run(networkUuids);
+
+                LOGGER.info("Merge {} of process {}: loadflow complete", date, process);
+
+                // TODO check loadflow status
+                mergeEventService.addMergeEvent(process, dateTime, MergeStatus.LOADFLOW_SUCCEED);
+            }
         }
     }
 
