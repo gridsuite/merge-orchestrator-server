@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
 import org.springframework.stereotype.Service;
@@ -30,19 +31,27 @@ public class MergeOrchestratorConfigService {
         return getConfigs().stream().flatMap(config -> config.getTsos().stream()).collect(Collectors.toList());
     }
 
-    List<ProcessConfigEntity> getConfigs() {
-        return processConfigRepository.findAll();
+    List<ProcessConfig> getConfigs() {
+        return processConfigRepository.findAll().stream().map(this::toProcessConfig).collect(Collectors.toList());
     }
 
-    Optional<ProcessConfigEntity> getConfig(String process) {
-        return processConfigRepository.findById(process);
+    Optional<ProcessConfig> getConfig(String process) {
+        return processConfigRepository.findById(process).map(this::toProcessConfig);
     }
 
-    void addConfig(ProcessConfigEntity processConfigEntity) {
-        processConfigRepository.save(processConfigEntity);
+    void addConfig(ProcessConfig processConfig) {
+        processConfigRepository.save(toProcessConfigEntity(processConfig));
     }
 
     public void deleteConfig(String process) {
         processConfigRepository.deleteById(process);
+    }
+
+    private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
+        return new ProcessConfig(processConfigEntity.getProcess(), processConfigEntity.getTsos(), processConfigEntity.isRunBalancesAdjustment());
+    }
+
+    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
+        return new ProcessConfigEntity(processConfig.getProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
     }
 }

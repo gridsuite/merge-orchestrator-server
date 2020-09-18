@@ -10,7 +10,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
+import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,37 +26,37 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/" + MergeOrchestratorApi.API_VERSION)
 @Transactional
-@Api(value = "Merge orchestrator parameters")
+@Api(value = "Merge orchestrator configs")
 @ComponentScan(basePackageClasses = MergeOrchestratorService.class)
-public class MergeConfigController {
+public class ProcessConfigController {
 
     private final MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
-    public MergeConfigController(MergeOrchestratorConfigService mergeOrchestratorConfigService) {
+    public ProcessConfigController(MergeOrchestratorConfigService mergeOrchestratorConfigService) {
         this.mergeOrchestratorConfigService = mergeOrchestratorConfigService;
     }
 
     @GetMapping(value = "/configs", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Get all processes configurations", response = List.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of processes configurations")})
-    public ResponseEntity<List<ProcessConfigEntity>> getConfigs() {
-        List<ProcessConfigEntity> configs = mergeOrchestratorConfigService.getConfigs();
+    public ResponseEntity<List<ProcessConfig>> getConfigs() {
+        List<ProcessConfig> configs = mergeOrchestratorConfigService.getConfigs();
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(configs);
     }
 
     @GetMapping(value = "/configs/{process}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Get merge configuration by process", response = List.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The merge configurations by the process")})
-    public ResponseEntity<ProcessConfigEntity> getConfigs(@PathVariable String process) {
-        ProcessConfigEntity config = mergeOrchestratorConfigService.getConfig(process).orElse(null);
+    public ResponseEntity<ProcessConfig> getConfigs(@PathVariable String process) {
+        ProcessConfig config = mergeOrchestratorConfigService.getConfig(process).orElse(null);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(config);
     }
 
     @PostMapping(value = "/configs")
     @ApiOperation(value = "Add a new configuration for a new process")
     @ApiResponses(value = @ApiResponse(code = 200, message = "The new configuration added"))
-    public ResponseEntity<Void> createStudyFromExistingCase(@RequestBody ProcessConfigEntity processConfigEntity) {
-        mergeOrchestratorConfigService.addConfig(processConfigEntity);
+    public ResponseEntity<Void> createStudyFromExistingCase(@RequestBody ProcessConfig processConfig) {
+        mergeOrchestratorConfigService.addConfig(processConfig);
         return ResponseEntity.ok().build();
     }
 
