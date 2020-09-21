@@ -26,11 +26,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -53,6 +55,9 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Inject
     IgmRepository igmRepository;
 
+    @Inject
+    ProcessConfigRepository processConfigRepository;
+
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
 
@@ -71,6 +76,11 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        ArrayList<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
+        processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
     }
 
     @Test
@@ -80,6 +90,16 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json("[{\"process\":\"SWE\",\"tsos\":[\"FR\",\"ES\",\"PT\"]}]"));
+
+        mvc.perform(get("/" + VERSION + "/configs/SWE")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(content().json("{\"process\":\"SWE\",\"tsos\":[\"FR\",\"ES\",\"PT\"]}"));
+
+        mvc.perform(delete("/" + VERSION + "/configs/SWE")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 
     @Test

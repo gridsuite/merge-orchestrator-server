@@ -13,3 +13,10 @@ CREATE TABLE merge_orchestrator.merge (
     status text,
     PRIMARY KEY (process, date)
 );
+
+CREATE TABLE merge_orchestrator.configs (
+    process text,
+    tsos frozen<List<text>>,
+    runBalancesAdjustment boolean,
+    PRIMARY KEY (process)
+);

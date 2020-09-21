@@ -6,10 +6,23 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.iidm.network.NetworkFactory;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+
+import javax.inject.Inject;
+
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
+import com.powsybl.iidm.network.NetworkFactory;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
@@ -17,9 +30,11 @@ import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -33,15 +48,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.inject.Inject;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
-
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -65,6 +73,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Inject
     IgmRepository igmRepository;
+
+    @Inject
+    ProcessConfigRepository processConfigRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -97,6 +108,16 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     private static final UUID UUID_NETWORK_ID_PT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
 
     private static final UUID UUID_CASE_ID_UNKNOWN = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e9");
+
+    @Before
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
+        ArrayList<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
+        processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
+    }
 
     @Test
     public void test() {
@@ -235,5 +256,24 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertFalse(mergeOrchestratorService.getMerges("SWE", dateTime, dateTime).isEmpty());
 
         assertNull(output.receive(1000));
+    }
+
+    @Test
+    public void parametersRepositoryTest() {
+        assertEquals(1, processConfigRepository.findAll().size());
+        List<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        ProcessConfigEntity processConfigEntity = new ProcessConfigEntity("XYZ", tsos, true);
+        processConfigRepository.save(processConfigEntity);
+        assertEquals(2, processConfigRepository.findAll().size());
+        assertTrue(processConfigRepository.findById("SWE").isPresent());
+        assertTrue(processConfigRepository.findById("XYZ").isPresent());
+        assertEquals("SWE", processConfigRepository.findById("SWE").get().getProcess());
+        assertEquals("XYZ", processConfigRepository.findById("XYZ").get().getProcess());
+        assertFalse(processConfigRepository.findById("SWE").get().isRunBalancesAdjustment());
+        assertTrue(processConfigRepository.findById("XYZ").get().isRunBalancesAdjustment());
+        assertEquals(3, processConfigRepository.findById("SWE").get().getTsos().size());
+        assertEquals(2, processConfigRepository.findById("XYZ").get().getTsos().size());
     }
 }

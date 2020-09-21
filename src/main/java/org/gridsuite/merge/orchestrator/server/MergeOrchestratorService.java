@@ -7,10 +7,8 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.lang3.StringUtils;
-import org.gridsuite.merge.orchestrator.server.dto.Igm;
-import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
-import org.gridsuite.merge.orchestrator.server.dto.Merge;
-import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.gridsuite.merge.orchestrator.server.dto.*;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
@@ -97,7 +95,10 @@ public class MergeOrchestratorService {
 
     public void consume(Message<String> message) {
         try {
+            List<ProcessConfig> processConfigs = mergeConfigService.getConfigs();
+
             List<String> tsos = mergeConfigService.getTsos();
+
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);
             String tso = (String) mh.get(TSO_CODE_HEADER_KEY);
@@ -106,12 +107,16 @@ public class MergeOrchestratorService {
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
 
             if (checkTso(tsos, tso, format, businessProcess)) {
-                LOGGER.info("Merge {} of process {}: IGM in format {} from TSO {} received", date, mergeConfigService.getProcess(), format, tso);
 
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
-                mergeEventService.addMergeIgmEvent(mergeConfigService.getProcess(), dateTime, tso, IgmStatus.AVAILABLE, null);
+                for (ProcessConfig processConfig : processConfigs) {
+                    if (processConfig.getTsos().contains(tso)) {
+                        LOGGER.info("Merge {} of process {}: IGM in format {} from TSO {} received", date, processConfig.getProcess(), format, tso);
+                        mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso, IgmStatus.AVAILABLE, null);
+                    }
+                }
 
                 // import IGM into the network store
                 UUID networkUuid = caseFetcherService.importCase(caseUuid);
@@ -119,35 +124,8 @@ public class MergeOrchestratorService {
                 // check IGM quality
                 boolean valid = igmQualityCheckService.check(networkUuid);
 
-                LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid",  date, mergeConfigService.getProcess(), tso, valid ? " " : "not ");
-
-                mergeEventService.addMergeIgmEvent(mergeConfigService.getProcess(), dateTime, tso,
-                        valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
-
-                // get list of network UUID for validated IGMs
-                List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime);
-
-                if (networkUuids.size() == tsos.size()) {
-                    // all IGMs are available and valid for the merging process
-                    LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, mergeConfigService.getProcess());
-
-                    if (mergeConfigService.isRunBalancesAdjustment()) {
-                        // balances adjustment on the merge network
-                        balancesAdjustmentService.doBalance(networkUuids);
-
-                        LOGGER.info("Merge {} of process {}: balance adjustment complete", date, mergeConfigService.getProcess());
-
-                        // TODO check balance adjustment status
-                        mergeEventService.addMergeEvent(mergeConfigService.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
-                    } else {
-                        // load flow on the merged network
-                        loadFlowService.run(networkUuids);
-
-                        LOGGER.info("Merge {} of process {}: loadflow complete", date, mergeConfigService.getProcess());
-
-                        // TODO check loadflow status
-                        mergeEventService.addMergeEvent(mergeConfigService.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
-                    }
+                for (ProcessConfig processConfig : processConfigs) {
+                    merge(processConfig, dateTime, date, tso, valid, networkUuid);
                 }
             }
         } catch (Exception e) {
@@ -155,11 +133,45 @@ public class MergeOrchestratorService {
         }
     }
 
-    private List<UUID> findNetworkUuidsOfValidatedIgms(ZonedDateTime dateTime) {
+    void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
+        if (processConfig.getTsos().contains(tso)) {
+            LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid", date, processConfig.getProcess(), tso, valid ? " " : "not ");
+            mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso,
+                    valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
+
+            // get list of network UUID for validated IGMs
+            List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime, processConfig.getProcess());
+
+            if (networkUuids.size() == processConfig.getTsos().size()) {
+                // all IGMs are available and valid for the merging process
+                LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, processConfig.getProcess());
+
+                if (processConfig.isRunBalancesAdjustment()) {
+                    // balances adjustment on the merge network
+                    balancesAdjustmentService.doBalance(networkUuids);
+
+                    LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfig.getProcess());
+
+                    // TODO check balance adjustment status
+                    mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
+                } else {
+                    // load flow on the merged network
+                    loadFlowService.run(networkUuids);
+
+                    LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfig.getProcess());
+
+                    // TODO check loadflow status
+                    mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                }
+            }
+        }
+    }
+
+    private List<UUID> findNetworkUuidsOfValidatedIgms(ZonedDateTime dateTime, String process) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
 
-        return igmRepository.findByProcessAndDate(mergeConfigService.getProcess(), localDateTime).stream()
+        return igmRepository.findByProcessAndDate(process, localDateTime).stream()
                 .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
                 .map(IgmEntity::getNetworkUuid)
                 .collect(Collectors.toList());

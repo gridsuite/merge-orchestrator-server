@@ -11,7 +11,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
-import org.gridsuite.merge.orchestrator.server.dto.MergeConfig;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -37,19 +35,8 @@ public class MergeOrchestratorController {
 
     private final MergeOrchestratorService mergeOrchestratorService;
 
-    private final MergeOrchestratorConfigService mergeConfigService;
-
-    public MergeOrchestratorController(MergeOrchestratorService mergeOrchestratorService, MergeOrchestratorConfigService mergeConfigService) {
+    public MergeOrchestratorController(MergeOrchestratorService mergeOrchestratorService) {
         this.mergeOrchestratorService = mergeOrchestratorService;
-        this.mergeConfigService = mergeConfigService;
-    }
-
-    @GetMapping(value = "/configs", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Get all merge configurations", response = List.class)
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of all merge configurations")})
-    public ResponseEntity<List<MergeConfig>> getConfigs() {
-        List<MergeConfig> configs = Collections.singletonList(new MergeConfig(mergeConfigService.getProcess(), mergeConfigService.getTsos()));
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(configs);
     }
 
     @GetMapping(value = "{process}/merges", produces = MediaType.APPLICATION_JSON_VALUE)

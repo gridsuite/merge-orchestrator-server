@@ -6,15 +6,14 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
+import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -22,33 +21,37 @@ import java.util.List;
 @Service
 public class MergeOrchestratorConfigService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorConfigService.class);
+    private final ProcessConfigRepository processConfigRepository;
 
-    @Value("${parameters.tsos}")
-    private String mergeTsos;
-
-    @Value("${parameters.process}")
-    private String process;
-
-    @Value("${parameters.run-balances-adjustment}")
-    private boolean runBalancesAdjustment;
-
-    @PostConstruct
-    public void logParameters() {
-        LOGGER.info("TSOs to merge: {}", getTsos());
-        LOGGER.info("Process: {}", process);
-        LOGGER.info("Run balance adjustment: {}", runBalancesAdjustment);
+    public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository) {
+        this.processConfigRepository = processConfigRepository;
     }
 
     public List<String> getTsos() {
-        return mergeTsos != null ? Arrays.asList(mergeTsos.split(",")) : Collections.emptyList();
+        return getConfigs().stream().flatMap(config -> config.getTsos().stream()).collect(Collectors.toList());
     }
 
-    public String getProcess() {
-        return process;
+    List<ProcessConfig> getConfigs() {
+        return processConfigRepository.findAll().stream().map(this::toProcessConfig).collect(Collectors.toList());
     }
 
-    public boolean isRunBalancesAdjustment() {
-        return runBalancesAdjustment;
+    Optional<ProcessConfig> getConfig(String process) {
+        return processConfigRepository.findById(process).map(this::toProcessConfig);
+    }
+
+    void addConfig(ProcessConfig processConfig) {
+        processConfigRepository.save(toProcessConfigEntity(processConfig));
+    }
+
+    public void deleteConfig(String process) {
+        processConfigRepository.deleteById(process);
+    }
+
+    private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
+        return new ProcessConfig(processConfigEntity.getProcess(), processConfigEntity.getTsos(), processConfigEntity.isRunBalancesAdjustment());
+    }
+
+    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
+        return new ProcessConfigEntity(processConfig.getProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
     }
 }
