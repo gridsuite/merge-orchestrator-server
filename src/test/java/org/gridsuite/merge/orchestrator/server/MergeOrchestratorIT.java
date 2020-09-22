@@ -117,7 +117,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         tsos.add("ES");
         tsos.add("PT");
         processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
-        processConfigRepository.save(new ProcessConfigEntity("FRES", tsos.subList(0,2), false));
+        processConfigRepository.save(new ProcessConfigEntity("FRES", tsos.subList(0, 2), false));
     }
 
     @Test
