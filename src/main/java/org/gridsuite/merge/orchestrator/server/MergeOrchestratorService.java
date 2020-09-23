@@ -134,21 +134,28 @@ public class MergeOrchestratorService {
                 }
 
                 if (!processConfigs.isEmpty()) {
-                    Future<Boolean> validFuture = executor.submit(() -> {
+                    Future<UUID> networkUuidFuture = executor.submit(() -> {
                         // import IGM into the network store
-                        UUID networkUuid = caseFetcherService.importCase(caseUuid);
+                        return caseFetcherService.importCase(caseUuid);
+                    });
+
+                    UUID networkUuid = networkUuidFuture.get(timeout, TimeUnit.SECONDS);
+
+                    Future<Boolean> validFuture = executor.submit(() -> {
                         // check IGM quality
-                        boolean valid = igmQualityCheckService.check(networkUuid);
-                        merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
-                        return valid;
+                        return igmQualityCheckService.check(networkUuid);
                     });
 
                     boolean valid = validFuture.get(timeout, TimeUnit.SECONDS);
 
+                    executor.submit(() -> merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid));
+
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
-                        // import IGM into the network store
-                        UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
-                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
+                        executor.submit(() -> {
+                            // import IGM into the network store
+                            UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
+                            merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
+                        });
                     }
                 }
             }
