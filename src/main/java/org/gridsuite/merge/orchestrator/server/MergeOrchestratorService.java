@@ -105,7 +105,6 @@ public class MergeOrchestratorService {
             UUID caseUuid = UUID.fromString((String) mh.get(UUID_HEADER_KEY));
             String format = (String) mh.get(FORMAT_HEADER_KEY);
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
-            boolean valid;
 
             if (checkTso(tsos, tso, format, businessProcess)) {
 
@@ -123,7 +122,7 @@ public class MergeOrchestratorService {
                     // import IGM into the network store
                     UUID networkUuid = caseFetcherService.importCase(caseUuid);
                     // check IGM quality
-                    valid = igmQualityCheckService.check(networkUuid);
+                    boolean valid = igmQualityCheckService.check(networkUuid);
 
                     merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
 
