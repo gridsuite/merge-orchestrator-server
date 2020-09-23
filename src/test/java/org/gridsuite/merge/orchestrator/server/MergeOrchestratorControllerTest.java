@@ -70,6 +70,9 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @MockBean
     private LoadFlowService loadFlowService;
 
+    @MockBean
+    private NetworkConversionService networkConversionService;
+
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
 
