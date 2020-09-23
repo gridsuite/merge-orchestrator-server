@@ -35,7 +35,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -95,7 +94,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
 
-    @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
 
     private static final UUID UUID_CASE_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
@@ -116,6 +114,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
+        runBalancesAdjustment = false;
         processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
         processConfigRepository.save(new ProcessConfigEntity("FRES", tsos.subList(0, 2), false));
     }
@@ -274,7 +273,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     }
 
     @Test
-    public void parametersRepositoryTest() {
+    public void configsRepositoryTest() {
         assertEquals(2, processConfigRepository.findAll().size());
         List<String> tsos = new ArrayList<>();
         tsos.add("FR");

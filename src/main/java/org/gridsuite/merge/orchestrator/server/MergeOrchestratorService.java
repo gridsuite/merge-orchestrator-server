@@ -15,6 +15,7 @@ import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
@@ -29,6 +30,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -69,6 +71,10 @@ public class MergeOrchestratorService {
 
     private IgmQualityCheckService igmQualityCheckService;
 
+    private int poolSize;
+
+    private int timeout;
+
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     MergeEventService mergeEventService,
@@ -76,7 +82,9 @@ public class MergeOrchestratorService {
                                     IgmQualityCheckService igmQualityCheckService,
                                     MergeRepository mergeRepository,
                                     IgmRepository igmRepository,
-                                    MergeOrchestratorConfigService mergeConfigService) {
+                                    MergeOrchestratorConfigService mergeConfigService,
+                                    @Value("${threads.pool-size:8}") int poolSize,
+                                    @Value("${threads.timeout:60}") int timeout) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.mergeEventService = mergeEventService;
@@ -85,6 +93,8 @@ public class MergeOrchestratorService {
         this.mergeRepository = mergeRepository;
         this.mergeConfigService = mergeConfigService;
         this.igmRepository = igmRepository;
+        this.poolSize = poolSize;
+        this.timeout = timeout;
     }
 
     @Bean
@@ -111,7 +121,7 @@ public class MergeOrchestratorService {
 
             if (checkTso(tsos, tso, format, businessProcess)) {
                 //create the thread pool to parallelize merge processes and cas import
-                ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+                ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(poolSize);
 
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
@@ -133,7 +143,7 @@ public class MergeOrchestratorService {
                         return valid;
                     });
 
-                    boolean valid = validFuture.get();
+                    boolean valid = validFuture.get(timeout, TimeUnit.SECONDS);
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
                         // import IGM into the network store
