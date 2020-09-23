@@ -84,7 +84,7 @@ public class MergeOrchestratorService {
                                     IgmRepository igmRepository,
                                     MergeOrchestratorConfigService mergeConfigService,
                                     @Value("${threads.pool-size:8}") int poolSize,
-                                    @Value("${threads.timeout:60}") int timeout) {
+                                    @Value("${threads.timeout:300}") int timeout) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.mergeEventService = mergeEventService;
