@@ -26,6 +26,9 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -107,6 +110,8 @@ public class MergeOrchestratorService {
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
 
             if (checkTso(tsos, tso, format, businessProcess)) {
+                //create the thread pool to parallelize merge processes and cas import
+                ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
@@ -119,12 +124,16 @@ public class MergeOrchestratorService {
                 }
 
                 if (!processConfigs.isEmpty()) {
-                    // import IGM into the network store
-                    UUID networkUuid = caseFetcherService.importCase(caseUuid);
-                    // check IGM quality
-                    boolean valid = igmQualityCheckService.check(networkUuid);
+                    Future<Boolean> validFuture = executor.submit(() -> {
+                        // import IGM into the network store
+                        UUID networkUuid = caseFetcherService.importCase(caseUuid);
+                        // check IGM quality
+                        boolean valid = igmQualityCheckService.check(networkUuid);
+                        merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
+                        return valid;
+                    });
 
-                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
+                    boolean valid = validFuture.get();
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
                         // import IGM into the network store
