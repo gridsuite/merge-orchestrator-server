@@ -117,6 +117,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         tsos.add("ES");
         tsos.add("PT");
         processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
+        processConfigRepository.save(new ProcessConfigEntity("FRES", tsos.subList(0, 2), false));
     }
 
     @Test
@@ -156,17 +157,24 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "1D")
                 .build());
-        Message<byte[]> messageFrIGM = output.receive(1000);
-        assertEquals("AVAILABLE", messageFrIGM.getHeaders().get("status"));
-        messageFrIGM = output.receive(1000);
-        assertEquals("VALIDATION_SUCCEED", messageFrIGM.getHeaders().get("status"));
+        Message<byte[]> messageFrIGMProcess1 = output.receive(1000);
+        assertEquals("AVAILABLE", messageFrIGMProcess1.getHeaders().get("status"));
+        Message<byte[]> messageFrIGMProcess2 = output.receive(1000);
+        assertEquals("AVAILABLE", messageFrIGMProcess2.getHeaders().get("status"));
+        messageFrIGMProcess1 = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", messageFrIGMProcess1.getHeaders().get("status"));
+        messageFrIGMProcess2 = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", messageFrIGMProcess2.getHeaders().get("status"));
+
         List<MergeEntity> mergeEntities = mergeRepository.findAll();
-        assertEquals(1, mergeEntities.size());
+        assertEquals(2, mergeEntities.size());
         assertEquals("SWE", mergeEntities.get(0).getKey().getProcess());
+        assertEquals("FRES", mergeEntities.get(1).getKey().getProcess());
+
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertNull(mergeEntities.get(0).getStatus());
         List<IgmEntity> igmEntities = igmRepository.findAll();
-        assertEquals(1, igmEntities.size());
+        assertEquals(2, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
         assertEquals("SWE", igmEntities.get(0).getKey().getProcess());
@@ -187,11 +195,18 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         Message<byte[]> messageEsIGM = output.receive(1000);
         assertEquals("AVAILABLE", messageEsIGM.getHeaders().get("status"));
         messageEsIGM = output.receive(1000);
+        assertEquals("AVAILABLE", messageEsIGM.getHeaders().get("status"));
+        messageEsIGM = output.receive(1000);
         assertEquals("VALIDATION_SUCCEED", messageEsIGM.getHeaders().get("status"));
+        messageEsIGM = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", messageEsIGM.getHeaders().get("status"));
+        messageEsIGM = output.receive(1000);
+        assertEquals("LOADFLOW_SUCCEED", messageEsIGM.getHeaders().get("status"));
+
         mergeEntities = mergeRepository.findAll();
-        assertEquals(1, mergeEntities.size());
+        assertEquals(2, mergeEntities.size());
         igmEntities = igmRepository.findAll();
-        assertEquals(2, igmEntities.size());
+        assertEquals(4, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
         assertEquals("SWE", igmEntities.get(0).getKey().getProcess());
@@ -234,7 +249,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
-        assertEquals(1, mergeEntities.size());
+        assertEquals(2, mergeEntities.size());
         assertEquals("SWE", mergeEntities.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
@@ -260,14 +275,15 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void parametersRepositoryTest() {
-        assertEquals(1, processConfigRepository.findAll().size());
+        assertEquals(2, processConfigRepository.findAll().size());
         List<String> tsos = new ArrayList<>();
         tsos.add("FR");
         tsos.add("ES");
         ProcessConfigEntity processConfigEntity = new ProcessConfigEntity("XYZ", tsos, true);
         processConfigRepository.save(processConfigEntity);
-        assertEquals(2, processConfigRepository.findAll().size());
+        assertEquals(3, processConfigRepository.findAll().size());
         assertTrue(processConfigRepository.findById("SWE").isPresent());
+        assertTrue(processConfigRepository.findById("FRES").isPresent());
         assertTrue(processConfigRepository.findById("XYZ").isPresent());
         assertEquals("SWE", processConfigRepository.findById("SWE").get().getProcess());
         assertEquals("XYZ", processConfigRepository.findById("XYZ").get().getProcess());

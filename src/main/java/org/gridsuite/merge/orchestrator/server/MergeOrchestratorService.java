@@ -118,14 +118,19 @@ public class MergeOrchestratorService {
                     }
                 }
 
-                // import IGM into the network store
-                UUID networkUuid = caseFetcherService.importCase(caseUuid);
+                if (!processConfigs.isEmpty()) {
+                    // import IGM into the network store
+                    UUID networkUuid = caseFetcherService.importCase(caseUuid);
+                    // check IGM quality
+                    boolean valid = igmQualityCheckService.check(networkUuid);
 
-                // check IGM quality
-                boolean valid = igmQualityCheckService.check(networkUuid);
+                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
 
-                for (ProcessConfig processConfig : processConfigs) {
-                    merge(processConfig, dateTime, date, tso, valid, networkUuid);
+                    for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
+                        // import IGM into the network store
+                        UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
+                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
+                    }
                 }
             }
         } catch (Exception e) {
