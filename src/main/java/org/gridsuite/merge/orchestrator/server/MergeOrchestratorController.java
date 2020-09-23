@@ -73,7 +73,7 @@ public class MergeOrchestratorController {
 
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
-        byte[] exportedMerge = mergeOrchestratorService.exportMerge(process, dateTime);
+        byte[] exportedMerge = mergeOrchestratorService.exportMerge(process, dateTime, format);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
         String filename = process + "_" + dateTime.format(formatter);

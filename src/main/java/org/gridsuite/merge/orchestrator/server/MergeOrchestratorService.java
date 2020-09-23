@@ -213,9 +213,9 @@ public class MergeOrchestratorService {
                 .collect(Collectors.toList());
     }
 
-    byte[] exportMerge(String process, ZonedDateTime processDate) {
+    byte[] exportMerge(String process, ZonedDateTime processDate, String format) {
         List<UUID> networksUuids =  findNetworkUuidsOfValidatedIgms(processDate, process);
-        return networkConversionService.exportMerge(networksUuids, "XIIDM");
+        return networkConversionService.exportMerge(networksUuids, format);
     }
 
     private static Igm toIgm(IgmEntity entity) {
