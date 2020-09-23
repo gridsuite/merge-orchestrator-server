@@ -134,17 +134,13 @@ public class MergeOrchestratorService {
                 }
 
                 if (!processConfigs.isEmpty()) {
-                    Future<UUID> networkUuidFuture = executor.submit(() -> {
-                        // import IGM into the network store
-                        return caseFetcherService.importCase(caseUuid);
-                    });
+                    // import IGM into the network store
+                    Future<UUID> networkUuidFuture = executor.submit(() -> caseFetcherService.importCase(caseUuid));
 
                     UUID networkUuid = networkUuidFuture.get(timeout, TimeUnit.SECONDS);
 
-                    Future<Boolean> validFuture = executor.submit(() -> {
-                        // check IGM quality
-                        return igmQualityCheckService.check(networkUuid);
-                    });
+                    // check IGM quality
+                    Future<Boolean> validFuture = executor.submit(() -> igmQualityCheckService.check(networkUuid));
 
                     boolean valid = validFuture.get(timeout, TimeUnit.SECONDS);
 
