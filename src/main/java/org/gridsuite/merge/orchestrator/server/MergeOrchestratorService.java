@@ -20,6 +20,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
@@ -28,9 +29,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -140,20 +139,17 @@ public class MergeOrchestratorService {
                 }
 
                 if (!processConfigs.isEmpty()) {
-                    // import IGM into the network store
-                    Future<UUID> networkUuidFuture = executor.submit(() -> caseFetcherService.importCase(caseUuid));
+                    Mono<UUID> networkUuidMono = Mono.fromCallable(() -> caseFetcherService.importCase(caseUuid));
 
-                    UUID networkUuid = networkUuidFuture.get(timeout, TimeUnit.SECONDS);
-
-                    // check IGM quality
-                    Future<Boolean> validFuture = executor.submit(() -> igmQualityCheckService.check(networkUuid));
-
-                    boolean valid = validFuture.get(timeout, TimeUnit.SECONDS);
-
-                    executor.submit(() -> merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid));
+                    Mono<Boolean> validMono = networkUuidMono.flatMap(networkUuid -> {
+                       // check IGM quality
+                        Mono<Boolean> validM = Mono.fromCallable(() -> igmQualityCheckService.check(networkUuid));
+                        validM.subscribe(valid -> merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid));
+                        return validM;
+                    });
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
-                        executor.submit(() -> {
+                        validMono.subscribe(valid -> {
                             // import IGM into the network store
                             UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
                             merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
