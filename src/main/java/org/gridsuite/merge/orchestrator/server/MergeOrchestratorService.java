@@ -8,7 +8,6 @@ package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
-import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
@@ -22,6 +21,7 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -75,6 +75,8 @@ public class MergeOrchestratorService {
 
     private int timeout;
 
+    private ThreadPoolExecutor executor;
+
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     MergeEventService mergeEventService,
@@ -95,6 +97,13 @@ public class MergeOrchestratorService {
         this.igmRepository = igmRepository;
         this.poolSize = poolSize;
         this.timeout = timeout;
+        //create the thread pool to parallelize merge processes and cas import
+        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(poolSize);
+    }
+
+    @PreDestroy
+    public void destroy() {
+        executor.shutdown();
     }
 
     @Bean
@@ -120,9 +129,6 @@ public class MergeOrchestratorService {
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
 
             if (checkTso(tsos, tso, format, businessProcess)) {
-                //create the thread pool to parallelize merge processes and cas import
-                ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(poolSize);
-
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
