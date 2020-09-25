@@ -6,15 +6,12 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,32 +25,36 @@ public class LoadFlowService {
     private static final String LOAD_FLOW_API_VERSION = "v1";
     private static final String DELIMITER = "/";
 
-    private RestTemplate loadFlowServerRest;
+    private WebClient webClient;
+    private String loadFlowBaseUri;
 
     @Autowired
-    public LoadFlowService(RestTemplateBuilder builder,
-                           @Value("${backing-services.loadflow-server.base-uri:http://loadflow-server/}") String loadFlowBaseUri) {
-        this.loadFlowServerRest = builder.uriTemplateHandler(
-                new DefaultUriBuilderFactory(loadFlowBaseUri)
-        ).build();
+    public LoadFlowService(@Value("${backing-services.loadflow-server.base-uri:http://loadflow-server/}") String loadFlowBaseUri,
+                           WebClient.Builder webClientBuilder) {
+        this.webClient =  webClientBuilder.build();
+        this.loadFlowBaseUri = loadFlowBaseUri;
     }
 
-    public LoadFlowService(RestTemplate restTemplate) {
-        this.loadFlowServerRest = restTemplate;
+    public LoadFlowService(String loadFlowBaseUri) {
+        this.webClient = WebClient.builder().build();
+        this.loadFlowBaseUri = loadFlowBaseUri;
     }
 
-    public String run(List<UUID> networksIds) {
+    public void setBaseUri(String loadFlowBaseUri) {
+        this.loadFlowBaseUri = loadFlowBaseUri;
+    }
+
+    public Mono<String> run(List<UUID> networksIds) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run");
+
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
         }
-        String uri = uriBuilder.build().toUriString();
+        String uri = uriBuilder.buildAndExpand(networksIds.get(0).toString()).toUriString();
 
-        ResponseEntity<String> res = loadFlowServerRest.exchange(uri,
-                HttpMethod.PUT,
-                null,
-                String.class,
-                networksIds.get(0).toString());
-        return res.getBody();
+        return webClient.put()
+                .uri(loadFlowBaseUri + uri)
+                .retrieve()
+                .bodyToMono(String.class);
     }
 }

@@ -46,6 +46,7 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
@@ -122,6 +123,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Test
     public void test() {
         ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 0, 0, 0, ZoneId.of("UTC"));
+
+        Mockito.when(loadFlowService.run(any()))
+                .thenReturn(Mono.just("{\"status\": \"TRUE\"}"));
 
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR))
                 .thenReturn(UUID_NETWORK_ID_FR);

@@ -34,7 +34,3 @@ logging:
   level:
     ROOT: INFO
 
-threads:
-  pool-size: 8
-  timeout: 300
-

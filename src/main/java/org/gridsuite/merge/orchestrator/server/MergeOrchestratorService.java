@@ -14,7 +14,6 @@ import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
@@ -22,14 +21,11 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -70,12 +66,6 @@ public class MergeOrchestratorService {
 
     private IgmQualityCheckService igmQualityCheckService;
 
-    private int poolSize;
-
-    private int timeout;
-
-    private ThreadPoolExecutor executor;
-
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     MergeEventService mergeEventService,
@@ -83,9 +73,7 @@ public class MergeOrchestratorService {
                                     IgmQualityCheckService igmQualityCheckService,
                                     MergeRepository mergeRepository,
                                     IgmRepository igmRepository,
-                                    MergeOrchestratorConfigService mergeConfigService,
-                                    @Value("${threads.pool-size:8}") int poolSize,
-                                    @Value("${threads.timeout:300}") int timeout) {
+                                    MergeOrchestratorConfigService mergeConfigService) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.mergeEventService = mergeEventService;
@@ -94,15 +82,6 @@ public class MergeOrchestratorService {
         this.mergeRepository = mergeRepository;
         this.mergeConfigService = mergeConfigService;
         this.igmRepository = igmRepository;
-        this.poolSize = poolSize;
-        this.timeout = timeout;
-        //create the thread pool to parallelize merge processes and cas import
-        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(poolSize);
-    }
-
-    @PreDestroy
-    public void destroy() {
-        executor.shutdown();
     }
 
     @Bean
@@ -143,10 +122,13 @@ public class MergeOrchestratorService {
 
                     Mono<Boolean> validMono = networkUuidMono.flatMap(networkUuid -> {
                        // check IGM quality
-                        Mono<Boolean> validM = Mono.fromCallable(() -> igmQualityCheckService.check(networkUuid));
-                        validM.subscribe(valid -> merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid));
-                        return validM;
+                        return Mono.fromCallable(() -> igmQualityCheckService.check(networkUuid));
                     });
+
+                    validMono.zipWith(networkUuidMono, (valid, networkUuid) -> {
+                        merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
+                        return Mono.empty();
+                    }).log().subscribe();
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
                         validMono.subscribe(valid -> {
@@ -185,12 +167,12 @@ public class MergeOrchestratorService {
                     mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
                 } else {
                     // load flow on the merged network
-                    loadFlowService.run(networkUuids);
+                    loadFlowService.run(networkUuids).subscribe(res -> {
+                        LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfig.getProcess());
 
-                    LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfig.getProcess());
-
-                    // TODO check loadflow status
-                    mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                        // TODO check loadflow status
+                        mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                    });
                 }
             }
         }

@@ -6,23 +6,19 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import reactor.test.StepVerifier;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -30,9 +26,9 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class LoadFlowServiceTest {
 
-    @Mock
-    private RestTemplate loadFlowServerRest;
+    public static MockWebServer mockBackEnd;
 
+    @Autowired
     private LoadFlowService loadFlowService;
 
     private UUID randomUuid1 = UUID.randomUUID();
@@ -40,19 +36,26 @@ public class LoadFlowServiceTest {
     private UUID randomUuid3 = UUID.randomUUID();
 
     @Before
-    public void setUp() {
-        loadFlowService = new LoadFlowService(loadFlowServerRest);
+    public void setUp() throws IOException {
+        mockBackEnd = new MockWebServer();
+        mockBackEnd.start();
+        String baseUrl = String.format("http://localhost:%s", mockBackEnd.getPort());
+        loadFlowService = new LoadFlowService(baseUrl);
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        mockBackEnd.shutdown();
     }
 
     @Test
     public void test() {
-        when(loadFlowServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid1.toString())))
-                .thenReturn(ResponseEntity.ok("{\"status\": \"TRUE\"}"));
-        String res = loadFlowService.run(Arrays.asList(randomUuid1, randomUuid2, randomUuid3));
-        assertEquals("{\"status\": \"TRUE\"}", res);
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody("{\"status\": \"TRUE\"}")
+                .addHeader("Content-Type", "application/json"));
+
+        StepVerifier.create(loadFlowService.run(Arrays.asList(randomUuid1, randomUuid2, randomUuid3)))
+                .expectNextMatches(response -> response.equals("{\"status\": \"TRUE\"}"))
+                .verifyComplete();
     }
 }
