@@ -127,6 +127,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         Mockito.when(loadFlowService.run(any()))
                 .thenReturn(Mono.just("{\"status\": \"TRUE\"}"));
 
+        //Mockito.when(balancesAdjustmentService.run(any()))
+          //      .thenReturn(Mono.just("{\"status\": \"TRUE\"}"));
+
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR))
                 .thenReturn(UUID_NETWORK_ID_FR);
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_ES))

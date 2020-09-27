@@ -18,16 +18,14 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.ResourceUtils;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -39,21 +37,21 @@ public class BalancesAdjustmentService {
     private static final String BALANCE_ADJUSTEMENT_API_VERSION = "v1";
     private static final String DELIMITER = "/";
 
-    private RestTemplate balancesAdjustmentServerRest;
+    private WebClient webClient;
 
     @Autowired
     public BalancesAdjustmentService(RestTemplateBuilder builder,
-                                     @Value("${backing-services.balances-adjustment-server.base-uri:http://balances-adjustment-server/}") String balanceAdjustementBaseUri) {
-        this.balancesAdjustmentServerRest = builder.uriTemplateHandler(
-                new DefaultUriBuilderFactory(balanceAdjustementBaseUri)
-        ).build();
+                                     @Value("${backing-services.balances-adjustment-server.base-uri:http://balances-adjustment-server/}") String balanceAdjustementBaseUri,
+                                     WebClient.Builder webClientBuilder) {
+        this.webClient =  webClientBuilder.baseUrl(balanceAdjustementBaseUri).build();
     }
 
-    public BalancesAdjustmentService(RestTemplate restTemplate) {
-        this.balancesAdjustmentServerRest = restTemplate;
+    public BalancesAdjustmentService(String loadFlowBaseUri) {
+        WebClient.Builder webClientBuilder = WebClient.builder();
+        this.webClient =  webClientBuilder.baseUrl(loadFlowBaseUri).build();
     }
 
-    public String doBalance(List<UUID> networksIds) {
+    public Mono<String> doBalance(List<UUID> networksIds) {
         try {
             File targetNetPositionsFile = ResourceUtils.getFile("classpath:targetNetPositions.json");
 
@@ -66,20 +64,23 @@ public class BalancesAdjustmentService {
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + BALANCE_ADJUSTEMENT_API_VERSION + "/networks/{networkUuid}/run");
-            for (int i = 1; i < networksIds.size(); ++i) {
-                uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
-            }
-            String uri = uriBuilder.build().toUriString();
+            return getStringMono(networksIds, DELIMITER, BALANCE_ADJUSTEMENT_API_VERSION, webClient);
 
-            ResponseEntity<String> res = balancesAdjustmentServerRest.exchange(uri,
-                    HttpMethod.PUT,
-                    requestEntity,
-                    String.class,
-                    networksIds.get(0).toString());
-            return res.getBody();
         } catch (FileNotFoundException e) {
             throw new PowsyblException("No target net positions file found");
         }
+    }
+
+    static Mono<String> getStringMono(List<UUID> networksIds, String delimiter, String balanceAdjustementApiVersion, WebClient webClient) {
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(delimiter + balanceAdjustementApiVersion + "/networks/{networkUuid}/run");
+        for (int i = 1; i < networksIds.size(); ++i) {
+            uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
+        }
+        String uri = uriBuilder.buildAndExpand(networksIds.get(0).toString()).toUriString();
+
+        return webClient.put()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(String.class);
     }
 }

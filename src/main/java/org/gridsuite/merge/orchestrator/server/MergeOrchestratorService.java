@@ -159,12 +159,12 @@ public class MergeOrchestratorService {
 
                 if (processConfig.isRunBalancesAdjustment()) {
                     // balances adjustment on the merge network
-                    balancesAdjustmentService.doBalance(networkUuids);
+                    balancesAdjustmentService.doBalance(networkUuids).subscribe(res -> {
+                        LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfig.getProcess());
 
-                    LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfig.getProcess());
-
-                    // TODO check balance adjustment status
-                    mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
+                        // TODO check balance adjustment status
+                        mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
+                    });
                 } else {
                     // load flow on the merged network
                     loadFlowService.run(networkUuids).subscribe(res -> {

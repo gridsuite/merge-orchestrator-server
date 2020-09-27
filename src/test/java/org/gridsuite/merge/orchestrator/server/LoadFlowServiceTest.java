@@ -13,7 +13,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.beans.factory.annotation.Autowired;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -22,13 +21,13 @@ import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
+ * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com>
  */
 @RunWith(MockitoJUnitRunner.class)
 public class LoadFlowServiceTest {
 
-    public static MockWebServer mockBackEnd;
+    private MockWebServer mockBackEnd;
 
-    @Autowired
     private LoadFlowService loadFlowService;
 
     private UUID randomUuid1 = UUID.randomUUID();
