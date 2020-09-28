@@ -207,7 +207,10 @@ public class MergeOrchestratorService {
                 .map(MergeOrchestratorService::toMerge)
                 .peek(merge -> {
                     for (IgmEntity entity : igmRepository.findByProcessAndInterval(process, minLocalDateTime, maxLocalDateTime)) {
-                        merge.getIgms().add(toIgm(entity));
+                        ZonedDateTime date = ZonedDateTime.ofInstant(entity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+                        if (merge.getDate().equals(date)) {
+                            merge.getIgms().add(toIgm(entity));
+                        }
                     }
                 })
                 .collect(Collectors.toList());
