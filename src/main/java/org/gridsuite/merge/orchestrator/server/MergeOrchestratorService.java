@@ -124,10 +124,10 @@ public class MergeOrchestratorService {
                 if (!processConfigs.isEmpty()) {
                     Mono<UUID> networkUuidMono = Mono.fromCallable(() -> caseFetcherService.importCase(caseUuid));
 
-                    Mono<Boolean> validMono = networkUuidMono.flatMap(networkUuid -> {
+                    Mono<Boolean> validMono = networkUuidMono.flatMap(networkUuid ->
                        // check IGM quality
-                        return Mono.fromCallable(() -> igmQualityCheckService.check(networkUuid));
-                    });
+                        Mono.fromCallable(() -> igmQualityCheckService.check(networkUuid))
+                    );
 
                     validMono.zipWith(networkUuidMono, (valid, networkUuid) -> {
                         merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
