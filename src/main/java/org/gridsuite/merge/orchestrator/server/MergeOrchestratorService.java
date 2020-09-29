@@ -66,6 +66,8 @@ public class MergeOrchestratorService {
 
     private IgmQualityCheckService igmQualityCheckService;
 
+    private NetworkConversionService networkConversionService;
+
     public MergeOrchestratorService(CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     MergeEventService mergeEventService,
@@ -73,6 +75,7 @@ public class MergeOrchestratorService {
                                     IgmQualityCheckService igmQualityCheckService,
                                     MergeRepository mergeRepository,
                                     IgmRepository igmRepository,
+                                    NetworkConversionService networkConversionService,
                                     MergeOrchestratorConfigService mergeConfigService) {
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
@@ -82,6 +85,7 @@ public class MergeOrchestratorService {
         this.mergeRepository = mergeRepository;
         this.mergeConfigService = mergeConfigService;
         this.igmRepository = igmRepository;
+        this.networkConversionService = networkConversionService;
     }
 
     @Bean
@@ -216,6 +220,11 @@ public class MergeOrchestratorService {
                     }
                 })
                 .collect(Collectors.toList());
+    }
+
+    byte[] exportMerge(String process, ZonedDateTime processDate, String format) {
+        List<UUID> networksUuids =  findNetworkUuidsOfValidatedIgms(processDate, process);
+        return networkConversionService.exportMerge(networksUuids, format);
     }
 
     private static Igm toIgm(IgmEntity entity) {

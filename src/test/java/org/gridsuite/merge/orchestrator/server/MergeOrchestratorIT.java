@@ -92,6 +92,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @MockBean
     private LoadFlowService loadFlowService;
 
+    @MockBean
+    private NetworkConversionService networkConversionService;
+
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
 

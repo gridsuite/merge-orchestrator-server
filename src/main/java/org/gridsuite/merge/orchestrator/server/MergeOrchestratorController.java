@@ -6,20 +6,23 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.*;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -32,6 +35,8 @@ import java.util.List;
 @Api(value = "Merge orchestrator server")
 @ComponentScan(basePackageClasses = MergeOrchestratorService.class)
 public class MergeOrchestratorController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorController.class);
 
     private final MergeOrchestratorService mergeOrchestratorService;
 
@@ -57,5 +62,26 @@ public class MergeOrchestratorController {
         }
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(merges);
     }
+
+    @GetMapping(value = "{process}/{date}/export/{format}")
+    @ApiOperation(value = "Export a merge from the network-store")
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "The export merge for process")})
+    public ResponseEntity<byte[]> exportNetwork(@ApiParam(value = "Process name") @PathVariable("process") String process,
+                                                @ApiParam(value = "Process date") @PathVariable("date") String date,
+                                                @ApiParam(value = "Export format")@PathVariable("format") String format) throws IOException {
+        LOGGER.debug("Exporting merge for process {} : {}", process, date);
+
+        String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
+        ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
+        byte[] exportedMerge = mergeOrchestratorService.exportMerge(process, dateTime, format);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
+        String filename = process + "_" + dateTime.format(formatter);
+
+        HttpHeaders header = new HttpHeaders();
+        header.setContentDisposition(ContentDisposition.builder("attachment").filename(filename, StandardCharsets.UTF_8).build());
+        return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMerge);
+    }
+
 }
 
