@@ -56,6 +56,7 @@ public class BalancesAdjustmentService {
             File targetNetPositionsFile = ResourceUtils.getFile("classpath:targetNetPositions.json");
 
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("balanceComputationParamsFile", "null");
             body.add("targetNetPositionFile", new FileSystemResource(targetNetPositionsFile));
 
             String uri = getStringUri(networksIds, DELIMITER, BALANCE_ADJUSTEMENT_API_VERSION);
