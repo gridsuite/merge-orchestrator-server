@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.UUID;
 
-import static org.gridsuite.merge.orchestrator.server.BalancesAdjustmentService.getStringMono;
+import static org.gridsuite.merge.orchestrator.server.BalancesAdjustmentService.getStringUri;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
@@ -40,6 +40,10 @@ public class LoadFlowService {
     }
 
     public Mono<String> run(List<UUID> networksIds) {
-        return getStringMono(networksIds, DELIMITER, LOAD_FLOW_API_VERSION, webClient);
+        String uri = getStringUri(networksIds, DELIMITER, LOAD_FLOW_API_VERSION);
+        return webClient.put()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(String.class);
     }
 }

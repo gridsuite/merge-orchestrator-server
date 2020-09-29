@@ -16,13 +16,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.ResourceUtils;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
@@ -55,32 +55,28 @@ public class BalancesAdjustmentService {
         try {
             File targetNetPositionsFile = ResourceUtils.getFile("classpath:targetNetPositions.json");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("balanceComputationParamsFile", null);
             body.add("targetNetPositionFile", new FileSystemResource(targetNetPositionsFile));
 
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            String uri = getStringUri(networksIds, DELIMITER, BALANCE_ADJUSTEMENT_API_VERSION);
 
-            return getStringMono(networksIds, DELIMITER, BALANCE_ADJUSTEMENT_API_VERSION, webClient);
+            return webClient.put()
+                    .uri(uri)
+                    .header(HttpHeaders.CONTENT_TYPE, String.valueOf(MediaType.MULTIPART_FORM_DATA))
+                    .body(BodyInserters.fromValue(body))
+                    .retrieve()
+                    .bodyToMono(String.class);
 
         } catch (FileNotFoundException e) {
             throw new PowsyblException("No target net positions file found");
         }
     }
 
-    static Mono<String> getStringMono(List<UUID> networksIds, String delimiter, String balanceAdjustementApiVersion, WebClient webClient) {
+    static String getStringUri(List<UUID> networksIds, String delimiter, String balanceAdjustementApiVersion) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(delimiter + balanceAdjustementApiVersion + "/networks/{networkUuid}/run");
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
         }
-        String uri = uriBuilder.buildAndExpand(networksIds.get(0).toString()).toUriString();
-
-        return webClient.put()
-                .uri(uri)
-                .retrieve()
-                .bodyToMono(String.class);
+        return uriBuilder.buildAndExpand(networksIds.get(0).toString()).toUriString();
     }
 }
