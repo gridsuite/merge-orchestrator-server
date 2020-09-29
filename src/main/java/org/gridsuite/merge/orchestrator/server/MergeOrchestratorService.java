@@ -132,7 +132,7 @@ public class MergeOrchestratorService {
                     validMono.zipWith(networkUuidMono, (valid, networkUuid) -> {
                         merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
                         return Mono.empty();
-                    }).log().subscribe();
+                    }).subscribe();
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
                         validMono.subscribe(valid -> {
