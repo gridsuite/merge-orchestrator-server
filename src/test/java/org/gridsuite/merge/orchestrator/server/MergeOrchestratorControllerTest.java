@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -43,7 +44,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {MergeOrchestratorApplication.class})
 public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSetup {
 
-    private static final UUID UUID_NETWORK = UUID.fromString("3f9985d2-94f5-4a5f-8e5a-ee218525d656");
+    private static final UUID UUID_NETWORK = UUID.randomUUID();
+    private static final UUID UUID_NETWORK_MERGE_1 = UUID.randomUUID();
+    private static final UUID UUID_NETWORK_MERGE_2 = UUID.randomUUID();
+    private static final UUID UUID_NETWORK_MERGE_3 = UUID.randomUUID();
 
     @Autowired
     private MockMvc mvc;
@@ -68,6 +72,9 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
 
     @MockBean
     private LoadFlowService loadFlowService;
+
+    @MockBean
+    private NetworkConversionService networkConversionService;
 
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
@@ -149,5 +156,16 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json(resExpected3));
+
+        ZonedDateTime dateTime3 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime3.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3));
+        String processDate = URLEncoder.encode(formatter.format(dateTime3), StandardCharsets.UTF_8);
+        mvc.perform(get("/" + VERSION + "/swe/" + processDate + "/export/XIIDM")
+                .contentType(APPLICATION_OCTET_STREAM))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));
     }
 }
