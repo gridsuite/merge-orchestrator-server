@@ -20,6 +20,7 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -132,10 +133,10 @@ public class MergeOrchestratorService {
                     validMono.zipWith(networkUuidMono, (valid, networkUuid) -> {
                         merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
                         return Mono.empty();
-                    }).subscribe();
+                    }).subscribeOn(Schedulers.boundedElastic()).subscribe();
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
-                        validMono.subscribe(valid -> {
+                        validMono.subscribeOn(Schedulers.boundedElastic()).subscribe(valid -> {
                             // import IGM into the network store
                             UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
                             merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
