@@ -217,10 +217,11 @@ public class MergeOrchestratorService {
                 .collect(Collectors.toList());
     }
 
-    ExportNetworkInfos exportMerge(String process, ZonedDateTime processDate, String format) {
+    ExportNetworkInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) {
         List<UUID> networksUuids =  findNetworkUuidsOfValidatedIgms(processDate, process);
+        LocalDateTime requesterDateTime = timeZoneOffset != null ? LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.ofHours(Integer.parseInt(timeZoneOffset) / 60)) : processDate.toLocalDateTime();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
-        String baseFileName = process + "_" + processDate.format(formatter);
+        String baseFileName = process + "_" + requesterDateTime.format(formatter);
         return networkConversionService.exportMerge(networksUuids, format, baseFileName);
     }
 

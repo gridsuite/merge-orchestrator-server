@@ -20,6 +20,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -52,10 +53,10 @@ public class NetworkConversionService {
         String uri = uriBuilder.build().toUriString();
 
         ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { }, networksIds.get(0).toString(), format);
-        String exportedFileName = responseEntity.getHeaders().getContentDisposition().getFilename();
         String exportedFileExtension;
         try {
-            exportedFileExtension = exportedFileName.substring(exportedFileName.lastIndexOf("."));
+            String exportedFileName = responseEntity.getHeaders().getContentDisposition().getFilename();
+            exportedFileExtension = Objects.nonNull(exportedFileName) ? exportedFileName.substring(exportedFileName.lastIndexOf(".")) : ".unknown";
         } catch (IndexOutOfBoundsException e) {
             exportedFileExtension = ".unknown";
         }
