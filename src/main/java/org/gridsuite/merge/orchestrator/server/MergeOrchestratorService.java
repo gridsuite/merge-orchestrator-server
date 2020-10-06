@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -216,9 +217,12 @@ public class MergeOrchestratorService {
                 .collect(Collectors.toList());
     }
 
-    byte[] exportMerge(String process, ZonedDateTime processDate, String format) {
+    ExportNetworkInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) {
         List<UUID> networksUuids =  findNetworkUuidsOfValidatedIgms(processDate, process);
-        return networkConversionService.exportMerge(networksUuids, format);
+        LocalDateTime requesterDateTime = timeZoneOffset != null ? LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.ofHours(Integer.parseInt(timeZoneOffset) / 60)) : processDate.toLocalDateTime();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
+        String baseFileName = process + "_" + requesterDateTime.format(formatter);
+        return networkConversionService.exportMerge(networksUuids, format, baseFileName);
     }
 
     private static Igm toIgm(IgmEntity entity) {

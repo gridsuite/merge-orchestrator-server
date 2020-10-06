@@ -6,6 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.fasterxml.jackson.core.util.ByteArrayBuilder;
+import org.gridsuite.merge.orchestrator.server.dto.ExportNetworkInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
@@ -27,9 +29,12 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -163,6 +168,8 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
         igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2));
         igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3));
         String processDate = URLEncoder.encode(formatter.format(dateTime3), StandardCharsets.UTF_8);
+        given(networkConversionService.exportMerge(any(List.class), any(String.class), any(String.class)))
+                .willReturn(new ExportNetworkInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));
         mvc.perform(get("/" + VERSION + "/swe/" + processDate + "/export/XIIDM")
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())

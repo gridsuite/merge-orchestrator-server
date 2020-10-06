@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.gridsuite.merge.orchestrator.server.dto.ExportNetworkInfos;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -19,6 +20,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -43,7 +45,7 @@ public class NetworkConversionService {
         this.networkConversionServerRest = restTemplate;
     }
 
-    public byte[] exportMerge(List<UUID> networksIds, String format) {
+    public ExportNetworkInfos exportMerge(List<UUID> networksIds, String format, String baseFileName) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export/{format}");
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
@@ -51,6 +53,13 @@ public class NetworkConversionService {
         String uri = uriBuilder.build().toUriString();
 
         ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { }, networksIds.get(0).toString(), format);
-        return responseEntity.getBody();
+        String exportedFileExtension;
+        try {
+            String exportedFileName = responseEntity.getHeaders().getContentDisposition().getFilename();
+            exportedFileExtension = Objects.nonNull(exportedFileName) ? exportedFileName.substring(exportedFileName.lastIndexOf(".")) : ".unknown";
+        } catch (IndexOutOfBoundsException e) {
+            exportedFileExtension = ".unknown";
+        }
+        return new ExportNetworkInfos(baseFileName.concat(exportedFileExtension), responseEntity.getBody());
     }
 }

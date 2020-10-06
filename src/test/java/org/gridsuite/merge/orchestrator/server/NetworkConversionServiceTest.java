@@ -6,16 +6,17 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.gridsuite.merge.orchestrator.server.dto.ExportNetworkInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -45,14 +46,17 @@ public class NetworkConversionServiceTest {
 
     @Test
     public void test() {
+        HttpHeaders header = new HttpHeaders();
+        header.setContentDisposition(ContentDisposition.builder("attachment").filename("test_file.xiidm", StandardCharsets.UTF_8).build());
         when(networkConversionServerRest.exchange(anyString(),
                 eq(HttpMethod.GET),
                 any(),
                 any(ParameterizedTypeReference.class),
                 eq(randomUuid1.toString()),
                 eq("XIIDM")))
-                .thenReturn(ResponseEntity.ok(response));
-        byte[] res = networkConversionService.exportMerge(Arrays.asList(randomUuid1, randomUuid2, randomUuid3), "XIIDM");
-        assertEquals(response, res);
+                .thenReturn(new ResponseEntity(response, header, HttpStatus.OK));
+        ExportNetworkInfos res = networkConversionService.exportMerge(Arrays.asList(randomUuid1, randomUuid2, randomUuid3), "XIIDM", "merge_name");
+        assertEquals(response, res.getNetworkData());
+        assertEquals("merge_name.xiidm", res.getNetworkName());
     }
 }
