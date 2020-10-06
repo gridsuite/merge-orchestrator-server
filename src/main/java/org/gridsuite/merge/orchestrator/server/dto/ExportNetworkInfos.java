@@ -8,14 +8,12 @@ package org.gridsuite.merge.orchestrator.server.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * @author Nicolas Noir <nicolas.noir at rte-france.com>
  */
 
 @AllArgsConstructor
-@NoArgsConstructor
 @Getter
 public class ExportNetworkInfos {
 
