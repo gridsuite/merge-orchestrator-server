@@ -7,6 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import io.swagger.annotations.*;
+import org.gridsuite.merge.orchestrator.server.dto.ExportNetworkInfos;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,11 +19,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -68,19 +67,17 @@ public class MergeOrchestratorController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The export merge for process")})
     public ResponseEntity<byte[]> exportNetwork(@ApiParam(value = "Process name") @PathVariable("process") String process,
                                                 @ApiParam(value = "Process date") @PathVariable("date") String date,
-                                                @ApiParam(value = "Export format")@PathVariable("format") String format) throws IOException {
+                                                @ApiParam(value = "Export format")@PathVariable("format") String format,
+                                                @RequestParam(value = "timeZoneOffset", required = false) String timeZoneOffset) {
         LOGGER.debug("Exporting merge for process {} : {}", process, date);
-
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
-        byte[] exportedMerge = mergeOrchestratorService.exportMerge(process, dateTime, format);
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
-        String filename = process + "_" + dateTime.format(formatter);
+        ExportNetworkInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
 
         HttpHeaders header = new HttpHeaders();
-        header.setContentDisposition(ContentDisposition.builder("attachment").filename(filename, StandardCharsets.UTF_8).build());
-        return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMerge);
+        header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getNetworkName(), StandardCharsets.UTF_8).build());
+        return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMergeInfo.getNetworkData());
     }
 
 }
