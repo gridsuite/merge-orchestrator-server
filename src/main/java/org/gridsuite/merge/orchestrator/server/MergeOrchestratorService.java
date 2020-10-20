@@ -131,17 +131,13 @@ public class MergeOrchestratorService {
                         igmQualityCheckService.check(networkUuid)
                     );
 
-                    validMono.zipWith(networkUuidMono, (valid, networkUuid) -> {
-                        merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
-                        return Mono.empty();
-                    }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+                    validMono.zipWith(networkUuidMono, (valid, networkUuid) -> merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid))
+                            .subscribeOn(Schedulers.boundedElastic()).subscribe();
 
                     processConfigs.subList(1, processConfigs.size()).forEach(processConfig -> validMono.subscribeOn(Schedulers.boundedElastic()).subscribe(valid ->
                             // import IGM into the network store
-                            caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid -> {
-                                merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
-                                return Mono.empty();
-                            }).subscribe()
+                            caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid ->
+                                    merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid)).subscribe()
                     ));
                 }
             }
@@ -150,7 +146,7 @@ public class MergeOrchestratorService {
         }
     }
 
-    void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
+    Mono<Void> merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
         if (processConfig.getTsos().contains(tso)) {
             LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid", date, processConfig.getProcess(), tso, valid ? " " : "not ");
             mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso,
@@ -165,23 +161,26 @@ public class MergeOrchestratorService {
 
                 if (processConfig.isRunBalancesAdjustment()) {
                     // balances adjustment on the merge network
-                    balancesAdjustmentService.doBalance(networkUuids).subscribe(res -> {
+                    return balancesAdjustmentService.doBalance(networkUuids).flatMap(res -> {
                         LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfig.getProcess());
 
                         // TODO check balance adjustment status
                         mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
+                        return Mono.empty();
                     });
                 } else {
                     // load flow on the merged network
-                    loadFlowService.run(networkUuids).subscribe(res -> {
+                    return loadFlowService.run(networkUuids).flatMap(res -> {
                         LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfig.getProcess());
 
                         // TODO check loadflow status
                         mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                        return Mono.empty();
                     });
                 }
             }
         }
+        return Mono.empty();
     }
 
     private List<UUID> findNetworkUuidsOfValidatedIgms(ZonedDateTime dateTime, String process) {
