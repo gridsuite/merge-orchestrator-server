@@ -131,14 +131,17 @@ public class MergeOrchestratorService {
                         igmQualityCheckService.check(networkUuid)
                     );
 
-                    validMono.zipWith(networkUuidMono, (valid, networkUuid) -> merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid))
-                            .subscribeOn(Schedulers.boundedElastic()).subscribe();
+                    validMono.zipWith(networkUuidMono, (valid, networkUuid) ->
+                            merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid).subscribe())
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .subscribe();
 
-                    processConfigs.subList(1, processConfigs.size()).forEach(processConfig -> validMono.subscribeOn(Schedulers.boundedElastic()).subscribe(valid ->
-                            // import IGM into the network store
-                            caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid ->
-                                    merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid)).subscribe()
-                    ));
+                    processConfigs.subList(1, processConfigs.size()).forEach(processConfig -> validMono
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .subscribe(valid ->
+                                // import IGM into the network store
+                                caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid ->
+                                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid)).subscribe()));
                 }
             }
         } catch (Exception e) {
