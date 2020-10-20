@@ -24,7 +24,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 /**
@@ -59,7 +58,7 @@ public class BalancesAdjustmentService {
             body.add("balanceComputationParamsFile", "null");
             body.add("targetNetPositionFile", new FileSystemResource(targetNetPositionsFile));
 
-            String uri = getStringUri(networksIds, DELIMITER, BALANCE_ADJUSTEMENT_API_VERSION);
+            String uri = ServicesUtils.getStringUri(networksIds, DELIMITER, BALANCE_ADJUSTEMENT_API_VERSION);
 
             return webClient.put()
                     .uri(uri)
@@ -71,13 +70,5 @@ public class BalancesAdjustmentService {
         } catch (FileNotFoundException e) {
             throw new PowsyblException("No target net positions file found");
         }
-    }
-
-    static String getStringUri(List<UUID> networksIds, String delimiter, String balanceAdjustementApiVersion) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(delimiter + balanceAdjustementApiVersion + "/networks/{networkUuid}/run");
-        for (int i = 1; i < networksIds.size(); ++i) {
-            uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
-        }
-        return uriBuilder.buildAndExpand(networksIds.get(0).toString()).toUriString();
     }
 }
