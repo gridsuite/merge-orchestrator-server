@@ -26,6 +26,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static org.gridsuite.merge.orchestrator.server.ServicesUtils.DELIMITER;
+
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
@@ -34,7 +36,6 @@ import reactor.core.publisher.Mono;
 public class BalancesAdjustmentService {
 
     private static final String BALANCE_ADJUSTEMENT_API_VERSION = "v1";
-    private static final String DELIMITER = "/";
 
     private WebClient webClient;
 

@@ -16,6 +16,8 @@ import java.util.UUID;
  */
 public final class ServicesUtils {
 
+    public static final String DELIMITER = "/";
+
     private ServicesUtils() {
 
     }

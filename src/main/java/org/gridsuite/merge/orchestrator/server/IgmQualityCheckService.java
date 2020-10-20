@@ -12,12 +12,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
@@ -29,33 +29,40 @@ public class IgmQualityCheckService {
 
     private static final String CASE_VALIDATION_API_VERSION = "v1";
 
-    private RestTemplate caseValidationServerRest;
+    private WebClient webClient;
 
     @Autowired
-    public IgmQualityCheckService(RestTemplateBuilder builder,
-                                  @Value("${backing-services.case-validation-server.base-uri:http://case-validation-server/}") String caseValidationBaseUri) {
-        this.caseValidationServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseValidationBaseUri)).build();
+    public IgmQualityCheckService(@Value("${backing-services.case-validation-server.base-uri:http://case-validation-server/}") String caseValidationBaseUri,
+                                  WebClient.Builder webClientBuilder) {
+        this.webClient =  webClientBuilder.baseUrl(caseValidationBaseUri).build();
     }
 
-    public IgmQualityCheckService(RestTemplate restTemplate) {
-        this.caseValidationServerRest = restTemplate;
+    public IgmQualityCheckService(WebClient webClient) {
+        this.webClient = webClient;
     }
 
-    public boolean check(UUID networkUuid) {
-        boolean res = false;
-        try {
-            ResponseEntity<String> response = caseValidationServerRest.exchange(CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate",
-                    HttpMethod.PUT,
-                    null,
-                    String.class,
-                    networkUuid.toString());
-            JsonNode node = new ObjectMapper().readTree(response.getBody()).path("loadFlowOk");
+    public Mono<Boolean> check(UUID networkUuid) {
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate");
+        String uri = uriBuilder.buildAndExpand(networkUuid.toString()).toUriString();
+
+        Mono<String> stringMono =  webClient.put()
+                .uri(uri)
+                .header(HttpHeaders.CONTENT_TYPE, String.valueOf(MediaType.MULTIPART_FORM_DATA))
+                .retrieve()
+                .bodyToMono(String.class);
+
+        return stringMono.flatMap(str -> {
+            boolean res = false;
+            JsonNode node = null;
+            try {
+                node = new ObjectMapper().readTree(str).path("loadFlowOk");
+            } catch (JsonProcessingException e) {
+                return Mono.error(new PowsyblException("Error parsing case validation result"));
+            }
             if (!node.isMissingNode()) {
                 res = node.asBoolean();
             }
-        } catch (JsonProcessingException e) {
-            throw new PowsyblException("Error parsing case validation result");
-        }
-        return res;
+            return Mono.just(res);
+        });
     }
 }

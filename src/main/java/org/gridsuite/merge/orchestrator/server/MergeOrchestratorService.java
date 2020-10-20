@@ -124,11 +124,11 @@ public class MergeOrchestratorService {
                 }
 
                 if (!processConfigs.isEmpty()) {
-                    Mono<UUID> networkUuidMono = Mono.fromCallable(() -> caseFetcherService.importCase(caseUuid));
+                    Mono<UUID> networkUuidMono = caseFetcherService.importCase(caseUuid);
 
                     Mono<Boolean> validMono = networkUuidMono.flatMap(networkUuid ->
                        // check IGM quality
-                        Mono.fromCallable(() -> igmQualityCheckService.check(networkUuid))
+                        igmQualityCheckService.check(networkUuid)
                     );
 
                     validMono.zipWith(networkUuidMono, (valid, networkUuid) -> {
@@ -136,13 +136,13 @@ public class MergeOrchestratorService {
                         return Mono.empty();
                     }).subscribeOn(Schedulers.boundedElastic()).subscribe();
 
-                    for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
-                        validMono.subscribeOn(Schedulers.boundedElastic()).subscribe(valid -> {
+                    processConfigs.subList(1, processConfigs.size()).forEach(processConfig -> validMono.subscribeOn(Schedulers.boundedElastic()).subscribe(valid ->
                             // import IGM into the network store
-                            UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
-                            merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
-                        });
-                    }
+                            caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid -> {
+                                merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
+                                return Mono.empty();
+                            }).subscribe()
+                    ));
                 }
             }
         } catch (Exception e) {

@@ -131,11 +131,11 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(Mono.just("{\"status\": \"TRUE\"}"));
 
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR))
-                .thenReturn(UUID_NETWORK_ID_FR);
+                .thenReturn(Mono.just(UUID_NETWORK_ID_FR));
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_ES))
-                .thenReturn(UUID_NETWORK_ID_ES);
+                .thenReturn(Mono.just(UUID_NETWORK_ID_ES));
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_PT))
-                .thenReturn(UUID_NETWORK_ID_PT);
+                .thenReturn(Mono.just(UUID_NETWORK_ID_PT));
 
         NetworkFactory networkFactory = NetworkFactory.find("Default");
 
@@ -147,11 +147,11 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(networkFactory.createNetwork("pt", "iidm"));
 
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR))
-                .thenReturn(true);
+                .thenReturn(Mono.just(true));
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_ES))
-                .thenReturn(true);
+                .thenReturn(Mono.just(true));
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT))
-                .thenReturn(true);
+                .thenReturn(Mono.just(true));
 
         // send first
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
