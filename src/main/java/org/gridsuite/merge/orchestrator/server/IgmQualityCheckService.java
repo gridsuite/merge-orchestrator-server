@@ -47,7 +47,7 @@ public class IgmQualityCheckService {
 
         Mono<String> stringMono =  webClient.put()
                 .uri(uri)
-                .header(HttpHeaders.CONTENT_TYPE, String.valueOf(MediaType.MULTIPART_FORM_DATA))
+                .body(null)
                 .retrieve()
                 .bodyToMono(String.class);
 
