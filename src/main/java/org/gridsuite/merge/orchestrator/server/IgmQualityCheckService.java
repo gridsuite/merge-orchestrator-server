@@ -45,7 +45,6 @@ public class IgmQualityCheckService {
 
         Mono<String> stringMono =  webClient.put()
                 .uri(uri)
-                .body(null)
                 .retrieve()
                 .bodyToMono(String.class);
 
