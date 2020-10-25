@@ -6,8 +6,10 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,6 +19,7 @@ import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -40,6 +43,19 @@ public class BalancesAdjustmentServiceTest {
         mockBackEnd.start();
         String baseUrl = String.format("http://localhost:%s", mockBackEnd.getPort());
         balancesAdjustmentService = new BalancesAdjustmentService(baseUrl);
+
+        final Dispatcher dispatcher = new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest request) {
+                if (("/v1/networks/" + randomUuid1.toString() + "/run?networkUuid=" + randomUuid2.toString() + "&networkUuid=" + randomUuid3.toString()).equals(Objects.requireNonNull(request.getPath()))) {
+                    return new MockResponse().setResponseCode(200).setBody("{\"status\": \"TRUE\"}")
+                            .addHeader("Content-Type", "application/json; charset=utf-8");
+                }
+                return new MockResponse().setResponseCode(404);
+            }
+        };
+        mockBackEnd.setDispatcher(dispatcher);
+
     }
 
     @After
@@ -49,10 +65,6 @@ public class BalancesAdjustmentServiceTest {
 
     @Test
     public void test() {
-        mockBackEnd.enqueue(new MockResponse()
-                .setBody("{\"status\": \"TRUE\"}")
-                .addHeader("Content-Type", "application/json"));
-
         StepVerifier.create(balancesAdjustmentService.doBalance(Arrays.asList(randomUuid1, randomUuid2, randomUuid3)))
                 .expectNextMatches(response -> response.equals("{\"status\": \"TRUE\"}"))
                 .verifyComplete();
