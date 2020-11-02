@@ -52,7 +52,7 @@ public class NetworkConversionService {
         }
         String uri = uriBuilder.build().toUriString();
 
-        ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { }, networksIds.get(0).toString(), format);
+        ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networksIds.get(0).toString(), format);
         String exportedFileExtension;
         try {
             String exportedFileName = responseEntity.getHeaders().getContentDisposition().getFilename();
