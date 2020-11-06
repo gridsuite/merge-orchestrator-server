@@ -90,7 +90,7 @@ public class CaseFetcherService {
                 .queryParam("q", getSearchQuery(tsos, dateTime, format, businessProcess)).build().toUriString();
 
         try {
-            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() { });
+            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() { });
             List<Map<String, String>> body = responseEntity.getBody();
             if (body != null) {
                 return body.stream().map(c -> new CaseInfos(c.get("name"),
