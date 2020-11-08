@@ -48,18 +48,18 @@ public class IgmQualityCheckService {
                 .retrieve()
                 .bodyToMono(String.class);
 
-        return stringMono.flatMap(str -> {
+        return stringMono.map(str -> {
             boolean res = false;
             JsonNode node = null;
             try {
                 node = new ObjectMapper().readTree(str).path("loadFlowOk");
             } catch (JsonProcessingException e) {
-                return Mono.error(new PowsyblException("Error parsing case validation result"));
+                throw new PowsyblException("Error parsing case validation result");
             }
             if (!node.isMissingNode()) {
                 res = node.asBoolean();
             }
-            return Mono.just(res);
+            return res;
         });
     }
 }

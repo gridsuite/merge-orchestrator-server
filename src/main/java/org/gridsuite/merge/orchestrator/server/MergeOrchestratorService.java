@@ -138,10 +138,11 @@ public class MergeOrchestratorService {
 
                     processConfigs.subList(1, processConfigs.size()).forEach(processConfig -> validMono
                             .subscribeOn(Schedulers.boundedElastic())
-                            .subscribe(valid ->
+                            .flatMap(valid ->
                                 // import IGM into the network store
                                 caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid ->
-                                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid)).subscribe()));
+                                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid))).subscribe()
+                    );
                 }
             }
         } catch (Exception e) {
