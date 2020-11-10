@@ -29,6 +29,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -132,7 +133,8 @@ public class MergeOrchestratorService {
                     );
 
                     validMono.zipWith(networkUuidMono, (valid, networkUuid) ->
-                            merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid).subscribe())
+                            merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid))
+                            .flatMap(Function.identity())
                             .subscribeOn(Schedulers.boundedElastic())
                             .subscribe();
 
@@ -141,7 +143,8 @@ public class MergeOrchestratorService {
                             .flatMap(valid ->
                                 // import IGM into the network store
                                 caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid ->
-                                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid))).subscribe()
+                                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid)))
+                            .subscribe()
                     );
                 }
             }
