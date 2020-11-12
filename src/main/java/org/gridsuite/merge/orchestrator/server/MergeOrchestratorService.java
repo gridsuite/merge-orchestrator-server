@@ -143,7 +143,7 @@ public class MergeOrchestratorService {
         }
     }
 
-    Mono<Void> merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
+    Mono<String> merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
         if (processConfig.getTsos().contains(tso)) {
             LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid", date, processConfig.getProcess(), tso, valid ? " " : "not ");
             mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso,
@@ -158,21 +158,18 @@ public class MergeOrchestratorService {
 
                 if (processConfig.isRunBalancesAdjustment()) {
                     // balances adjustment on the merge network
-                    return balancesAdjustmentService.doBalance(networkUuids).flatMap(res -> {
+                    return balancesAdjustmentService.doBalance(networkUuids).doOnSuccess(res -> {
                         LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfig.getProcess());
-
                         // TODO check balance adjustment status
                         mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
-                        return Mono.empty();
                     });
                 } else {
                     // load flow on the merged network
-                    return loadFlowService.run(networkUuids).flatMap(res -> {
+                    return loadFlowService.run(networkUuids).doOnSuccess(res -> {
                         LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfig.getProcess());
 
                         // TODO check loadflow status
                         mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
-                        return Mono.empty();
                     });
                 }
             }
