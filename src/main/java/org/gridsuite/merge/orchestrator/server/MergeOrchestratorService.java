@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.google.common.collect.Streams;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
@@ -20,7 +21,6 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -125,27 +125,17 @@ public class MergeOrchestratorService {
                 }
 
                 if (!processConfigs.isEmpty()) {
-                    Mono<UUID> networkUuidMono = caseFetcherService.importCase(caseUuid);
+                    List<Mono<UUID>> importedCases = processConfigs.stream().map(ignored -> caseFetcherService.importCase(caseUuid)).collect(Collectors.toList());
 
-                    Mono<Boolean> validMono = networkUuidMono.flatMap(networkUuid ->
-                       // check IGM quality
-                        igmQualityCheckService.check(networkUuid)
-                    );
-
-                    validMono.zipWith(networkUuidMono, (valid, networkUuid) ->
-                            merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid))
-                            .flatMap(Function.identity())
-                            .subscribeOn(Schedulers.boundedElastic())
-                            .subscribe();
-
-                    processConfigs.subList(1, processConfigs.size()).forEach(processConfig -> validMono
-                            .subscribeOn(Schedulers.boundedElastic())
-                            .flatMap(valid ->
-                                // import IGM into the network store
-                                caseFetcherService.importCase(caseUuid).flatMap(processConfigNetworkUuid ->
-                                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid)))
-                            .subscribe()
-                    );
+                    // Use the first network to check IGM validity
+                    importedCases.get(0).flatMap(networkUuid ->
+                            igmQualityCheckService.check(networkUuid)
+                    ).flatMap(valid -> {
+                        // write each IGM status
+                        var l = Streams.zip(processConfigs.stream(), importedCases.stream(), (processConfig, processConfigNetworkUuid) ->
+                                processConfigNetworkUuid.flatMap(uuid -> merge(processConfig, dateTime, date, tso, valid, uuid))).collect(Collectors.toList());
+                        return Flux.fromIterable(l).flatMap(Function.identity()).collectList();
+                    }).subscribe();
                 }
             }
         } catch (Exception e) {

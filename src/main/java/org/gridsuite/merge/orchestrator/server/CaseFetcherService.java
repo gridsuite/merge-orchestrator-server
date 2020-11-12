@@ -38,6 +38,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -113,6 +114,6 @@ public class CaseFetcherService {
             CaseDataSourceClient dataSource = new CaseDataSourceClient(caseServerRest, caseUuid);
             Network network = networkStoreService.importNetwork(dataSource);
             return networkStoreService.getNetworkUuid(network);
-        });
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 }
