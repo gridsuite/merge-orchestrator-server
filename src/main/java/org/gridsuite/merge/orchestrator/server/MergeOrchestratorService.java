@@ -29,7 +29,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -134,7 +133,7 @@ public class MergeOrchestratorService {
                         // write each IGM status
                         var l = Streams.zip(processConfigs.stream(), importedCases.stream(), (processConfig, processConfigNetworkUuid) ->
                                 processConfigNetworkUuid.flatMap(uuid -> merge(processConfig, dateTime, date, tso, valid, uuid))).collect(Collectors.toList());
-                        return Flux.fromIterable(l).flatMap(Function.identity()).collectList();
+                        return Flux.merge(l).collectList();
                     }).subscribe();
                 }
             }
