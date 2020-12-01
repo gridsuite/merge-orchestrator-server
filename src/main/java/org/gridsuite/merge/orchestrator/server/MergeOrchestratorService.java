@@ -133,7 +133,7 @@ public class MergeOrchestratorService {
                         // write each IGM status
                         var l = Streams.zip(processConfigs.stream(), importedCases.stream(), (processConfig, processConfigNetworkUuid) ->
                                 processConfigNetworkUuid.flatMap(uuid -> merge(processConfig, dateTime, date, tso, valid, uuid))).collect(Collectors.toList());
-                        return Flux.merge(l).collectList();
+                        return Flux.merge(l).then();
                     }).subscribe();
                 }
             }
