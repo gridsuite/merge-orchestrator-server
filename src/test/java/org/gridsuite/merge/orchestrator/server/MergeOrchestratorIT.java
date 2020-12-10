@@ -308,13 +308,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     public void testParallel() throws InterruptedException {
         CountDownLatch never = new CountDownLatch(1);
 
-        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR))
-                .thenReturn(Mono.just(true));
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT))
                 .thenReturn(Mono.just(false));
-
-        Mockito.when(loadFlowService.run(any()))
-                .thenReturn(Mono.just("{\"status\": \"TRUE\"}"));
 
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR)).thenReturn(Mono.fromCallable(() -> {
             never.await();
@@ -352,7 +347,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 cdl.countDown();
             }
         }).start();
-        cdl.await(5000, TimeUnit.MILLISECONDS);
+        cdl.await(1000, TimeUnit.MILLISECONDS);
         assertEquals(4, result.size());
         Message<byte[]> messageFr1IGM = result.get(0);
         Message<byte[]> messageFr2IGM = result.get(1);
