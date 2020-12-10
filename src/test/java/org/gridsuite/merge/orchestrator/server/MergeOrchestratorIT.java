@@ -307,8 +307,17 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Test
     public void testParallel() throws InterruptedException {
         CountDownLatch never = new CountDownLatch(1);
+
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR))
+                .thenReturn(Mono.just(true));
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT))
+                .thenReturn(Mono.just(false));
+
+        Mockito.when(loadFlowService.run(any()))
+                .thenReturn(Mono.just("{\"status\": \"TRUE\"}"));
+
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR)).thenReturn(Mono.fromCallable(() -> {
-            //never.await();
+            never.await();
             return UUID_CASE_ID_FR;
         }).subscribeOn(Schedulers.boundedElastic()));
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_PT)).thenReturn(Mono.just(UUID_NETWORK_ID_PT));
