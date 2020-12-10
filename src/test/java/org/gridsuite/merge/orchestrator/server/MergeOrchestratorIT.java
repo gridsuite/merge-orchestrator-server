@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -47,9 +48,13 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -280,7 +285,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     }
 
     @Test
-    public void configsRepositoryTest() {
+    public void parametersRepositoryTest() {
         assertEquals(2, processConfigRepository.findAll().size());
         List<String> tsos = new ArrayList<>();
         tsos.add("FR");
@@ -297,5 +302,66 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertTrue(processConfigRepository.findById("XYZ").get().isRunBalancesAdjustment());
         assertEquals(3, processConfigRepository.findById("SWE").get().getTsos().size());
         assertEquals(2, processConfigRepository.findById("XYZ").get().getTsos().size());
+    }
+
+    @Test
+    public void testParallel() throws InterruptedException {
+        CountDownLatch never = new CountDownLatch(1);
+        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR)).thenReturn(Mono.fromCallable(() -> {
+            //never.await();
+            return UUID_CASE_ID_FR;
+        }).subscribeOn(Schedulers.boundedElastic()));
+        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_PT)).thenReturn(Mono.just(UUID_NETWORK_ID_PT));
+
+        List<Message<byte[]>> result = new ArrayList<>();
+        CountDownLatch cdl = new CountDownLatch(1);
+        // if we block in the reactor, all input.send and output.receive become blocking,
+        // so we need to perform the whole test in another thread and kill it after a timeout
+        (new Thread() {
+            @Override
+            public void run() {
+                // send first, expected available only
+                input.send(MessageBuilder.withPayload("")
+                        .setHeader("tso", "FR")
+                        .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                        .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                        .setHeader("format", "CGMES")
+                        .setHeader("businessProcess", "1D")
+                        .build());
+                result.add(output.receive(1000)); // process 1
+                result.add(output.receive(1000)); // process 2
+                // send second, first shouldn't block second
+                input.send(MessageBuilder.withPayload("")
+                        .setHeader("tso", "PT")
+                        .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                        .setHeader("uuid", UUID_CASE_ID_PT.toString())
+                        .setHeader("format", "CGMES")
+                        .setHeader("businessProcess", "1D")
+                        .build());
+                result.add(output.receive(1000)); // process 1
+                result.add(output.receive(1000)); // invalid
+                cdl.countDown();
+            }
+        }).start();
+        cdl.await(5000, TimeUnit.MILLISECONDS);
+        assertEquals(4, result.size());
+        Message<byte[]> messageFr1IGM = result.get(0);
+        Message<byte[]> messageFr2IGM = result.get(1);
+        Message<byte[]> messagePtIGM = result.get(2);
+        Message<byte[]> messagePtInvalidIGM = result.get(3);
+
+        assertEquals("AVAILABLE", messageFr1IGM.getHeaders().get("status"));
+        assertEquals("FR", messageFr1IGM.getHeaders().get("tso"));
+        assertEquals("SWE", messageFr1IGM.getHeaders().get("process"));
+
+        assertEquals("AVAILABLE", messageFr2IGM.getHeaders().get("status"));
+        assertEquals("FR", messageFr2IGM.getHeaders().get("tso"));
+        assertEquals("FRES", messageFr2IGM.getHeaders().get("process"));
+
+        assertEquals("AVAILABLE", messagePtIGM.getHeaders().get("status"));
+        assertEquals("PT", messagePtIGM.getHeaders().get("tso"));
+
+        assertEquals("VALIDATION_FAILED", messagePtInvalidIGM.getHeaders().get("status"));
+        assertEquals("PT", messagePtInvalidIGM.getHeaders().get("tso"));
     }
 }
