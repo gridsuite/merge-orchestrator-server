@@ -22,8 +22,8 @@ public final class ServicesUtils {
 
     }
 
-    public static String getStringUri(List<UUID> networksIds, String delimiter, String balanceAdjustementApiVersion) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(delimiter + balanceAdjustementApiVersion + "/networks/{networkUuid}/run");
+    public static String getStringUri(List<UUID> networksIds, String delimiter, String apiVersion) {
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(delimiter + apiVersion + "/networks/{networkUuid}/run");
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
         }
