@@ -43,6 +43,10 @@ public class MergeOrchestratorConfigService {
         processConfigRepository.save(toProcessConfigEntity(processConfig));
     }
 
+    void addConfigs(List<ProcessConfig> processConfigList) {
+        processConfigList.forEach(this::addConfig);
+    }
+
     public void deleteConfig(String process) {
         processConfigRepository.deleteById(process);
     }
