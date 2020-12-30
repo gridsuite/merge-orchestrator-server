@@ -69,7 +69,7 @@ public class ProcessConfigController {
     }
 
     @PostMapping(value = "/configs")
-    @ApiOperation(value = "Add a new configurations for a new processs")
+    @ApiOperation(value = "Add a new configurations for a new processes")
     @ApiResponses(value = @ApiResponse(code = 200, message = "The new configurations were added"))
     public ResponseEntity<Void> addConfigs(@RequestBody List<ProcessConfig> processesConfigList) {
         mergeOrchestratorConfigService.addConfigs(processesConfigList);
