@@ -26,7 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/" + MergeOrchestratorApi.API_VERSION)
 @Transactional
-@Api(value = "P orchestrator configs")
+@Api(value = "Merge orchestrator configs")
 @ComponentScan(basePackageClasses = MergeOrchestratorService.class)
 public class ProcessConfigController {
 

@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @RunWith(SpringRunner.class)
 @WebMvcTest(ProcessConfigController.class)
-@ContextConfiguration(classes = {MergeOrchestratorApplication.class})
+@ContextConfiguration(classes = {ProcessConfigController.class})
 public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup {
     @Autowired
     private MockMvc mvc;

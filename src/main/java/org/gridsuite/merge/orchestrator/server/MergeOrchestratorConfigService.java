@@ -44,6 +44,7 @@ public class MergeOrchestratorConfigService {
     }
 
     void addConfigs(List<ProcessConfig> processConfigList) {
+        processConfigRepository.deleteAll();
         processConfigList.forEach(this::addConfig);
     }
 
