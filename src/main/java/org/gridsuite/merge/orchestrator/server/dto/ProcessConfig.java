@@ -9,6 +9,7 @@ package org.gridsuite.merge.orchestrator.server.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.gridsuite.merge.orchestrator.server.repositories.TsoEntity;
 
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class ProcessConfig {
 
     private String process;
 
-    private List<String> tsos;
+    private List<TsoEntity> tsos;
 
     private boolean runBalancesAdjustment;
 }

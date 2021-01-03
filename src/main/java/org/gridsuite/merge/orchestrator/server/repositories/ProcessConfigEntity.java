@@ -22,11 +22,11 @@ public class ProcessConfigEntity {
     @PrimaryKey
     private String process;
 
-    private List<String> tsos;
+    private List<TsoEntity> tsos;
 
     private boolean runBalancesAdjustment;
 
-    public ProcessConfigEntity(String process, List<String> tsos, boolean runBalancesAdjustment) {
+    public ProcessConfigEntity(String process, List<TsoEntity> tsos, boolean runBalancesAdjustment) {
         this.process = process;
         this.tsos = tsos;
         this.runBalancesAdjustment = runBalancesAdjustment;

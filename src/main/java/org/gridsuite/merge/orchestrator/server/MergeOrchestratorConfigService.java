@@ -9,6 +9,7 @@ package org.gridsuite.merge.orchestrator.server;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.TsoEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class MergeOrchestratorConfigService {
         this.processConfigRepository = processConfigRepository;
     }
 
-    public List<String> getTsos() {
+    public List<TsoEntity> getTsos() {
         return getConfigs().stream().flatMap(config -> config.getTsos().stream()).collect(Collectors.toList());
     }
 

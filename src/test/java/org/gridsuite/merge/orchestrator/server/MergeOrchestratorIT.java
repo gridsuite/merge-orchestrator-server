@@ -115,10 +115,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        ArrayList<String> tsos = new ArrayList<>();
-        tsos.add("FR");
-        tsos.add("ES");
-        tsos.add("PT");
+        ArrayList<TsoEntity> tsos = new ArrayList<>();
+        tsos.add(new TsoEntity("FR", ""));
+        tsos.add(new TsoEntity("ES", ""));
+        tsos.add(new TsoEntity("PT", ""));
         processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
         processConfigRepository.save(new ProcessConfigEntity("FRES", tsos.subList(0, 2), false));
     }
@@ -279,9 +279,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Test
     public void parametersRepositoryTest() {
         assertEquals(2, processConfigRepository.findAll().size());
-        List<String> tsos = new ArrayList<>();
-        tsos.add("FR");
-        tsos.add("ES");
+        List<TsoEntity> tsos = new ArrayList<>();
+        tsos.add(new TsoEntity("FR", ""));
+        tsos.add(new TsoEntity("ES", ""));
         ProcessConfigEntity processConfigEntity = new ProcessConfigEntity("XYZ", tsos, true);
         processConfigRepository.save(processConfigEntity);
         assertEquals(3, processConfigRepository.findAll().size());
