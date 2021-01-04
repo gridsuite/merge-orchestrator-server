@@ -16,18 +16,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.ResourceUtils;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import static org.gridsuite.merge.orchestrator.server.ServicesUtils.DELIMITER;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -37,47 +36,38 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class BalancesAdjustmentService {
 
     private static final String BALANCE_ADJUSTEMENT_API_VERSION = "v1";
-    private static final String DELIMITER = "/";
 
-    private RestTemplate balancesAdjustmentServerRest;
+    private WebClient webClient;
 
     @Autowired
     public BalancesAdjustmentService(RestTemplateBuilder builder,
-                                     @Value("${backing-services.balances-adjustment-server.base-uri:http://balances-adjustment-server/}") String balanceAdjustementBaseUri) {
-        this.balancesAdjustmentServerRest = builder.uriTemplateHandler(
-                new DefaultUriBuilderFactory(balanceAdjustementBaseUri)
-        ).build();
+                                     @Value("${backing-services.balances-adjustment-server.base-uri:http://balances-adjustment-server/}") String balanceAdjustementBaseUri,
+                                     WebClient.Builder webClientBuilder) {
+        this.webClient =  webClientBuilder.baseUrl(balanceAdjustementBaseUri).build();
     }
 
-    public BalancesAdjustmentService(RestTemplate restTemplate) {
-        this.balancesAdjustmentServerRest = restTemplate;
+    public BalancesAdjustmentService(String loadFlowBaseUri) {
+        WebClient.Builder webClientBuilder = WebClient.builder();
+        this.webClient =  webClientBuilder.baseUrl(loadFlowBaseUri).build();
     }
 
-    public String doBalance(List<UUID> networksIds) {
+    public Mono<String> doBalance(List<UUID> networksIds) {
         try {
             File targetNetPositionsFile = ResourceUtils.getFile("classpath:targetNetPositions.json");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("balanceComputationParamsFile", null);
+            body.add("balanceComputationParamsFile", "null");
             body.add("targetNetPositionFile", new FileSystemResource(targetNetPositionsFile));
 
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            String uri = ServicesUtils.getStringUri(networksIds, DELIMITER, BALANCE_ADJUSTEMENT_API_VERSION);
 
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + BALANCE_ADJUSTEMENT_API_VERSION + "/networks/{networkUuid}/run");
-            for (int i = 1; i < networksIds.size(); ++i) {
-                uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
-            }
-            String uri = uriBuilder.build().toUriString();
+            return webClient.put()
+                    .uri(uri)
+                    .header(HttpHeaders.CONTENT_TYPE, String.valueOf(MediaType.MULTIPART_FORM_DATA))
+                    .body(BodyInserters.fromValue(body))
+                    .retrieve()
+                    .bodyToMono(String.class);
 
-            ResponseEntity<String> res = balancesAdjustmentServerRest.exchange(uri,
-                    HttpMethod.PUT,
-                    requestEntity,
-                    String.class,
-                    networksIds.get(0).toString());
-            return res.getBody();
         } catch (FileNotFoundException e) {
             throw new PowsyblException("No target net positions file found");
         }

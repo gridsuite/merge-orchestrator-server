@@ -36,8 +36,3 @@ logging:
   level:
     ROOT: INFO
 
-parameters:
-  tsos: FR,ES,PT
-  process: SWE
-  run-balances-adjustment: false
-

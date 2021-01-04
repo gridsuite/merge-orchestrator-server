@@ -6,32 +6,30 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
+import reactor.test.StepVerifier;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
+ * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com>
  */
 @RunWith(MockitoJUnitRunner.class)
 public class BalancesAdjustmentServiceTest {
 
-    @Mock
-    private RestTemplate balancesAdjustmentServerRest;
+    private MockWebServer mockBackEnd;
 
     private BalancesAdjustmentService balancesAdjustmentService;
 
@@ -40,19 +38,35 @@ public class BalancesAdjustmentServiceTest {
     private UUID randomUuid3 = UUID.randomUUID();
 
     @Before
-    public void setUp() {
-        balancesAdjustmentService = new BalancesAdjustmentService(balancesAdjustmentServerRest);
+    public void setUp() throws IOException {
+        mockBackEnd = new MockWebServer();
+        mockBackEnd.start();
+        String baseUrl = String.format("http://localhost:%s", mockBackEnd.getPort());
+        balancesAdjustmentService = new BalancesAdjustmentService(baseUrl);
+
+        final Dispatcher dispatcher = new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest request) {
+                if (("/v1/networks/" + randomUuid1.toString() + "/run?networkUuid=" + randomUuid2.toString() + "&networkUuid=" + randomUuid3.toString()).equals(Objects.requireNonNull(request.getPath()))) {
+                    return new MockResponse().setResponseCode(200).setBody("{\"status\": \"TRUE\"}")
+                            .addHeader("Content-Type", "application/json; charset=utf-8");
+                }
+                return new MockResponse().setResponseCode(404);
+            }
+        };
+        mockBackEnd.setDispatcher(dispatcher);
+
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        mockBackEnd.shutdown();
     }
 
     @Test
     public void test() {
-        when(balancesAdjustmentServerRest.exchange(anyString(),
-                eq(HttpMethod.PUT),
-                any(),
-                eq(String.class),
-                eq(randomUuid1.toString())))
-                .thenReturn(ResponseEntity.ok("{\"status\": \"SUCCESS\"}"));
-        String res = balancesAdjustmentService.doBalance(Arrays.asList(randomUuid1, randomUuid2, randomUuid3));
-        assertEquals("{\"status\": \"SUCCESS\"}", res);
+        StepVerifier.create(balancesAdjustmentService.doBalance(Arrays.asList(randomUuid1, randomUuid2, randomUuid3)))
+                .expectNextMatches(response -> response.equals("{\"status\": \"TRUE\"}"))
+                .verifyComplete();
     }
 }

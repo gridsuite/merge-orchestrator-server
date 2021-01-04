@@ -37,6 +37,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -107,9 +109,11 @@ public class CaseFetcherService {
         return Collections.emptyList();
     }
 
-    public UUID importCase(UUID caseUuid) {
-        CaseDataSourceClient dataSource = new CaseDataSourceClient(caseServerRest, caseUuid);
-        Network network = networkStoreService.importNetwork(dataSource);
-        return networkStoreService.getNetworkUuid(network);
+    public Mono<UUID> importCase(UUID caseUuid) {
+        return Mono.fromCallable(() -> {
+            CaseDataSourceClient dataSource = new CaseDataSourceClient(caseServerRest, caseUuid);
+            Network network = networkStoreService.importNetwork(dataSource);
+            return networkStoreService.getNetworkUuid(network);
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 }
