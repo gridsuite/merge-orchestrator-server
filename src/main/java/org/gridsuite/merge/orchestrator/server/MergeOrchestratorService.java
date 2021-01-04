@@ -151,7 +151,7 @@ public class MergeOrchestratorService {
 
             // get list of network UUID for validated IGMs
             List<IgmEntity> igmEntities = findNetworkUuidsOfValidatedIgms(dateTime, processConfig.getProcess());
-            List networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
+            List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
             if (networkUuids.size() == processConfig.getTsos().size()) {
                 // all IGMs are available and valid for the merging process
                 LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, processConfig.getProcess());

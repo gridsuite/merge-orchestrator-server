@@ -103,7 +103,7 @@ public class NetworkConversionService {
         }
     }
 
-    private List<FileInfos> getBoundaries() throws IOException {
+    private List<FileInfos> getBoundaries() {
         List<BoundaryInfos> boundariesInfos = cgmesBoundaryService.getBoundaries();
         List<FileInfos> boundaries = new ArrayList<>();
         for (BoundaryInfos boundaryInfos : boundariesInfos) {
@@ -163,7 +163,6 @@ public class NetworkConversionService {
         }
         String uri = uriBuilder.build().toUriString();
         ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networksIds.get(0).toString(), CGMES_FORMAT);
-        //TODO add file version (cim version ?)
         return new FileInfos(baseFileName.concat(UNDERSCORE + SV_PROFILE + UNDERSCORE + FILE_VERSION + XML_EXTENSION), responseEntity.getBody());
     }
 }
