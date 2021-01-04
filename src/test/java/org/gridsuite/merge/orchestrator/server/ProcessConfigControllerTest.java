@@ -88,18 +88,5 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json("[]"));
-
-        mvc.perform(post("/" + VERSION + "/configs")
-                .contentType(APPLICATION_JSON)
-                .content("[{\"process\":\"A\",\"tsos\":[{\"sourcingActor\":\"FR\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}," +
-                        "{\"process\":\"B\",\"tsos\":[{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}]"))
-                .andExpect(status().isOk());
-
-        mvc.perform(get("/" + VERSION + "/configs")
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"process\":\"B\",\"tsos\":[{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}," +
-                        "{\"process\":\"A\",\"tsos\":[{\"sourcingActor\":\"FR\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}]"));
     }
 }

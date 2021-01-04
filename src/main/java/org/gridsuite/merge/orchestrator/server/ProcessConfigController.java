@@ -52,7 +52,7 @@ public class ProcessConfigController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(config);
     }
 
-    @PostMapping(value = "/config")
+    @PostMapping(value = "/configs")
     @ApiOperation(value = "Add a new configuration for a new process")
     @ApiResponses(value = @ApiResponse(code = 200, message = "The new configuration added"))
     public ResponseEntity<Void> addConfig(@RequestBody ProcessConfig processConfig) {
@@ -67,14 +67,5 @@ public class ProcessConfigController {
         mergeOrchestratorConfigService.deleteConfig(process);
         return ResponseEntity.ok().build();
     }
-
-    @PostMapping(value = "/configs")
-    @ApiOperation(value = "Add a new configurations for a new processes")
-    @ApiResponses(value = @ApiResponse(code = 200, message = "The new configurations were added"))
-    public ResponseEntity<Void> addConfigs(@RequestBody List<ProcessConfig> processesConfigList) {
-        mergeOrchestratorConfigService.addConfigs(processesConfigList);
-        return ResponseEntity.ok().build();
-    }
-
 }
 
