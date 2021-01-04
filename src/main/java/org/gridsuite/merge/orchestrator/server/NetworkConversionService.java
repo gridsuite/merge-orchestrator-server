@@ -46,8 +46,6 @@ public class NetworkConversionService {
     private static final String XML_ZIP = ".zip";
     private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
 
-    private static final List<String> suffixeOfProfilesToSkip = new ArrayList<String>(Collections.singleton(CGMES_FORMAT));
-
     private RestTemplate networkConversionServerRest;
     private CaseFetcherService caseFetcherService;
     private CgmesBoundaryService cgmesBoundaryService;
@@ -73,7 +71,7 @@ public class NetworkConversionService {
 
             //Add merged IGMs profiles
             List<FileInfos> mergedIgms = caseFetcherService.getCases(caseUuids);
-            for (FileInfos mergedIgm : mergedIgms){
+            for (FileInfos mergedIgm : mergedIgms) {
                 cgmesProfiles.addAll(unzipCgmes(mergedIgm));
             }
 
@@ -108,7 +106,7 @@ public class NetworkConversionService {
     private List<FileInfos> getBoundaries() throws IOException {
         List<BoundaryInfos> boundariesInfos = cgmesBoundaryService.getBoundaries();
         List<FileInfos> boundaries = new ArrayList<>();
-        for(BoundaryInfos boundaryInfos : boundariesInfos) {
+        for (BoundaryInfos boundaryInfos : boundariesInfos) {
             boundaries.add(new FileInfos(boundaryInfos.getFilename(), boundaryInfos.getBoundary().getBytes(StandardCharsets.UTF_8)));
         }
         return boundaries;
@@ -123,7 +121,7 @@ public class NetworkConversionService {
         String fileName;
         try {
             ZipEntry entry = zis.getNextEntry();
-            while(entry != null) {
+            while (entry != null) {
                 int length = -1;
                 baos = new ByteArrayOutputStream();
                 while ((length = zis.read(buffer)) > 0) {
@@ -132,7 +130,7 @@ public class NetworkConversionService {
                 //Remove repertory name before file name
                 fileName = FilenameUtils.getName(entry.getName());
                 isEntryToAdd = !fileName.equals("") && !fileName.endsWith(EQ_BD_FILE_NAME_SUFFIXE) && !fileName.endsWith(TP_BD_FILE_NAME_SUFFIXE) && !fileName.matches(SV_PROFILE_REGEX);
-                if(isEntryToAdd) {
+                if (isEntryToAdd) {
                     profiles.add(new FileInfos(fileName, baos.toByteArray()));
                 }
                 entry = zis.getNextEntry();

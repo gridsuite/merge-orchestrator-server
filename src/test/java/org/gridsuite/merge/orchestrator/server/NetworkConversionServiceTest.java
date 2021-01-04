@@ -33,6 +33,9 @@ public class NetworkConversionServiceTest {
     @Mock
     private RestTemplate networkConversionServerRest;
 
+    @Mock
+    private CgmesBoundaryService cgmesBoundaryService;
+
     private NetworkConversionService networkConversionService;
 
     private UUID randomNetworkUuid1 = UUID.randomUUID();

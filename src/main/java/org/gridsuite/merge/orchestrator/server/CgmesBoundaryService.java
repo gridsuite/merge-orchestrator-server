@@ -8,7 +8,6 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
-import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,11 +24,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -48,11 +45,8 @@ public class CgmesBoundaryService {
 
     private RestTemplate cgmesBoundaryServerRest;
 
-    private NetworkStoreService networkStoreService;
-
     @Autowired
-    public CgmesBoundaryService(NetworkStoreService networkStoreService,
-                              RestTemplateBuilder builder,
+    public CgmesBoundaryService(RestTemplateBuilder builder,
                               @Value("${backing-services.cgmes-boundary-server.base-uri:http://cgmes-boundary-server/}") String cgmesBoundaryServerBaseUri) {
         this.cgmesBoundaryServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(cgmesBoundaryServerBaseUri))
                 .build();
