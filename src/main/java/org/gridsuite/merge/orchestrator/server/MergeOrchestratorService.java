@@ -8,7 +8,6 @@ package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
-import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
@@ -21,6 +20,7 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -119,7 +119,7 @@ public class MergeOrchestratorService {
                 for (ProcessConfig processConfig : processConfigs) {
                     if (processConfig.getTsos().contains(tso)) {
                         LOGGER.info("Merge {} of process {}: IGM in format {} from TSO {} received", date, processConfig.getProcess(), format, tso);
-                        mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso, IgmStatus.AVAILABLE, null);
+                        mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null);
                     }
                 }
 
@@ -129,12 +129,12 @@ public class MergeOrchestratorService {
                     // check IGM quality
                     boolean valid = igmQualityCheckService.check(networkUuid);
 
-                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
+                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid, caseUuid);
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
                         // import IGM into the network store
                         UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
-                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
+                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid);
                     }
                 }
             }
@@ -143,15 +143,15 @@ public class MergeOrchestratorService {
         }
     }
 
-    void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
+    void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid, UUID caseUuid) {
         if (processConfig.getTsos().contains(tso)) {
             LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid", date, processConfig.getProcess(), tso, valid ? " " : "not ");
             mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso,
-                    valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
+                    valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid, caseUuid);
 
             // get list of network UUID for validated IGMs
-            List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime, processConfig.getProcess());
-
+            List<IgmEntity> igmEntities = findNetworkUuidsOfValidatedIgms(dateTime, processConfig.getProcess());
+            List networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
             if (networkUuids.size() == processConfig.getTsos().size()) {
                 // all IGMs are available and valid for the merging process
                 LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, processConfig.getProcess());
@@ -177,13 +177,12 @@ public class MergeOrchestratorService {
         }
     }
 
-    private List<UUID> findNetworkUuidsOfValidatedIgms(ZonedDateTime dateTime, String process) {
+    private List<IgmEntity> findNetworkUuidsOfValidatedIgms(ZonedDateTime dateTime, String process) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
 
         return igmRepository.findByProcessAndDate(process, localDateTime).stream()
                 .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
-                .map(IgmEntity::getNetworkUuid)
                 .collect(Collectors.toList());
     }
 
@@ -217,12 +216,14 @@ public class MergeOrchestratorService {
                 .collect(Collectors.toList());
     }
 
-    ExportNetworkInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) {
-        List<UUID> networksUuids =  findNetworkUuidsOfValidatedIgms(processDate, process);
+    FileInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) throws IOException {
+        List<IgmEntity> igmEntities =  findNetworkUuidsOfValidatedIgms(processDate, process);
+        List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
+        List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
         LocalDateTime requesterDateTime = timeZoneOffset != null ? LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.ofHours(Integer.parseInt(timeZoneOffset) / 60)) : processDate.toLocalDateTime();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
-        String baseFileName = process + "_" + requesterDateTime.format(formatter);
-        return networkConversionService.exportMerge(networksUuids, format, baseFileName);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYYMMDD'T'HHmm'Z'");
+        String baseFileName = requesterDateTime.format(formatter) + "_" + process;
+        return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
     }
 
     private static Igm toIgm(IgmEntity entity) {

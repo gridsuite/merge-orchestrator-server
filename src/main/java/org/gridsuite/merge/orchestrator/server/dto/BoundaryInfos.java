@@ -6,19 +6,24 @@
  */
 package org.gridsuite.merge.orchestrator.server.dto;
 
+import io.swagger.annotations.ApiModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * @author Nicolas Noir <nicolas.noir at rte-france.com>
+ * @author Etienne Homer <etienne.homer at rte-france.com>
  */
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
-public class ExportNetworkInfos {
+@ApiModel("Boundary attributes")
+public class BoundaryInfos {
 
-    private String networkName;
+    private String id;
 
-    private byte[] networkData;
+    private String filename;
 
+    private String boundary;
 }

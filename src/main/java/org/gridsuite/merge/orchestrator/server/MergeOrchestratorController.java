@@ -7,7 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import io.swagger.annotations.*;
-import org.gridsuite.merge.orchestrator.server.dto.ExportNetworkInfos;
+import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
@@ -68,12 +69,12 @@ public class MergeOrchestratorController {
     public ResponseEntity<byte[]> exportNetwork(@ApiParam(value = "Process name") @PathVariable("process") String process,
                                                 @ApiParam(value = "Process date") @PathVariable("date") String date,
                                                 @ApiParam(value = "Export format")@PathVariable("format") String format,
-                                                @RequestParam(value = "timeZoneOffset", required = false) String timeZoneOffset) {
+                                                @RequestParam(value = "timeZoneOffset", required = false) String timeZoneOffset) throws IOException {
         LOGGER.debug("Exporting merge for process {} : {}", process, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
 
-        ExportNetworkInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
+        FileInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
 
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getNetworkName(), StandardCharsets.UTF_8).build());

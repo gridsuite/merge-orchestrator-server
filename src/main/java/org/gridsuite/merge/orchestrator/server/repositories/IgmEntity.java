@@ -26,9 +26,12 @@ public class IgmEntity {
 
     private UUID networkUuid;
 
-    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid) {
+    private UUID caseUuid;
+
+    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, UUID caseUuid) {
         this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
+        this.caseUuid = caseUuid;
     }
 }

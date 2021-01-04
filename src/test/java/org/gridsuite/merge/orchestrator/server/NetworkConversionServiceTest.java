@@ -6,7 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.gridsuite.merge.orchestrator.server.dto.ExportNetworkInfos;
+import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,6 +16,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
@@ -34,9 +35,12 @@ public class NetworkConversionServiceTest {
 
     private NetworkConversionService networkConversionService;
 
-    private UUID randomUuid1 = UUID.randomUUID();
-    private UUID randomUuid2 = UUID.randomUUID();
-    private UUID randomUuid3 = UUID.randomUUID();
+    private UUID randomNetworkUuid1 = UUID.randomUUID();
+    private UUID randomNetworkUuid2 = UUID.randomUUID();
+    private UUID randomNetworkUuid3 = UUID.randomUUID();
+//    private UUID randomCaseUuid1 = UUID.randomUUID();
+//    private UUID randomCaseUuid2 = UUID.randomUUID();
+//    private UUID randomCaseUuid3 = UUID.randomUUID();
     private byte[] response = "TestFileContent".getBytes();
 
     @Before
@@ -45,17 +49,17 @@ public class NetworkConversionServiceTest {
     }
 
     @Test
-    public void test() {
+    public void test() throws IOException {
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename("test_file.xiidm", StandardCharsets.UTF_8).build());
         when(networkConversionServerRest.exchange(anyString(),
                 eq(HttpMethod.GET),
                 any(),
                 any(ParameterizedTypeReference.class),
-                eq(randomUuid1.toString()),
+                eq(randomNetworkUuid1.toString()),
                 eq("XIIDM")))
                 .thenReturn(new ResponseEntity(response, header, HttpStatus.OK));
-        ExportNetworkInfos res = networkConversionService.exportMerge(Arrays.asList(randomUuid1, randomUuid2, randomUuid3), "XIIDM", "merge_name");
+        FileInfos res = networkConversionService.exportMerge(Arrays.asList(randomNetworkUuid1, randomNetworkUuid2, randomNetworkUuid3), null, "XIIDM", "merge_name");
         assertEquals(response, res.getNetworkData());
         assertEquals("merge_name.xiidm", res.getNetworkName());
     }

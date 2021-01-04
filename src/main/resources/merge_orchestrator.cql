@@ -4,6 +4,7 @@ CREATE TABLE merge_orchestrator.merge_igm (
     tso text,
     status text,
     networkUuid uuid,
+    caseUuid uuid,
     PRIMARY KEY (process, date, tso)
 );
 
