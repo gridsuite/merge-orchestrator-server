@@ -48,7 +48,6 @@
 
         <gridsuite-dependencies.version>4</gridsuite-dependencies.version>
 
-        <okhttp.version>4.0.1</okhttp.version>
         <mockwebserver.version>4.0.1</mockwebserver.version>
         <reactor.test.version>3.2.3.RELEASE</reactor.test.version>
     </properties>
@@ -174,7 +173,6 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>${okhttp.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
