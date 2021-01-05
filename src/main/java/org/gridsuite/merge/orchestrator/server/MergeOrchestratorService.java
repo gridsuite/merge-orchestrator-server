@@ -8,7 +8,6 @@ package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
-import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
@@ -94,7 +93,7 @@ public class MergeOrchestratorService {
         return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).subscribe(this::consume);
     }
 
-    private boolean checkTso(List<TsoEntity> tsos, String tso, String format, String businessProcess) {
+    private boolean checkTso(List<Tso> tsos, String tso, String format, String businessProcess) {
         return tsos.stream().anyMatch(ts -> ts.getSourcingActor().equals(tso) || ts.getAlternativeSourcingActor().equals(tso))
                 && StringUtils.equals(format, ACCEPTED_FORMAT) && StringUtils.isNotEmpty(businessProcess);
     }
@@ -103,7 +102,7 @@ public class MergeOrchestratorService {
         try {
             List<ProcessConfig> processConfigs = mergeConfigService.getConfigs();
 
-            List<TsoEntity> tsos = mergeConfigService.getTsos();
+            List<Tso> tsos = mergeConfigService.getTsos();
 
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);

@@ -6,10 +6,10 @@
  */
 package org.gridsuite.merge.orchestrator.server.dto;
 
+import io.swagger.annotations.ApiModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.gridsuite.merge.orchestrator.server.repositories.TsoEntity;
 
 import java.util.List;
 
@@ -19,11 +19,12 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
+@ApiModel("Process config")
 public class ProcessConfig {
 
     private String process;
 
-    private List<TsoEntity> tsos;
+    private List<Tso> tsos;
 
     private boolean runBalancesAdjustment;
 }

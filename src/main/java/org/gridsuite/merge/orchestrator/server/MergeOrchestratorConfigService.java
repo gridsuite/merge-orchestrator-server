@@ -7,6 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
+import org.gridsuite.merge.orchestrator.server.dto.Tso;
 import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.TsoEntity;
@@ -28,7 +29,7 @@ public class MergeOrchestratorConfigService {
         this.processConfigRepository = processConfigRepository;
     }
 
-    public List<TsoEntity> getTsos() {
+    public List<Tso> getTsos() {
         return getConfigs().stream().flatMap(config -> config.getTsos().stream()).collect(Collectors.toList());
     }
 
@@ -49,10 +50,18 @@ public class MergeOrchestratorConfigService {
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
-        return new ProcessConfig(processConfigEntity.getProcess(), processConfigEntity.getTsos(), processConfigEntity.isRunBalancesAdjustment());
+        return new ProcessConfig(processConfigEntity.getProcess(), processConfigEntity.getTsos().stream().map(this::toTso).collect(Collectors.toList()), processConfigEntity.isRunBalancesAdjustment());
     }
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        return new ProcessConfigEntity(processConfig.getProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
+        return new ProcessConfigEntity(processConfig.getProcess(), processConfig.getTsos().stream().map(this::toTsoEntity).collect(Collectors.toList()), processConfig.isRunBalancesAdjustment());
+    }
+
+    private Tso toTso(TsoEntity tsoEntity) {
+        return new Tso(tsoEntity.getSourcingActor(), tsoEntity.getAlternativeSourcingActor());
+    }
+
+    private TsoEntity toTsoEntity(Tso tso) {
+        return new TsoEntity(tso.getSourcingActor(), tso.getAlternativeSourcingActor());
     }
 }
