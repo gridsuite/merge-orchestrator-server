@@ -41,7 +41,6 @@ public class NetworkConversionService {
     private static final String TP_BD_FILE_NAME_SUFFIXE = "_TP_BD.xml";
     private static final String SV_PROFILE = "SV";
     private static final String UNDERSCORE = "_";
-    private static final String BUSINESS_PROCESS = "1D";
     private static final String FILE_VERSION = "1";
     private static final String XML_EXTENSION = ".xml";
     private static final String XML_ZIP = ".zip";
