@@ -45,6 +45,8 @@ public class NetworkConversionService {
     private static final String XML_EXTENSION = ".xml";
     private static final String XML_ZIP = ".zip";
     private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
+    private static final int MAX_ZIP_ENTRIES_NUMBER = 100;
+    private static final int MAX_ZIP_ENTRY_SIZE = 1000000000;
 
     private RestTemplate networkConversionServerRest;
     private CaseFetcherService caseFetcherService;
@@ -119,13 +121,24 @@ public class NetworkConversionService {
         ByteArrayOutputStream baos;
         boolean isEntryToAdd;
         String fileName;
+        int entryCount = 0;
         try {
             ZipEntry entry = zis.getNextEntry();
+            entryCount++;
+            if (new File(entry.getName()).getCanonicalPath().contains("..")) { // Sanitizer
+                throw new IllegalStateException("Entry is trying to leave the target dir: " + entry.getName());
+            }
+            if (entryCount > MAX_ZIP_ENTRIES_NUMBER) {
+                throw new IllegalStateException("Zip has too many entries.");
+            }
+
             while (entry != null) {
                 int length = -1;
+                long totalBytes = 0;
                 baos = new ByteArrayOutputStream();
-                while ((length = zis.read(buffer)) > 0) {
+                while (totalBytes < MAX_ZIP_ENTRY_SIZE && (length = zis.read(buffer)) > 0) {
                     baos.write(buffer, 0, length);
+                    totalBytes = totalBytes + length;
                 }
                 //Remove repertory name before file name
                 fileName = FilenameUtils.getName(entry.getName());
