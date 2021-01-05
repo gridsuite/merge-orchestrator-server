@@ -41,9 +41,6 @@ public class NetworkConversionServiceTest {
     private UUID randomNetworkUuid1 = UUID.randomUUID();
     private UUID randomNetworkUuid2 = UUID.randomUUID();
     private UUID randomNetworkUuid3 = UUID.randomUUID();
-//    private UUID randomCaseUuid1 = UUID.randomUUID();
-//    private UUID randomCaseUuid2 = UUID.randomUUID();
-//    private UUID randomCaseUuid3 = UUID.randomUUID();
     private byte[] response = "TestFileContent".getBytes();
 
     @Before

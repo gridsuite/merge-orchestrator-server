@@ -41,6 +41,7 @@ public class NetworkConversionService {
     private static final String TP_BD_FILE_NAME_SUFFIXE = "_TP_BD.xml";
     private static final String SV_PROFILE = "SV";
     private static final String UNDERSCORE = "_";
+    private static final String BUSINESS_PROCESS = "1D";
     private static final String FILE_VERSION = "1";
     private static final String XML_EXTENSION = ".xml";
     private static final String XML_ZIP = ".zip";
@@ -116,16 +117,15 @@ public class NetworkConversionService {
 
     private List<FileInfos> unzipCgmes(FileInfos mergedIgm) throws IOException {
         List<FileInfos> profiles = new ArrayList<>();
-        ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getNetworkData()));
         byte[] buffer = new byte[1024];
         ByteArrayOutputStream baos;
         boolean isEntryToAdd;
         String fileName;
         int entryCount = 0;
-        try {
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getNetworkData()))){
             ZipEntry entry = zis.getNextEntry();
             entryCount++;
-            if (new File(entry.getName()).getCanonicalPath().contains("..")) { // Sanitizer
+            if (new File(entry.getName()).getCanonicalPath().contains("..")) {
                 throw new IllegalStateException("Entry is trying to leave the target dir: " + entry.getName());
             }
             if (entryCount > MAX_ZIP_ENTRIES_NUMBER) {
@@ -149,8 +149,6 @@ public class NetworkConversionService {
                 entry = zis.getNextEntry();
                 baos.close();
             }
-        } finally {
-            zis.close();
         }
         return profiles;
     }
