@@ -37,14 +37,14 @@ public class NetworkConversionService {
     private static final String NETWORK_CONVERSION_API_VERSION = "v1";
     private static final String DELIMITER = "/";
     private static final String CGMES_FORMAT = "CGMES";
-    private static final String EQ_BD_FILE_NAME_SUFFIXE = "_EQ_BD.xml";
-    private static final String TP_BD_FILE_NAME_SUFFIXE = "_TP_BD.xml";
     private static final String SV_PROFILE = "SV";
     private static final String UNDERSCORE = "_";
     private static final String FILE_VERSION = "1";
     private static final String XML_EXTENSION = ".xml";
     private static final String ZIP = ".zip";
     private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
+    private static final String TPBD_FILE_REGEX = "^(.*?(__ENTSOE_TPBD_).*(.xml))$";
+    private static final String EQBD_FILE_REGEX = "^(.*?(__ENTSOE_EQBD_).*(.xml))$";
     private static final int MAX_ZIP_ENTRIES_NUMBER = 100;
     private static final int MAX_ZIP_ENTRY_SIZE = 1000000000;
 
@@ -126,14 +126,14 @@ public class NetworkConversionService {
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getNetworkData()))) {
             ZipEntry entry = zis.getNextEntry();
             entryCount++;
-            if (new File(entry.getName()).getCanonicalPath().contains("..")) {
-                throw new IllegalStateException("Entry is trying to leave the target dir: " + entry.getName());
-            }
             if (entryCount > MAX_ZIP_ENTRIES_NUMBER) {
                 throw new IllegalStateException("Zip has too many entries.");
             }
-
             while (entry != null) {
+                if (new File(entry.getName()).getCanonicalPath().contains("..")) {
+                    throw new IllegalStateException("Entry is trying to leave the target dir: " + entry.getName());
+                }
+
                 int length = -1;
                 long totalBytes = 0;
                 baos = new ByteArrayOutputStream();
@@ -143,7 +143,7 @@ public class NetworkConversionService {
                 }
                 //Remove repertory name before file name
                 fileName = FilenameUtils.getName(entry.getName());
-                isEntryToAdd = !fileName.equals("") && !fileName.endsWith(EQ_BD_FILE_NAME_SUFFIXE) && !fileName.endsWith(TP_BD_FILE_NAME_SUFFIXE) && !fileName.matches(SV_PROFILE_REGEX);
+                isEntryToAdd = !fileName.equals("") && !fileName.matches(EQBD_FILE_REGEX) && !fileName.matches(TPBD_FILE_REGEX) && !fileName.matches(SV_PROFILE_REGEX);
                 if (isEntryToAdd) {
                     profiles.add(new FileInfos(fileName, baos.toByteArray()));
                 }
