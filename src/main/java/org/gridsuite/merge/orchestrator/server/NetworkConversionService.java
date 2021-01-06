@@ -43,13 +43,15 @@ public class NetworkConversionService {
     private static final String UNDERSCORE = "_";
     private static final String FILE_VERSION = "1";
     private static final String XML_EXTENSION = ".xml";
-    private static final String XML_ZIP = ".zip";
+    private static final String ZIP = ".zip";
     private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
     private static final int MAX_ZIP_ENTRIES_NUMBER = 100;
     private static final int MAX_ZIP_ENTRY_SIZE = 1000000000;
 
     private RestTemplate networkConversionServerRest;
+
     private CaseFetcherService caseFetcherService;
+
     private CgmesBoundaryService cgmesBoundaryService;
 
     @Autowired
@@ -86,7 +88,7 @@ public class NetworkConversionService {
             //Zip files
             ByteArrayOutputStream baosZip = createZipFile(cgmesProfiles);
 
-            return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + XML_ZIP), baosZip.toByteArray());
+            return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baosZip.toByteArray());
         } else {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export/{format}");
             for (int i = 1; i < networkUuids.size(); ++i) {
@@ -121,7 +123,7 @@ public class NetworkConversionService {
         boolean isEntryToAdd;
         String fileName;
         int entryCount = 0;
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getNetworkData()))){
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getNetworkData()))) {
             ZipEntry entry = zis.getNextEntry();
             entryCount++;
             if (new File(entry.getName()).getCanonicalPath().contains("..")) {
@@ -166,7 +168,7 @@ public class NetworkConversionService {
         return baos;
     }
 
-    public FileInfos getSvProfile(List<UUID> networksIds, String baseFileName) {
+    private FileInfos getSvProfile(List<UUID> networksIds, String baseFileName) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export-sv-cgmes");
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
