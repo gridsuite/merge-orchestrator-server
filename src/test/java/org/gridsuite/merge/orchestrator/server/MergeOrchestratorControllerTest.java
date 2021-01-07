@@ -77,7 +77,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     private CaseFetcherService caseFetcherService;
 
     @MockBean
-    private CgmesBoundaryServiceTest cgmesBoundaryService;
+    private CgmesBoundaryService cgmesBoundaryService;
 
     @MockBean
     private BalancesAdjustmentService balancesAdjustmentService;

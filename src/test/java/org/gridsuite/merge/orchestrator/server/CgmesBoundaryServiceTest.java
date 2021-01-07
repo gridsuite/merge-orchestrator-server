@@ -7,7 +7,6 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
-import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,9 +37,10 @@ public class CgmesBoundaryServiceTest {
     private CgmesBoundaryService cgmesBoundaryService;
 
     List<Map<String, String>> response = new ArrayList<>(List.of(
-            Map.of("id" , "id1", "filename", "name1", "boundary", "boundary1"),
-            Map.of("id" , "id2", "filename", "name2", "boundary", "boundary2")
+            Map.of("id", "id1", "filename", "name1", "boundary", "boundary1"),
+            Map.of("id", "id2", "filename", "name2", "boundary", "boundary2")
             ));
+
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
