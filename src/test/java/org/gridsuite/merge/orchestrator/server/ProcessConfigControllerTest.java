@@ -40,6 +40,12 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
     @Inject
     ProcessConfigRepository processConfigRepository;
 
+    @Inject
+    MergeRepository mergeRepository;
+
+    @Inject
+    IgmRepository igmRepository;
+
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
 

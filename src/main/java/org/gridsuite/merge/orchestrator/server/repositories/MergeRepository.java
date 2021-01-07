@@ -24,7 +24,7 @@ public interface MergeRepository extends CassandraRepository<MergeEntity, MergeE
     @Query("SELECT * FROM merge WHERE process = :process")
     List<MergeEntity> findByProcess(@Param("process") String process);
 
-    @Query("DELETE * FROM merge WHERE process = :process")
+    @Query("DELETE FROM merge WHERE process = :process")
     void deleteByProcess(@Param("process") String process);
 
     @Query("SELECT * FROM merge WHERE process = :process AND date >= :minDate AND date <= :maxDate")

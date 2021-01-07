@@ -22,7 +22,7 @@ public interface IgmRepository extends CassandraRepository<IgmEntity, IgmEntityK
     @Query("SELECT * FROM merge_igm WHERE process = :process")
     List<IgmEntity> findByProcess(String process);
 
-    @Query("DELETE * FROM merge_igm WHERE process = :process")
+    @Query("DELETE FROM merge_igm WHERE process = :process")
     void deleteByProcess(String process);
 
     @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date")
