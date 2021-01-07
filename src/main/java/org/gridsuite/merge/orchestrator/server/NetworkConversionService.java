@@ -68,6 +68,14 @@ public class NetworkConversionService {
         this.networkConversionServerRest = restTemplate;
     }
 
+    public void setCaseFetcherService(CaseFetcherService caseFetcherService) {
+        this.caseFetcherService = caseFetcherService;
+    }
+
+    public void setCgmesBoundaryService(CgmesBoundaryService cgmesBoundaryService) {
+        this.cgmesBoundaryService = cgmesBoundaryService;
+    }
+
     public FileInfos exportMerge(List<UUID> networkUuids, List<UUID> caseUuids, String format, String baseFileName) throws IOException {
         if (format.equals(CGMES_FORMAT)) {
 
@@ -123,7 +131,7 @@ public class NetworkConversionService {
         boolean isEntryToAdd;
         String fileName;
         int entryCount = 0;
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getNetworkData()))) {
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getData()))) {
             ZipEntry entry = zis.getNextEntry();
             entryCount++;
             if (entryCount > MAX_ZIP_ENTRIES_NUMBER) {
@@ -159,9 +167,9 @@ public class NetworkConversionService {
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
             ZipEntry entry;
             for (FileInfos file : files) {
-                entry = new ZipEntry(file.getNetworkName());
+                entry = new ZipEntry(file.getName());
                 zos.putNextEntry(entry);
-                zos.write(file.getNetworkData());
+                zos.write(file.getData());
                 zos.closeEntry();
             }
         }

@@ -77,8 +77,8 @@ public class MergeOrchestratorController {
         FileInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
 
         HttpHeaders header = new HttpHeaders();
-        header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getNetworkName(), StandardCharsets.UTF_8).build());
-        return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMergeInfo.getNetworkData());
+        header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getName(), StandardCharsets.UTF_8).build());
+        return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMergeInfo.getData());
     }
 
 }

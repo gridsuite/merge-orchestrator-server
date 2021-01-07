@@ -17,8 +17,8 @@ import lombok.Getter;
 @Getter
 public class FileInfos {
 
-    private String networkName;
+    private String name;
 
-    private byte[] networkData;
+    private byte[] data;
 
 }

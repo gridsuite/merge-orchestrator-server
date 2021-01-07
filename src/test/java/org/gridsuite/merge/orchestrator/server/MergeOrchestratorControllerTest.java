@@ -181,5 +181,10 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));
+
+        mvc.perform(get("/" + VERSION + "/swe/" + processDate + "/export/CGMES")
+                .contentType(APPLICATION_OCTET_STREAM))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));
     }
 }
