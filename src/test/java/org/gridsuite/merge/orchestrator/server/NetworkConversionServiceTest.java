@@ -131,9 +131,9 @@ public class NetworkConversionServiceTest {
 
         assertEquals("merge_name_1.zip", res.getName());
         assertEquals(15, files.size());
-        assertEquals(new String(files.get("EQBD"), StandardCharsets.UTF_8), "EQ content");
-        assertEquals(new String(files.get("TPBD"), StandardCharsets.UTF_8), "TP content");
-        assertEquals(new String(files.get("merge_name_SV_1.xml"), StandardCharsets.UTF_8), "SV content");
+        assertEquals("EQ content", new String(files.get("EQBD"), StandardCharsets.UTF_8));
+        assertEquals("TP content", new String(files.get("TPBD"), StandardCharsets.UTF_8));
+        assertEquals("SV content", new String(files.get("merge_name_SV_1.xml"), StandardCharsets.UTF_8));
 
         assertTrue(files.containsKey("20171002T0930Z_NL_DY_6.xml"));
         assertTrue(files.containsKey("20171002T0930Z_NL_DL_6.xml"));
