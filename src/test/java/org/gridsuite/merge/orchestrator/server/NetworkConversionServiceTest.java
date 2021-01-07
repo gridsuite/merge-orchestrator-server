@@ -21,7 +21,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -92,7 +91,6 @@ public class NetworkConversionServiceTest {
                 new FileInfos("MicroGridNL", fileContentNl)
         ));
 
-
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename("fileName", StandardCharsets.UTF_8).build());
         when(networkConversionServerRest.exchange(anyString(),
@@ -105,7 +103,7 @@ public class NetworkConversionServiceTest {
 
         when(cgmesBoundaryService.getBoundaries()).thenReturn(List.of(
                 new BoundaryInfos("idTPBD", "TPBD", "TP content"),
-                new BoundaryInfos("idEQBD", "EQBD","EQ content")
+                new BoundaryInfos("idEQBD", "EQBD", "EQ content")
         ));
 
         FileInfos res = networkConversionService.exportMerge(Arrays.asList(randomNetworkUuid1, randomNetworkUuid2, randomNetworkUuid3), new ArrayList<>(), "CGMES", "merge_name");
