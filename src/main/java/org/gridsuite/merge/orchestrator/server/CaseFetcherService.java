@@ -69,7 +69,7 @@ public class CaseFetcherService {
 
     private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {
         StringBuilder query = new StringBuilder();
-        String formattedDate = dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
+        String formattedDate = dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
         try {
             query.append("date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"")
                     .append(" AND tso:")

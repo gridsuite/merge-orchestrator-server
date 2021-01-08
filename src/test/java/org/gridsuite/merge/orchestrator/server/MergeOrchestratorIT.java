@@ -427,14 +427,14 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(3, processConfigRepository.findAll().size());
         assertEquals("[MergeEntity(key=MergeEntityKey(process=SWE_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6, replacingDate=null, replacingBusinessProcess=null), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null)]",
                 igmRepository.findAll().toString());
 
         mergeOrchestratorConfigService.deleteConfig("SWE_2D");
 
         assertEquals("[MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null)]",
                 igmRepository.findAll().toString());
 
         ArrayList<Tso> tsos = new ArrayList<>();
@@ -473,5 +473,156 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(3, processConfigRepository.findById("SWE_2D").get().getTsos().size());
         assertEquals(2, processConfigRepository.findById("FRES_2D").get().getTsos().size());
         assertEquals(2, processConfigRepository.findById("XYZ_2D").get().getTsos().size());
+    }
+
+    @Test
+    public void replacingIGMsTest() {
+        // process dateTime : 2019-05_01T09:30:00Z
+        ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 30, 0, 0, ZoneId.of("UTC"));
+
+        mergeRepository.deleteAll();
+        igmRepository.deleteAll();
+        mergeOrchestratorConfigService.deleteConfig("SWE_2D");
+
+        ArrayList<Tso> tsos = new ArrayList<>();
+        tsos.add(new Tso("FR", ""));
+        tsos.add(new Tso("ES", ""));
+        tsos.add(new Tso("PT", ""));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_2D", "2D", tsos, false));
+
+        // init incomplete merge and merge_igm data in database : missing ES and invalid PT igms
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("SWE_2D", dateTime.toLocalDateTime()), null));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_2D", dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_FR, null, null));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_2D", dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_PT, null, null));
+
+        // 1 - test replacing ES igm (at dateTime : 2019-05_01T12:30:00Z)
+        //
+        UUID uuidReplacingCaseES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
+        ZonedDateTime replacingDateES = ZonedDateTime.of(2019, 5, 1, 12, 30, 0, 0, ZoneId.of("UTC"));
+
+        Mockito.when(caseFetcherService.getCases(Arrays.asList("ES"), replacingDateES, "CGMES", "2D"))
+                .thenReturn(List.of(new CaseInfos("20190501T1230Z_1D_REE_001.zip", uuidReplacingCaseES, "CGMES", "ES", "2D")));
+
+        UUID uuidReplacingNetworkES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
+        Mockito.when(caseFetcherService.importCase(uuidReplacingCaseES))
+                .thenReturn(uuidReplacingNetworkES);
+
+        Map<String, IgmReplacingInfo> resReplacing = mergeOrchestratorService.replaceIGMs("SWE_2D", dateTime);
+
+        assertEquals(1, resReplacing.size());
+        assertTrue(resReplacing.containsKey("ES"));
+        assertEquals("ES", resReplacing.get("ES").getTso());
+        assertEquals(replacingDateES, resReplacing.get("ES").getDate());
+        assertEquals(uuidReplacingCaseES, resReplacing.get("ES").getCaseUuid());
+        assertEquals(uuidReplacingNetworkES, resReplacing.get("ES").getNetworkUuid());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, resReplacing.get("ES").getStatus());
+        assertEquals("2D", resReplacing.get("ES").getBusinessProcess());
+
+        // test merge_igm replacement has been done for ES igm in cassandra
+        List<MergeEntity> mergeEntities = mergeRepository.findAll();
+        assertEquals(1, mergeEntities.size());
+        assertEquals("SWE_2D", mergeEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertNull(mergeEntities.get(0).getStatus());
+
+        List<IgmEntity> igmEntities = igmRepository.findAll();
+        assertEquals(3, igmEntities.size());
+        assertEquals(uuidReplacingNetworkES, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals("SWE_2D", igmEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
+        assertEquals(replacingDateES.toLocalDateTime(), igmEntities.get(0).getReplacingDate());
+        assertEquals("2D", igmEntities.get(0).getReplacingBusinessProcess());
+
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(1).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
+        assertEquals("SWE_2D", igmEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
+        assertNull(igmEntities.get(1).getReplacingDate());
+        assertNull(igmEntities.get(1).getReplacingBusinessProcess());
+
+        assertEquals(UUID_NETWORK_ID_PT, igmEntities.get(2).getNetworkUuid());
+        assertEquals("VALIDATION_FAILED", igmEntities.get(2).getStatus());
+        assertEquals("SWE_2D", igmEntities.get(2).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
+        assertNull(igmEntities.get(2).getReplacingDate());
+        assertNull(igmEntities.get(2).getReplacingBusinessProcess());
+
+        // test message has been sent for ES igm
+        Message<byte[]> messageEsIGM = output.receive(1000);
+        assertEquals("AVAILABLE", messageEsIGM.getHeaders().get("status"));
+        assertEquals("ES", messageEsIGM.getHeaders().get("tso"));
+        assertEquals("SWE_2D", messageEsIGM.getHeaders().get("process"));
+        messageEsIGM = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", messageEsIGM.getHeaders().get("status"));
+        assertEquals("ES", messageEsIGM.getHeaders().get("tso"));
+        assertEquals("SWE_2D", messageEsIGM.getHeaders().get("process"));
+
+        // 2 - test replacing PT igm (at dateTime : 2019-05_01T17:30:00Z)
+        UUID uuidReplacingCasePT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254f1");
+        ZonedDateTime replacingDatePT = ZonedDateTime.of(2019, 5, 1, 17, 30, 0, 0, ZoneId.of("UTC"));
+
+        Mockito.when(caseFetcherService.getCases(Arrays.asList("PT"), replacingDatePT, "CGMES", "2D"))
+                .thenReturn(List.of(new CaseInfos("20190501T1730Z_1D_REN_001.zip", uuidReplacingCasePT, "CGMES", "PT", "2D")));
+
+        UUID uuidReplacingNetworkPT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254f2");
+        Mockito.when(caseFetcherService.importCase(uuidReplacingCasePT))
+                .thenReturn(uuidReplacingNetworkPT);
+
+        resReplacing = mergeOrchestratorService.replaceIGMs("SWE_2D", dateTime);
+
+        assertEquals(1, resReplacing.size());
+        assertTrue(resReplacing.containsKey("PT"));
+        assertEquals("PT", resReplacing.get("PT").getTso());
+        assertEquals(replacingDatePT, resReplacing.get("PT").getDate());
+        assertEquals(uuidReplacingCasePT, resReplacing.get("PT").getCaseUuid());
+        assertEquals(uuidReplacingNetworkPT, resReplacing.get("PT").getNetworkUuid());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, resReplacing.get("PT").getStatus());
+        assertEquals("2D", resReplacing.get("PT").getBusinessProcess());
+
+        // test merge_igm replacement has been done for PT igm in cassandra
+        mergeEntities = mergeRepository.findAll();
+        assertEquals(1, mergeEntities.size());
+        assertEquals("SWE_2D", mergeEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertEquals("LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+
+        igmEntities = igmRepository.findAll();
+        assertEquals(3, igmEntities.size());
+        assertEquals(uuidReplacingNetworkES, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals("SWE_2D", igmEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
+        assertEquals(replacingDateES.toLocalDateTime(), igmEntities.get(0).getReplacingDate());
+        assertEquals("2D", igmEntities.get(0).getReplacingBusinessProcess());
+
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(1).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
+        assertEquals("SWE_2D", igmEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
+        assertNull(igmEntities.get(1).getReplacingDate());
+        assertNull(igmEntities.get(1).getReplacingBusinessProcess());
+
+        assertEquals(uuidReplacingNetworkPT, igmEntities.get(2).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(2).getStatus());
+        assertEquals("SWE_2D", igmEntities.get(2).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
+        assertEquals(replacingDatePT.toLocalDateTime(), igmEntities.get(2).getReplacingDate());
+        assertEquals("2D", igmEntities.get(2).getReplacingBusinessProcess());
+
+        // test message has been sent for PT igm
+        Message<byte[]> messagePtIGM = output.receive(1000);
+        assertEquals("AVAILABLE", messagePtIGM.getHeaders().get("status"));
+        assertEquals("PT", messagePtIGM.getHeaders().get("tso"));
+        assertEquals("SWE_2D", messagePtIGM.getHeaders().get("process"));
+        messagePtIGM = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
+        assertEquals("PT", messagePtIGM.getHeaders().get("tso"));
+        assertEquals("SWE_2D", messagePtIGM.getHeaders().get("process"));
+
+        // test message has been sent for merge load flow
+        Message<byte[]> messageMerge = output.receive(1000);
+        assertEquals("LOADFLOW_SUCCEED", messageMerge.getHeaders().get("status"));
+        assertEquals("SWE_2D", messageEsIGM.getHeaders().get("process"));
     }
 }

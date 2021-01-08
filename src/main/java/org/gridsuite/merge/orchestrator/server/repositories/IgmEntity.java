@@ -11,6 +11,7 @@ import lombok.ToString;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -28,9 +29,15 @@ public class IgmEntity {
 
     private UUID networkUuid;
 
-    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid) {
+    private LocalDateTime replacingDate;
+
+    private String replacingBusinessProcess;
+
+    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, LocalDateTime replacingDate, String replacingBusinessProcess) {
         this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
+        this.replacingDate = replacingDate;
+        this.replacingBusinessProcess = replacingBusinessProcess;
     }
 }
