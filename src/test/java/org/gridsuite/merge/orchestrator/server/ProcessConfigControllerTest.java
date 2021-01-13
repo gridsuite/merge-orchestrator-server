@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @RunWith(SpringRunner.class)
 @WebMvcTest(ProcessConfigController.class)
@@ -68,7 +69,7 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
         tsos.add(new TsoEntity("FR", ""));
         tsos.add(new TsoEntity("ES", ""));
         tsos.add(new TsoEntity("PT", ""));
-        processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
+        processConfigRepository.save(new ProcessConfigEntity("SWE_1D", "1D", tsos, false));
     }
 
     @Test
@@ -77,15 +78,15 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"process\":\"SWE\",\"tsos\":[{\"sourcingActor\":\"FR\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}]"));
+                .andExpect(content().json("[{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[{\"sourcingActor\":\"FR\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}]"));
 
-        mvc.perform(get("/" + VERSION + "/configs/SWE")
+        mvc.perform(get("/" + VERSION + "/configs/SWE_1D")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("{\"process\":\"SWE\",\"tsos\":[{\"sourcingActor\":\"FR\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}"));
+                .andExpect(content().json("{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[{\"sourcingActor\":\"FR\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"ES\",\"alternativeSourcingActor\":\"\"},{\"sourcingActor\":\"PT\",\"alternativeSourcingActor\":\"\"}],\"runBalancesAdjustment\":false}"));
 
-        mvc.perform(delete("/" + VERSION + "/configs/SWE")
+        mvc.perform(delete("/" + VERSION + "/configs/SWE_1D")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk());
 
