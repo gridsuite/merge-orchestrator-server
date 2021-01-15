@@ -7,6 +7,7 @@
 package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.Getter;
+import lombok.ToString;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
@@ -16,6 +17,7 @@ import java.util.UUID;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Getter
+@ToString
 @Table("merge_igm")
 public class IgmEntity {
 
