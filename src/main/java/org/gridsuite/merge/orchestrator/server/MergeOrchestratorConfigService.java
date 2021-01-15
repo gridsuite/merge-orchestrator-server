@@ -9,6 +9,7 @@ package org.gridsuite.merge.orchestrator.server;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.dto.Tso;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
