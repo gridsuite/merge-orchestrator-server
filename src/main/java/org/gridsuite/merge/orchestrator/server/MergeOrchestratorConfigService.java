@@ -9,6 +9,10 @@ package org.gridsuite.merge.orchestrator.server;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.dto.Tso;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,8 +27,16 @@ public class MergeOrchestratorConfigService {
 
     private final ProcessConfigRepository processConfigRepository;
 
-    public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository) {
+    private final MergeRepository mergeRepository;
+
+    private final IgmRepository igmRepository;
+
+    public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository,
+                                          IgmRepository igmRepository,
+                                          MergeRepository mergeRepository) {
         this.processConfigRepository = processConfigRepository;
+        this.mergeRepository = mergeRepository;
+        this.igmRepository = igmRepository;
     }
 
     public List<Tso> getTsos() {
@@ -45,6 +57,8 @@ public class MergeOrchestratorConfigService {
 
     public void deleteConfig(String process) {
         processConfigRepository.deleteById(process);
+        mergeRepository.deleteByProcess(process);
+        igmRepository.deleteByProcess(process);
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {

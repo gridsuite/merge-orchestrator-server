@@ -25,6 +25,9 @@ public interface IgmRepository extends CassandraRepository<IgmEntity, IgmEntityK
     @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date")
     List<IgmEntity> findByProcessAndDate(String process, LocalDateTime date);
 
+    @Query("DELETE FROM merge_igm WHERE process = :process")
+    void deleteByProcess(String process);
+
     @Query("SELECT * FROM merge_igm WHERE process = :process AND date >= :minDate AND date <= :maxDate")
     List<IgmEntity> findByProcessAndInterval(String process, LocalDateTime minDate, LocalDateTime maxDate);
 }
