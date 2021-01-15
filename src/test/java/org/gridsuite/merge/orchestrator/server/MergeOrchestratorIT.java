@@ -20,12 +20,9 @@ import javax.inject.Inject;
 
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
-import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
+import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import com.powsybl.iidm.network.NetworkFactory;
-import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
-import org.gridsuite.merge.orchestrator.server.dto.Merge;
-import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
@@ -98,6 +95,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
 
+    @Inject
+    MergeOrchestratorConfigService mergeOrchestratorConfigService;
+
     @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
 
@@ -119,8 +119,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
-        processConfigRepository.save(new ProcessConfigEntity("SWE", tsos, false));
-        processConfigRepository.save(new ProcessConfigEntity("FRES", tsos.subList(0, 2), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE", tsos, false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES", tsos.subList(0, 2), false));
     }
 
     @Test
@@ -274,6 +274,25 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertFalse(mergeOrchestratorService.getMerges("SWE", dateTime, dateTime).isEmpty());
 
         assertNull(output.receive(1000));
+
+        assertEquals(2, processConfigRepository.findAll().size());
+        assertEquals("[MergeEntity(key=MergeEntityKey(process=SWE, date=2019-05-01T09:00), " +
+                "status=LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(process=FRES, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
+                mergeRepository.findAll().toString());
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
+                "IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4), " +
+                "IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6), " +
+                "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
+                "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
+                igmRepository.findAll().toString());
+
+        mergeOrchestratorConfigService.deleteConfig("SWE");
+
+        assertEquals("[MergeEntity(key=MergeEntityKey(process=FRES, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
+                mergeRepository.findAll().toString());
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
+                        "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
+                igmRepository.findAll().toString());
     }
 
     @Test
