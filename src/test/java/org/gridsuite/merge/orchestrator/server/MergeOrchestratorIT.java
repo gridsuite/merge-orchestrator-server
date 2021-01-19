@@ -279,19 +279,19 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("[MergeEntity(key=MergeEntityKey(process=SWE, date=2019-05-01T09:00), " +
                 "status=LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(process=FRES, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
-                "IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4), " +
-                "IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6), " +
-                "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
-                "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
+                        "IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4), " +
+                        "IgmEntity(key=IgmEntityKey(process=SWE, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6, caseUuid=7928181c-7977-4592-ba19-88027e4254e6), " +
+                        "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
+                        "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
                 igmRepository.findAll().toString());
 
         mergeOrchestratorConfigService.deleteConfig("SWE");
 
         assertEquals("[MergeEntity(key=MergeEntityKey(process=FRES, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
-                        "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5), " +
+                        "IgmEntity(key=IgmEntityKey(process=FRES, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4)]",
                 igmRepository.findAll().toString());
     }
 
