@@ -55,7 +55,7 @@ public class ProcessConfigController {
     @PostMapping(value = "/configs")
     @ApiOperation(value = "Add a new configuration for a new process")
     @ApiResponses(value = @ApiResponse(code = 200, message = "The new configuration added"))
-    public ResponseEntity<Void> createStudyFromExistingCase(@RequestBody ProcessConfig processConfig) {
+    public ResponseEntity<Void> addConfig(@RequestBody ProcessConfig processConfig) {
         mergeOrchestratorConfigService.addConfig(processConfig);
         return ResponseEntity.ok().build();
     }
@@ -67,6 +67,5 @@ public class ProcessConfigController {
         mergeOrchestratorConfigService.deleteConfig(process);
         return ResponseEntity.ok().build();
     }
-
 }
 
