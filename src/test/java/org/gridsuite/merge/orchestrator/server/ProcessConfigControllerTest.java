@@ -56,6 +56,9 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
     private BalancesAdjustmentService balancesAdjustmentService;
 
     @MockBean
+    private CgmesBoundaryService cgmesBoundaryService;
+
+    @MockBean
     private LoadFlowService loadFlowService;
 
     @MockBean
