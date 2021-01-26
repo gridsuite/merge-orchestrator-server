@@ -53,6 +53,10 @@ public class MergeOrchestratorService {
     private static final String FORMAT_HEADER_KEY       = "format";
     private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
 
+    private static final String GROOVY_TIMESTAMP_PARAMETER = "timestamp";
+    private static final String GROOVY_PROCESS_NAME_PARAMETER = "processName";
+    private static final String GROOVY_BUSINESS_PROCESS_PARAMETER = "businessProcess";
+
     private static final String ACCEPTED_FORMAT = "CGMES";
 
     private MergeRepository mergeRepository;
@@ -277,20 +281,21 @@ public class MergeOrchestratorService {
             }
         }
 
+        Map<String, IgmReplacingInfo> res = new HashMap<>();
         if (!missingOrInvalidTsos.isEmpty()) {
-            return findReplacingIGM(config, processDate, missingOrInvalidTsos);
+            res = findReplacingIGM(config, processDate, missingOrInvalidTsos);
         }
 
-        return null;
+        return res;
     }
 
     public static List<ReplacingDate> execReplaceGroovyScript(Script replacingIGMScript, String date, String process, String businessProcess) {
         List<ReplacingDate> res = new ArrayList<>();
 
         Binding binding = new Binding();
-        binding.setVariable("timestamp", date);
-        binding.setVariable("processName", process);
-        binding.setVariable("businessProcess", businessProcess);
+        binding.setVariable(GROOVY_TIMESTAMP_PARAMETER, date);
+        binding.setVariable(GROOVY_PROCESS_NAME_PARAMETER, process);
+        binding.setVariable(GROOVY_BUSINESS_PROCESS_PARAMETER, businessProcess);
 
         replacingIGMScript.setBinding(binding);
         Object resScript = replacingIGMScript.run();
@@ -309,9 +314,10 @@ public class MergeOrchestratorService {
                                   List<String> missingOrInvalidTsos) {
         Map<String, IgmReplacingInfo> replacingIGMs = new HashMap<>();
 
-        String formattedDate = processDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        String formattedDate = processDate.format(formatter);
 
-        // Execute groovy script to get the ordered proposed list of {date, businessProcess} for replacing the missing or invalid {date, businessProcess}
+        // Execute groovy script to get the ordered proposed list of date, businessProcess for replacing the missing or invalid date, businessProcess
         List<ReplacingDate> resScript = execReplaceGroovyScript(replacingIGMScript, formattedDate, config.getProcess(), config.getBusinessProcess());
 
         // handle each missing or invalid igms
@@ -321,8 +327,8 @@ public class MergeOrchestratorService {
 
                 String replacingBusinessProcess = elt.getBusinessProcess();
 
-                // search igm in the case server for the proposed replacing {date, business process}
-                List<CaseInfos> casesinfo = caseFetcherService.getCases(Arrays.asList(tso), replacingDate, "CGMES", replacingBusinessProcess);
+                // search igm in the case server for the proposed replacing date, business process
+                List<CaseInfos> casesinfo = caseFetcherService.getCases(Arrays.asList(tso), replacingDate, ACCEPTED_FORMAT, replacingBusinessProcess);
                 if (!casesinfo.isEmpty()) {  // case found
                     UUID caseUuid = casesinfo.get(0).getUuid();
 
@@ -330,7 +336,7 @@ public class MergeOrchestratorService {
                     // imported in the case server
                     // so, we consider here that the replacing case is valid
                     LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", formattedDate,
-                            config.getProcess(), config.getBusinessProcess(), "CGMES", tso);
+                            config.getProcess(), config.getBusinessProcess(), ACCEPTED_FORMAT, tso);
                     mergeEventService.addMergeIgmEvent(config.getProcess(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE, null,
                             replacingDate, replacingBusinessProcess);
 
@@ -362,8 +368,10 @@ public class MergeOrchestratorService {
                     igmReplace.getStatus().name(), igmReplace.getNetworkUuid(), ldt,
                     igmReplace.getBusinessProcess());
 
+            String formattedReplacingDate = igmReplace.getDate().format(formatter);
+
             LOGGER.info("Merge {} of process {} {} : IGM from TSO {} replaced by date {}", formattedDate,
-                    config.getProcess(), config.getBusinessProcess(), tso, igmReplace.getDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")));
+                    config.getProcess(), config.getBusinessProcess(), tso, formattedReplacingDate);
 
             merge(config, processDate, formattedDate, tso, true, igmReplace.getNetworkUuid(),
                     config.getBusinessProcess(), igmReplace.getDate(), igmReplace.getBusinessProcess());
