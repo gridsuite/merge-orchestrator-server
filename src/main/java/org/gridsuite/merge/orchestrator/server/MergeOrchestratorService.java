@@ -279,14 +279,13 @@ public class MergeOrchestratorService {
                     missingOrInvalidTsos.add(tso.getSourcingActor());
                 }
             }
+
+            if (!missingOrInvalidTsos.isEmpty()) {
+                return findReplacingIGM(config, processDate, missingOrInvalidTsos);
+            }
         }
 
-        Map<String, IgmReplacingInfo> res = new HashMap<>();
-        if (!missingOrInvalidTsos.isEmpty()) {
-            res = findReplacingIGM(config, processDate, missingOrInvalidTsos);
-        }
-
-        return res;
+        return null;
     }
 
     public static List<ReplacingDate> execReplaceGroovyScript(Script replacingIGMScript, String date, String process, String businessProcess) {
