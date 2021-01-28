@@ -26,8 +26,8 @@ public class MergeTest {
     @Test
     public void test() {
         ZonedDateTime date = ZonedDateTime.now();
-        Merge merge1 = new Merge("swe", date, MergeStatus.LOADFLOW_FAILED, Collections.singletonList(new Igm("FR", IgmStatus.AVAILABLE)));
-        assertEquals("swe", merge1.getProcess());
+        Merge merge1 = new Merge("SWE 1D", date, MergeStatus.LOADFLOW_FAILED, Collections.singletonList(new Igm("FR", IgmStatus.AVAILABLE)));
+        assertEquals("SWE 1D", merge1.getProcess());
         assertEquals(date, merge1.getDate());
         assertEquals(MergeStatus.LOADFLOW_FAILED, merge1.getStatus());
         assertEquals(1, merge1.getIgms().size());
@@ -38,5 +38,6 @@ public class MergeTest {
         assertNull(mergeinfos2.getProcess());
         assertNull(mergeinfos2.getDate());
         assertNull(mergeinfos2.getStatus());
+        assertNull(mergeinfos2.getIgms());
     }
 }

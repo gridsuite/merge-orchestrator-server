@@ -97,16 +97,19 @@ public class MergeOrchestratorService {
         return ts.getSourcingActor().equals(tso) || ts.getAlternativeSourcingActor().equals(tso);
     }
 
-    private boolean checkTso(List<Tso> tsos, String tso, String format, String businessProcess) {
-        return tsos.stream().anyMatch(ts -> isMatching(ts, tso))
-                && StringUtils.equals(format, ACCEPTED_FORMAT) && StringUtils.isNotEmpty(businessProcess);
+    private boolean isMatching(ProcessConfig config, String tso) {
+        return config.getTsos().stream().anyMatch(ts -> isMatching(ts, tso));
+    }
+
+    private boolean checkTso(List<ProcessConfig> configs, String tso, String format, String businessProcess) {
+        return StringUtils.equals(format, ACCEPTED_FORMAT) &&
+                StringUtils.isNotEmpty(businessProcess) &&
+                configs.stream().anyMatch(c -> isMatching(c, tso) && c.getBusinessProcess().equals(businessProcess));
     }
 
     public void consume(Message<String> message) {
         try {
             List<ProcessConfig> processConfigs = mergeConfigService.getConfigs();
-
-            List<Tso> tsos = mergeConfigService.getTsos();
 
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);
@@ -115,15 +118,15 @@ public class MergeOrchestratorService {
             String format = (String) mh.get(FORMAT_HEADER_KEY);
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
 
-            if (checkTso(tsos, tso, format, businessProcess)) {
-
+            if (checkTso(processConfigs, tso, format, businessProcess)) {
                 // required tso received
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
                 for (ProcessConfig processConfig : processConfigs) {
-                    if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso))) {
-                        LOGGER.info("Merge {} of process {}: IGM in format {} from TSO {} received", date, processConfig.getProcess(), format, tso);
-                        mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso, IgmStatus.AVAILABLE, null);
+                    if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso)) &&
+                            processConfig.getBusinessProcess().equals(businessProcess)) {
+                        LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", date, processConfig.getProcess(), processConfig.getBusinessProcess(), format, tso);
+                        mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null);
                     }
                 }
 
@@ -133,12 +136,12 @@ public class MergeOrchestratorService {
                     // check IGM quality
                     boolean valid = igmQualityCheckService.check(networkUuid);
 
-                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid);
+                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid, businessProcess);
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
                         // import IGM into the network store
                         UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
-                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid);
+                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, businessProcess);
                     }
                 }
             }
@@ -147,10 +150,12 @@ public class MergeOrchestratorService {
         }
     }
 
-    void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso, boolean valid, UUID networkUuid) {
-        if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso))) {
-            LOGGER.info("Merge {} of process {}: IGM from TSO {} is {}valid", date, processConfig.getProcess(), tso, valid ? " " : "not ");
-            mergeEventService.addMergeIgmEvent(processConfig.getProcess(), dateTime, tso,
+    void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso,
+               boolean valid, UUID networkUuid, String businessProcess) {
+        if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso)) &&
+                processConfig.getBusinessProcess().equals(businessProcess)) {
+            LOGGER.info("Merge {} of process {} {} : IGM from TSO {} is {}valid", date, processConfig.getProcess(), processConfig.getBusinessProcess(), tso, valid ? " " : "not ");
+            mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso,
                     valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid);
 
             // get list of network UUID for validated IGMs
@@ -158,24 +163,24 @@ public class MergeOrchestratorService {
 
             if (networkUuids.size() == processConfig.getTsos().size()) {
                 // all IGMs are available and valid for the merging process
-                LOGGER.info("Merge {} of process {}: all IGMs have been received and are valid", date, processConfig.getProcess());
+                LOGGER.info("Merge {} of process {} {} : all IGMs have been received and are valid", date, processConfig.getProcess(), processConfig.getBusinessProcess());
 
                 if (processConfig.isRunBalancesAdjustment()) {
                     // balances adjustment on the merge network
                     balancesAdjustmentService.doBalance(networkUuids);
 
-                    LOGGER.info("Merge {} of process {}: balance adjustment complete", date, processConfig.getProcess());
+                    LOGGER.info("Merge {} of process {} {} : balance adjustment complete", date, processConfig.getProcess(), processConfig.getBusinessProcess());
 
                     // TODO check balance adjustment status
-                    mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
+                    mergeEventService.addMergeEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
                 } else {
                     // load flow on the merged network
                     loadFlowService.run(networkUuids);
 
-                    LOGGER.info("Merge {} of process {}: loadflow complete", date, processConfig.getProcess());
+                    LOGGER.info("Merge {} of process {} {} : loadflow complete", date, processConfig.getProcess(), processConfig.getBusinessProcess());
 
                     // TODO check loadflow status
-                    mergeEventService.addMergeEvent(processConfig.getProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                    mergeEventService.addMergeEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
                 }
             }
         }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -87,36 +87,42 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Test
     public void test() throws Exception {
         ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 10, 0, 0, 0, ZoneId.of("UTC"));
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("SWE_1D", dateTime.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_1D", dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
-        String resExpected = "[{\"process\":\"swe\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
+        String resExpected = "[{\"process\":\"SWE_1D\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
 
-        mvc.perform(get("/" + VERSION + "/swe/merges")
+        mvc.perform(get("/" + VERSION + "/SWE_1D/merges")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json(resExpected));
 
-        mvc.perform(get("/" + VERSION + "/aaa/merges")
+        mvc.perform(get("/" + VERSION + "/SWE_2D/merges")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                .andExpect(content().json("[]"));
+
+        mvc.perform(get("/" + VERSION + "/aaa_1D/merges")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json("[]"));
 
         String date = URLEncoder.encode(formatter.format(dateTime), StandardCharsets.UTF_8);
-        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + date + "&maxDate=" + date)
+        mvc.perform(get("/" + VERSION + "/SWE_1D/merges?minDate=" + date + "&maxDate=" + date)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json(resExpected));
 
         ZonedDateTime dateTime2 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime2.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime2.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
-        String resExpected2 = "[{\"process\":\"swe\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
-        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + date + "&maxDate=" + date)
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("SWE_1D", dateTime2.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_1D", dateTime2.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK));
+        String resExpected2 = "[{\"process\":\"SWE_1D\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
+        mvc.perform(get("/" + VERSION + "/SWE_1D/merges?minDate=" + date + "&maxDate=" + date)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -126,22 +132,22 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
         ZonedDateTime maxDateTime = ZonedDateTime.of(2020, 7, 20, 12, 0, 0, 0, ZoneId.of("UTC"));
         String minDate = URLEncoder.encode(formatter.format(minDateTime), StandardCharsets.UTF_8);
         String maxDate = URLEncoder.encode(formatter.format(maxDateTime), StandardCharsets.UTF_8);
-        String resExpected3 = "[{\"process\":\"swe\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]},{\"process\":\"swe\",\"date\":\"2020-07-20T10:30:00Z\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"ES\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
-        mvc.perform(get("/" + VERSION + "/swe/merges?minDate=" + minDate + "&maxDate=" + maxDate)
+        String resExpected3 = "[{\"process\":\"SWE_1D\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]},{\"process\":\"SWE_1D\",\"date\":\"2020-07-20T10:30:00Z\",\"status\":\"LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"ES\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
+        mvc.perform(get("/" + VERSION + "/SWE_1D/merges?minDate=" + minDate + "&maxDate=" + maxDate)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json(resExpected3));
 
         ZonedDateTime dateTime3 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey("swe", dateTime3.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey("swe", dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3));
+        mergeRepository.insert(new MergeEntity(new MergeEntityKey("SWE_1D", dateTime3.toLocalDateTime()), MergeStatus.LOADFLOW_SUCCEED.name()));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_1D", dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_1D", dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_1D", dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3));
         String processDate = URLEncoder.encode(formatter.format(dateTime3), StandardCharsets.UTF_8);
         given(networkConversionService.exportMerge(any(List.class), any(String.class), any(String.class)))
                 .willReturn(new ExportNetworkInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));
-        mvc.perform(get("/" + VERSION + "/swe/" + processDate + "/export/XIIDM")
+        mvc.perform(get("/" + VERSION + "/SWE_1D/" + processDate + "/export/XIIDM")
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));

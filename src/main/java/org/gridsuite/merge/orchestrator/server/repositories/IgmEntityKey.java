@@ -29,7 +29,7 @@ public class IgmEntityKey implements Serializable {
     @PrimaryKeyColumn(ordinal = 1, type = PrimaryKeyType.CLUSTERED)
     private LocalDateTime date;
 
-    @PrimaryKeyColumn(ordinal = 3, type = PrimaryKeyType.CLUSTERED)
+    @PrimaryKeyColumn(ordinal = 2, type = PrimaryKeyType.CLUSTERED)
     private String tso;
 
     public IgmEntityKey(String process, LocalDateTime date, String tso) {

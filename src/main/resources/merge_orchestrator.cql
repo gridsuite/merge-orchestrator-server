@@ -21,6 +21,7 @@ CREATE TABLE merge_orchestrator.merge (
 
 CREATE TABLE merge_orchestrator.configs (
     process text,
+    businessProcess text,
     tsos frozen<List<tso>>,
     runBalancesAdjustment boolean,
     PRIMARY KEY (process)
