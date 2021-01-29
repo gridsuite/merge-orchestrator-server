@@ -89,6 +89,7 @@ second_replacing_timestamps = []
 month = formatter.format(newDate.getMonthValue())
 dayOfMonth = formatter.format(newDate.getDayOfMonth())
 
+second_replacing_timestamps.add(newDate.getYear() + "-" + month + "-" + dayOfMonth + "T" + hm + ":00Z" + " " + businessProcess)
 for (item in second_replacing_timestamps_tmp) {
     second_replacing_timestamps.add(newDate.getYear() + "-" + month + "-" + dayOfMonth + "T" + item + ":00Z" + " " + businessProcess)
 }
