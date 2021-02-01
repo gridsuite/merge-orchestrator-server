@@ -7,10 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.cases.datasource.CaseDataSourceClient;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -35,8 +32,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
-
-import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -70,26 +65,21 @@ public class CaseFetcherService {
     private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {
         StringBuilder query = new StringBuilder();
         String formattedDate = dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
-        try {
-            query.append("date:\"" + URLEncoder.encode(formattedDate, "UTF-8") + "\"")
-                    .append(" AND tso:")
-                    .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")))
-                    .append(" AND format:")
-                    .append(format)
-                    .append(" AND businessProcess:")
-                    .append(businessProcess);
-        } catch (UnsupportedEncodingException e) {
-            throw new PowsyblException(String.format("Error when encoding the date query string : %s", formattedDate));
-        }
+        query.append("date:\"" + formattedDate + "\"")
+                .append(" AND tso:")
+                .append(tsos.stream().collect(Collectors.joining(" OR ", "(", ")")))
+                .append(" AND format:")
+                .append(format)
+                .append(" AND businessProcess:")
+                .append(businessProcess);
         return query.toString();
     }
 
     public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {
-        String uri = UriComponentsBuilder.fromPath(DELIMITER + CASE_API_VERSION + "/cases/search")
-                .queryParam("q", getSearchQuery(tsos, dateTime, format, businessProcess)).build().toUriString();
-
+        String uri = DELIMITER + CASE_API_VERSION + "/cases/search?q={q}";
         try {
-            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() { });
+            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() { },
+                getSearchQuery(tsos, dateTime, format, businessProcess));
             List<Map<String, String>> body = responseEntity.getBody();
             if (body != null) {
                 return body.stream().map(c -> new CaseInfos(c.get("name"),
