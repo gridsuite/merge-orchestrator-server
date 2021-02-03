@@ -78,7 +78,8 @@ if (day_of_week == DayOfWeek.SATURDAY || day_of_week == DayOfWeek.SUNDAY) {  // 
     TemporalAdjuster adjuster = TemporalAdjusters.previous(day_of_week)
     newDate = zonedDate.with(adjuster)
 } else if (day_of_week == DayOfWeek.MONDAY) {  // previous friday
-    newDate = zonedDate.minusDays(3)
+    TemporalAdjuster adjuster = TemporalAdjusters.previous(DayOfWeek.FRIDAY);
+    newDate = zonedDate.with(adjuster)
 } else {  // previous day
     newDate = zonedDate.minusDays(1)
 }
