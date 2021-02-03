@@ -27,13 +27,14 @@ public class IgmReplacingInfoTest {
         UUID caseUuid = UUID.randomUUID();
 
         ZonedDateTime date = ZonedDateTime.now();
-        IgmReplacingInfo igmInfo = new IgmReplacingInfo("FR", date, IgmStatus.VALIDATION_SUCCEED, caseUuid, networkUuid, "1D");
+        IgmReplacingInfo igmInfo = new IgmReplacingInfo("FR", date, IgmStatus.VALIDATION_SUCCEED, caseUuid, networkUuid, "1D", null);
         assertEquals("FR", igmInfo.getTso());
         assertEquals(date, igmInfo.getDate());
         assertEquals(IgmStatus.VALIDATION_SUCCEED, igmInfo.getStatus());
         assertEquals(caseUuid, igmInfo.getCaseUuid());
         assertEquals(networkUuid, igmInfo.getNetworkUuid());
         assertEquals("1D", igmInfo.getBusinessProcess());
+        assertNull(igmInfo.getOldNetworkUuid());
 
         IgmReplacingInfo igmInfo2 = new IgmReplacingInfo();
         assertNull(igmInfo2.getTso());
@@ -42,5 +43,6 @@ public class IgmReplacingInfoTest {
         assertNull(igmInfo2.getNetworkUuid());
         assertNull(igmInfo2.getCaseUuid());
         assertNull(igmInfo2.getBusinessProcess());
+        assertNull(igmInfo2.getOldNetworkUuid());
     }
 }

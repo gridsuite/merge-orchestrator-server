@@ -31,4 +31,6 @@ public class IgmReplacingInfo {
     private UUID networkUuid;
 
     private String businessProcess;
+
+    private UUID oldNetworkUuid;
 }

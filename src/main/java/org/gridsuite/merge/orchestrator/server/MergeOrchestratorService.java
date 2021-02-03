@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.network.store.client.NetworkStoreService;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
@@ -77,9 +78,12 @@ public class MergeOrchestratorService {
 
     private NetworkConversionService networkConversionService;
 
+    private NetworkStoreService networkStoreService;
+
     private Script replacingIGMScript;
 
-    public MergeOrchestratorService(CaseFetcherService caseFetchService,
+    public MergeOrchestratorService(NetworkStoreService networkStoreService,
+                                    CaseFetcherService caseFetchService,
                                     BalancesAdjustmentService balancesAdjustmentService,
                                     MergeEventService mergeEventService,
                                     LoadFlowService loadFlowService,
@@ -88,6 +92,7 @@ public class MergeOrchestratorService {
                                     IgmRepository igmRepository,
                                     NetworkConversionService networkConversionService,
                                     MergeOrchestratorConfigService mergeConfigService) {
+        this.networkStoreService = networkStoreService;
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
         this.mergeEventService = mergeEventService;
@@ -313,6 +318,8 @@ public class MergeOrchestratorService {
                                   List<String> missingOrInvalidTsos) {
         Map<String, IgmReplacingInfo> replacingIGMs = new HashMap<>();
 
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.UTC);
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
         String formattedDate = processDate.format(formatter);
 
@@ -336,15 +343,19 @@ public class MergeOrchestratorService {
                     // so, we consider here that the replacing case is valid
                     LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", formattedDate,
                             config.getProcess(), config.getBusinessProcess(), ACCEPTED_FORMAT, tso);
-                    mergeEventService.addMergeIgmEvent(config.getProcess(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE, null,
-                            replacingDate, replacingBusinessProcess);
+
+                    Optional<IgmEntity> previousEntity = igmRepository.findByProcessAndDateAndTso(config.getProcess(), localDateTime, tso);
+                    UUID currentNetworkUuid = previousEntity.isPresent() ? previousEntity.get().getNetworkUuid() : null;
+
+                    mergeEventService.addMergeIgmEvent(config.getProcess(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE,
+                            currentNetworkUuid, replacingDate, replacingBusinessProcess);
 
                     // import case in the network store
                     UUID networkUuid = caseFetcherService.importCase(caseUuid);
 
                     // info for the replacing igm : replacing date, replacing business process, status, networkUuid,
                     replacingIGMs.put(tso, new IgmReplacingInfo(tso, replacingDate, IgmStatus.VALIDATION_SUCCEED,
-                            caseUuid, networkUuid, replacingBusinessProcess));
+                            caseUuid, networkUuid, replacingBusinessProcess, currentNetworkUuid));
 
                     // A good candidate has been found for replacement
                     break;
@@ -366,6 +377,11 @@ public class MergeOrchestratorService {
             igmRepository.updateReplacingIgm(config.getProcess(), processDt, tso,
                     igmReplace.getStatus().name(), igmReplace.getNetworkUuid(), ldt,
                     igmReplace.getBusinessProcess());
+
+            if (igmReplace.getOldNetworkUuid() != null) {
+                // delete previous invalid imported network from network store
+                networkStoreService.deleteNetwork(igmReplace.getOldNetworkUuid());
+            }
 
             String formattedReplacingDate = igmReplace.getDate().format(formatter);
 

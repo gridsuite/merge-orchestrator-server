@@ -83,8 +83,8 @@ public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedC
         String processDate = URLEncoder.encode(formatter.format(dateTime), StandardCharsets.UTF_8);
 
         Map<String, IgmReplacingInfo> expectedInfos = new HashMap<>();
-        expectedInfos.put("FR", new IgmReplacingInfo("FR", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdFr, uuidNetworkIdFr, "2D"));
-        expectedInfos.put("ES", new IgmReplacingInfo("ES", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdEs, uuidNetworkIdEs, "2D"));
+        expectedInfos.put("FR", new IgmReplacingInfo("FR", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdFr, uuidNetworkIdFr, "2D", null));
+        expectedInfos.put("ES", new IgmReplacingInfo("ES", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdEs, uuidNetworkIdEs, "2D", null));
 
         given(mergeOrchestratorService.replaceIGMs(any(String.class), any(ZonedDateTime.class)))
                 .willReturn(new HashMap<>(expectedInfos));
@@ -95,6 +95,6 @@ public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedC
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andReturn();
 
-        assertEquals("{\"FR\":{\"tso\":\"FR\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e4\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e4\",\"businessProcess\":\"2D\"},\"ES\":{\"tso\":\"ES\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e5\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e5\",\"businessProcess\":\"2D\"}}", result.getResponse().getContentAsString());
+        assertEquals("{\"FR\":{\"tso\":\"FR\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e4\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e4\",\"businessProcess\":\"2D\",\"oldNetworkUuid\":null},\"ES\":{\"tso\":\"ES\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e5\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e5\",\"businessProcess\":\"2D\",\"oldNetworkUuid\":null}}", result.getResponse().getContentAsString());
     }
 }
