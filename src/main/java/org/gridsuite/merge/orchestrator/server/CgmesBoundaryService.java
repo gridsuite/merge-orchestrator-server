@@ -57,8 +57,7 @@ public class CgmesBoundaryService {
     }
 
     public List<BoundaryInfos> getBoundaries() {
-        String uri = UriComponentsBuilder.fromPath(DELIMITER + CGMES_BOUNDARY_API_VERSION + "/boundaries/last").build().toUriString();
-
+        String uri = DELIMITER + CGMES_BOUNDARY_API_VERSION + "/boundaries/last";
         try {
             ResponseEntity<List<Map<String, String>>> responseEntity = cgmesBoundaryServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() { });
             List<Map<String, String>> body = responseEntity.getBody();
