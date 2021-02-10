@@ -49,7 +49,6 @@ public class MergeOrchestratorService {
     private static final String FORMAT_HEADER_KEY       = "format";
     private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
     private static final String UNDERSCORE = "_";
-    private static final String BUSINESS_PROCESS_1D = "1D";
     private static final String CGM = "CGM";
 
     private static final String ACCEPTED_FORMAT = "CGMES";
@@ -233,9 +232,10 @@ public class MergeOrchestratorService {
         List<IgmEntity> igmEntities =  findNetworkUuidsOfValidatedIgms(processDate, process);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
+        String businessProcess = mergeConfigService.getConfig(process).get().getBusinessProcess();
         LocalDateTime requesterDateTime = timeZoneOffset != null ? LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.ofHours(Integer.parseInt(timeZoneOffset) / 60)) : processDate.toLocalDateTime();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMDD'T'HHmm'Z'");
-        String baseFileName = requesterDateTime.format(formatter) + UNDERSCORE + BUSINESS_PROCESS_1D + UNDERSCORE + CGM + UNDERSCORE +  process;
+        String baseFileName = requesterDateTime.format(formatter) + UNDERSCORE + businessProcess + UNDERSCORE + CGM + UNDERSCORE +  process;
         return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
     }
 
