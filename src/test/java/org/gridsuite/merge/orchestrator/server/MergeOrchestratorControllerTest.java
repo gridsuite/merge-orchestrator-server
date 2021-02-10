@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.util.ByteArrayBuilder;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
@@ -82,6 +84,9 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
 
     @MockBean
     private NetworkConversionService networkConversionService;
+
+    @MockBean
+    private MergeOrchestratorConfigService mergeConfigService;
 
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
@@ -154,6 +159,8 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
         String processDate = URLEncoder.encode(formatter.format(dateTime3), StandardCharsets.UTF_8);
         given(networkConversionService.exportMerge(any(List.class), any(List.class), any(String.class), any(String.class)))
                 .willReturn(new FileInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));
+        given(mergeConfigService.getConfig(any(String.class)))
+                .willReturn(Optional.of(new ProcessConfig("SWE_1D", "1D", null, false)));
         mvc.perform(get("/" + VERSION + "/SWE_1D/" + processDate + "/export/XIIDM")
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())
