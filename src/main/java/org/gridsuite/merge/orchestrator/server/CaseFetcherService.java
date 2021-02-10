@@ -107,9 +107,9 @@ public class CaseFetcherService {
 
     public List<FileInfos> getCases(List<UUID> caseUuids) {
         List<FileInfos> cases = new ArrayList<>();
-        String uriTemplate = DELIMITER + CASE_API_VERSION + "/cases/{caseUuid}?xiidm=false";
+        String uri = DELIMITER + CASE_API_VERSION + "/cases/{caseUuid}?xiidm=false";
         for (UUID caseUuid : caseUuids) {
-            ResponseEntity<byte[]> responseEntity = caseServerRest.exchange(uriTemplate, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, caseUuid.toString());
+            ResponseEntity<byte[]> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, caseUuid.toString());
             String fileName = caseUuid.toString();
             cases.add(new FileInfos(fileName.concat(".zip"), responseEntity.getBody()));
         }
