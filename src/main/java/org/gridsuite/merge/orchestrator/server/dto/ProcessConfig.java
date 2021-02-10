@@ -15,6 +15,7 @@ import java.util.List;
 
 /**
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Getter
 @AllArgsConstructor
@@ -23,6 +24,8 @@ import java.util.List;
 public class ProcessConfig {
 
     private String process;
+
+    private String businessProcess;
 
     private List<Tso> tsos;
 

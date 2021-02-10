@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Service
 public class MergeOrchestratorConfigService {
@@ -62,11 +63,11 @@ public class MergeOrchestratorConfigService {
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
-        return new ProcessConfig(processConfigEntity.getProcess(), processConfigEntity.getTsos().stream().map(this::toTso).collect(Collectors.toList()), processConfigEntity.isRunBalancesAdjustment());
+        return new ProcessConfig(processConfigEntity.getProcess(), processConfigEntity.getBusinessProcess(), processConfigEntity.getTsos().stream().map(this::toTso).collect(Collectors.toList()), processConfigEntity.isRunBalancesAdjustment());
     }
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        return new ProcessConfigEntity(processConfig.getProcess(), processConfig.getTsos().stream().map(this::toTsoEntity).collect(Collectors.toList()), processConfig.isRunBalancesAdjustment());
+        return new ProcessConfigEntity(processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos().stream().map(this::toTsoEntity).collect(Collectors.toList()), processConfig.isRunBalancesAdjustment());
     }
 
     private Tso toTso(TsoEntity tsoEntity) {
