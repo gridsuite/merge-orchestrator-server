@@ -19,6 +19,8 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -90,7 +92,9 @@ public class MergeOrchestratorService {
 
     @Bean
     public Consumer<Flux<Message<String>>> consumeNotification() {
-        return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).subscribe(this::consume);
+        return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).flatMap(x ->
+            Mono.fromRunnable(() -> consume(x)).subscribeOn(Schedulers.boundedElastic())
+        ).subscribe();
     }
 
     private boolean isMatching(Tso ts, String tso) {
