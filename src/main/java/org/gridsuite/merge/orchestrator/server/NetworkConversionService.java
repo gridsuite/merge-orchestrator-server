@@ -24,6 +24,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -171,11 +172,8 @@ public class NetworkConversionService {
     }
 
     private FileInfos getSvProfile(List<UUID> networksIds, String baseFileName) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export-sv-cgmes");
-        for (int i = 1; i < networksIds.size(); ++i) {
-            uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
-        }
-        String uri = uriBuilder.build().toUriString();
+        String uri = DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export-sv-cgmes?";
+        uri += networksIds.stream().skip(1).map(s -> "networkUuid=" + s.toString()).collect(Collectors.joining("&"));
         ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networksIds.get(0).toString(), CGMES_FORMAT);
         return new FileInfos(baseFileName.concat(UNDERSCORE + SV_PROFILE + UNDERSCORE + FILE_VERSION + XML_EXTENSION), responseEntity.getBody());
     }

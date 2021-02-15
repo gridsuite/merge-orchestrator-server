@@ -106,9 +106,9 @@ public class CaseFetcherServiceTest {
 
         List<FileInfos> fileInfos = caseFetcherService.getCases(caseUuids);
         assertEquals(2, fileInfos.size());
-        assertEquals(randomUuid1.toString() + ".zip", fileInfos.get(0).getName());
+        assertEquals(randomUuid1.toString(), fileInfos.get(0).getName());
         assertEquals("fileContent", new String(fileInfos.get(0).getData(), StandardCharsets.UTF_8));
-        assertEquals(randomUuid2.toString() + ".zip", fileInfos.get(1).getName());
+        assertEquals(randomUuid2.toString(), fileInfos.get(1).getName());
         assertEquals("fileContent", new String(fileInfos.get(1).getData(), StandardCharsets.UTF_8));
     }
 }
