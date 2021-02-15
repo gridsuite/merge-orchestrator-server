@@ -60,9 +60,7 @@ public class NetworkConversionServiceTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        networkConversionService = new NetworkConversionService(networkConversionServerRest);
-        networkConversionService.setCaseFetcherService(caseFetcherService);
-        networkConversionService.setCgmesBoundaryService(cgmesBoundaryService);
+        networkConversionService = new NetworkConversionService(networkConversionServerRest, caseFetcherService, cgmesBoundaryService);
     }
 
     @Test

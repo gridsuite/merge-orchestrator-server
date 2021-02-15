@@ -64,15 +64,9 @@ public class NetworkConversionService {
         ).build();
     }
 
-    public NetworkConversionService(RestTemplate restTemplate) {
-        this.networkConversionServerRest = restTemplate;
-    }
-
-    public void setCaseFetcherService(CaseFetcherService caseFetcherService) {
+    public NetworkConversionService(RestTemplate networkConversionServerRest, CaseFetcherService caseFetcherService, CgmesBoundaryService cgmesBoundaryService) {
+        this.networkConversionServerRest = networkConversionServerRest;
         this.caseFetcherService = caseFetcherService;
-    }
-
-    public void setCgmesBoundaryService(CgmesBoundaryService cgmesBoundaryService) {
         this.cgmesBoundaryService = cgmesBoundaryService;
     }
 
