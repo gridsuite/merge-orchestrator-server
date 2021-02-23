@@ -18,5 +18,4 @@ import lombok.Getter;
 @ApiModel("Tso")
 public class Tso {
     private String sourcingActor;
-    private String alternativeSourcingActor;
 }

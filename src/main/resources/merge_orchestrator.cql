@@ -1,6 +1,5 @@
 CREATE TYPE merge_orchestrator.tso (
     sourcingActor text,
-    alternativeSourcingActor text,
 );
 
 CREATE TABLE merge_orchestrator.merge_igm (

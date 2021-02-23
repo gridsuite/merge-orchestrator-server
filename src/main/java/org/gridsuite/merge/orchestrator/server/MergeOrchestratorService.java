@@ -120,7 +120,7 @@ public class MergeOrchestratorService {
     }
 
     private boolean isMatching(Tso ts, String tso) {
-        return ts.getSourcingActor().equals(tso) || ts.getAlternativeSourcingActor().equals(tso);
+        return ts.getSourcingActor().equals(tso);
     }
 
     private boolean isMatching(ProcessConfig config, String tso) {

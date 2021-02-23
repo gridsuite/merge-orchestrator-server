@@ -71,10 +71,10 @@ public class MergeOrchestratorConfigService {
     }
 
     private Tso toTso(TsoEntity tsoEntity) {
-        return new Tso(tsoEntity.getSourcingActor(), tsoEntity.getAlternativeSourcingActor());
+        return new Tso(tsoEntity.getSourcingActor());
     }
 
     private TsoEntity toTsoEntity(Tso tso) {
-        return new TsoEntity(tso.getSourcingActor(), tso.getAlternativeSourcingActor());
+        return new TsoEntity(tso.getSourcingActor());
     }
 }

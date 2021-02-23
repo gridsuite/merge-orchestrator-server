@@ -24,5 +24,4 @@ public class TsoEntity {
 
     private String sourcingActor;
 
-    private String alternativeSourcingActor;
 }
