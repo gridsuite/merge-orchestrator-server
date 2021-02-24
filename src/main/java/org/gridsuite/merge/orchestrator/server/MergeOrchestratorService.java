@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
@@ -232,7 +233,12 @@ public class MergeOrchestratorService {
         List<IgmEntity> igmEntities =  findfValidatedIgms(processDate, process);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
-        String businessProcess = mergeConfigService.getConfig(process).get().getBusinessProcess();
+        String businessProcess;
+        if (mergeConfigService.getConfig(process).isPresent()) {
+            businessProcess = mergeConfigService.getConfig(process).get().getBusinessProcess();
+        } else {
+            throw new PowsyblException("Business process " + process + "does not exist");
+        }
         LocalDateTime requesterDateTime = timeZoneOffset != null ? LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.ofHours(Integer.parseInt(timeZoneOffset) / 60)) : processDate.toLocalDateTime();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMDD'T'HHmm'Z'");
         String baseFileName = requesterDateTime.format(formatter) + UNDERSCORE + businessProcess + UNDERSCORE + CGM + UNDERSCORE +  process;
