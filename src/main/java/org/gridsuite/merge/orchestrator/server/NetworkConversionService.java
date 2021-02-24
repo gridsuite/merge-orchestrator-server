@@ -47,7 +47,6 @@ public class NetworkConversionService {
     private static final String TPBD_FILE_REGEX = "^(.*?(__ENTSOE_TPBD_).*(.xml))$";
     private static final String EQBD_FILE_REGEX = "^(.*?(__ENTSOE_EQBD_).*(.xml))$";
     private static final int MAX_ZIP_ENTRIES_NUMBER = 100;
-    private static final int MAX_ZIP_ENTRY_SIZE = 1000000000;
 
     private RestTemplate networkConversionServerRest;
 
@@ -75,7 +74,6 @@ public class NetworkConversionService {
         if (format.equals(CGMES_FORMAT)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ZipOutputStream repackagedZip = new ZipOutputStream(baos);
-            List<FileInfos> cgmesProfiles = new ArrayList<>();
 
             //Add merged IGMs profiles
             List<FileInfos> mergedIgms = caseFetcherService.getCases(caseUuids);
