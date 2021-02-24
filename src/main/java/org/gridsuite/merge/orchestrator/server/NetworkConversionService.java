@@ -73,25 +73,25 @@ public class NetworkConversionService {
 
     public FileInfos exportMerge(List<UUID> networkUuids, List<UUID> caseUuids, String format, String baseFileName) throws IOException {
         if (format.equals(CGMES_FORMAT)) {
-
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ZipOutputStream repackagedZip = new ZipOutputStream(baos);
             List<FileInfos> cgmesProfiles = new ArrayList<>();
 
             //Add merged IGMs profiles
             List<FileInfos> mergedIgms = caseFetcherService.getCases(caseUuids);
             for (FileInfos mergedIgm : mergedIgms) {
-                cgmesProfiles.addAll(unzipCgmes(mergedIgm));
+                addFilteredCgmesFiles(repackagedZip, mergedIgm);
             }
 
             //Add SV profile
-            cgmesProfiles.add(getSvProfile(networkUuids, baseFileName));
+            addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
 
             //Add boundary files
-            cgmesProfiles.addAll(getBoundaries());
+            addFilesToZip(repackagedZip, getBoundaries());
 
-            //Zip files
-            ByteArrayOutputStream baosZip = createZipFile(cgmesProfiles);
+            repackagedZip.close();
 
-            return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baosZip.toByteArray());
+            return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baos.toByteArray());
         } else {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export/{format}");
             for (int i = 1; i < networkUuids.size(); ++i) {
@@ -119,14 +119,11 @@ public class NetworkConversionService {
         return boundaries;
     }
 
-    private List<FileInfos> unzipCgmes(FileInfos mergedIgm) throws IOException {
-        List<FileInfos> profiles = new ArrayList<>();
-        byte[] buffer = new byte[1024];
-        ByteArrayOutputStream baos;
+    private void addFilteredCgmesFiles(ZipOutputStream repackagedZip, FileInfos cgmesZip) throws IOException {
         boolean isEntryToAdd;
         String fileName;
         int entryCount = 0;
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(mergedIgm.getData()))) {
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(cgmesZip.getData()))) {
             ZipEntry entry = zis.getNextEntry();
             entryCount++;
             if (entryCount > MAX_ZIP_ENTRIES_NUMBER) {
@@ -137,38 +134,29 @@ public class NetworkConversionService {
                     throw new IllegalStateException("Entry is trying to leave the target dir: " + entry.getName());
                 }
 
-                int length = -1;
-                long totalBytes = 0;
-                baos = new ByteArrayOutputStream();
-                while (totalBytes < MAX_ZIP_ENTRY_SIZE && (length = zis.read(buffer)) > 0) {
-                    baos.write(buffer, 0, length);
-                    totalBytes = totalBytes + length;
-                }
                 //Remove repertory name before file name
                 fileName = FilenameUtils.getName(entry.getName());
+
                 isEntryToAdd = !fileName.equals("") && !fileName.matches(EQBD_FILE_REGEX) && !fileName.matches(TPBD_FILE_REGEX) && !fileName.matches(SV_PROFILE_REGEX);
                 if (isEntryToAdd) {
-                    profiles.add(new FileInfos(fileName, baos.toByteArray()));
+                    repackagedZip.putNextEntry(new ZipEntry(fileName));
+                    zis.transferTo(repackagedZip);
+                    repackagedZip.closeEntry();
                 }
                 entry = zis.getNextEntry();
-                baos.close();
+                entryCount++;
             }
         }
-        return profiles;
     }
 
-    private static ByteArrayOutputStream createZipFile(List<FileInfos> files) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
-            ZipEntry entry;
-            for (FileInfos file : files) {
-                entry = new ZipEntry(file.getName());
-                zos.putNextEntry(entry);
-                zos.write(file.getData());
-                zos.closeEntry();
-            }
+    private static void addFilesToZip(ZipOutputStream zos, List<FileInfos> files) throws IOException {
+        ZipEntry entry;
+        for (FileInfos file : files) {
+            entry = new ZipEntry(file.getName());
+            zos.putNextEntry(entry);
+            zos.write(file.getData());
+            zos.closeEntry();
         }
-        return baos;
     }
 
     private FileInfos getSvProfile(List<UUID> networksIds, String baseFileName) {
