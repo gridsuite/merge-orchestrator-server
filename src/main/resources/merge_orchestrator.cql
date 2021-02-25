@@ -10,6 +10,8 @@ CREATE TABLE merge_orchestrator.merge_igm (
     status text,
     networkUuid uuid,
     caseUuid uuid,
+    replacingDate timestamp,
+    replacingBusinessProcess text,
     PRIMARY KEY (process, date, tso)
 );
 

@@ -8,6 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import io.swagger.annotations.*;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
+import org.gridsuite.merge.orchestrator.server.dto.IgmReplacingInfo;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -81,5 +83,18 @@ public class MergeOrchestratorController {
         return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMergeInfo.getData());
     }
 
+    @PutMapping(value = "{process}/{date}/replace-igms")
+    @ApiOperation(value = "Replace missing or invalid igms")
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "IGMs replaced")})
+    public ResponseEntity<Map<String, IgmReplacingInfo>> replaceIGMs(@ApiParam(value = "Process name") @PathVariable("process") String processName,
+                                            @ApiParam(value = "Process date") @PathVariable("date") String date) {
+        LOGGER.debug("Replacing igms for merge process {} : {}", processName, date);
+        String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
+        ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
+
+        Map<String, IgmReplacingInfo> res = mergeOrchestratorService.replaceIGMs(processName, dateTime);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(res);
+
+    }
 }
 

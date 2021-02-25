@@ -60,19 +60,21 @@ public class CaseFetcherServiceTest {
 
     @Test
     public void test() {
-        when(caseServerRest.exchange(anyString(),
+        when(caseServerRest.exchange(eq("/v1/cases/search?q={q}"),
                 eq(HttpMethod.GET),
                 eq(HttpEntity.EMPTY),
-                eq(new ParameterizedTypeReference<List<Map<String, String>>>() { })))
+                eq(new ParameterizedTypeReference<List<Map<String, String>>>() { }),
+                eq("date:\"2020-07-01T10:30:00Z\" AND tso:(DE) AND format:CGMES AND businessProcess:1D")))
                 .thenReturn(ResponseEntity.ok(Collections.emptyList()));
 
         List<CaseInfos> infos = caseFetcherService.getCases(asList("DE"), ZonedDateTime.parse("2020-07-01T10:30:00.000+02:00"), "CGMES", "1D");
         assertTrue(infos.isEmpty());
 
-        when(caseServerRest.exchange(anyString(),
+        when(caseServerRest.exchange(eq("/v1/cases/search?q={q}"),
                 eq(HttpMethod.GET),
                 eq(HttpEntity.EMPTY),
-                eq(new ParameterizedTypeReference<List<Map<String, String>>>() { })))
+                eq(new ParameterizedTypeReference<List<Map<String, String>>>() { }),
+                eq("date:\"2020-07-02T00:30:00Z\" AND tso:(FR OR ES OR PT) AND format:CGMES AND businessProcess:1D")))
                 .thenReturn(ResponseEntity.ok(listCases));
 
         infos = caseFetcherService.getCases(asList("FR", "ES", "PT"), ZonedDateTime.parse("2020-07-02T00:30:00.000+02:00"), "CGMES", "1D");

@@ -45,7 +45,6 @@
 
     <properties>
         <java.version>11</java.version>
-
         <gridsuite-dependencies.version>4</gridsuite-dependencies.version>
     </properties>
 
@@ -124,6 +123,10 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-stream</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
         </dependency>
 
         <!-- Runtime dependencies -->
