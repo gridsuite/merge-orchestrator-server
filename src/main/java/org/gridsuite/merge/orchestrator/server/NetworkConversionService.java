@@ -135,7 +135,9 @@ public class NetworkConversionService {
                 //Remove repertory name before file name
                 fileName = FilenameUtils.getName(entry.getName());
 
+                //Check if it is a boundary file or SV profile
                 isEntryToAdd = !fileName.equals("") && !fileName.matches(EQBD_FILE_REGEX) && !fileName.matches(TPBD_FILE_REGEX) && !fileName.matches(SV_PROFILE_REGEX);
+                //If true, we don't add it to the result zip
                 if (isEntryToAdd) {
                     repackagedZip.putNextEntry(new ZipEntry(fileName));
                     zis.transferTo(repackagedZip);
