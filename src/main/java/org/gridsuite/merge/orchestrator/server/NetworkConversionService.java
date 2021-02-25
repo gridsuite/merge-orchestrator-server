@@ -86,11 +86,8 @@ public class NetworkConversionService {
 
                 //Add boundary files
                 addFilesToZip(repackagedZip, getBoundaries());
-
-                repackagedZip.close();
-
-                return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baos.toByteArray());
             }
+            return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baos.toByteArray());
         } else {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export/{format}");
             for (int i = 1; i < networkUuids.size(); ++i) {
