@@ -119,12 +119,8 @@ public class MergeOrchestratorService {
         return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).subscribe(this::consume);
     }
 
-    private boolean isMatching(Tso ts, String tso) {
-        return ts.getSourcingActor().equals(tso);
-    }
-
     private boolean isMatching(ProcessConfig config, String tso) {
-        return config.getTsos().stream().anyMatch(ts -> isMatching(ts, tso));
+        return config.getTsos().stream().anyMatch(ts -> ts.equals(tso));
     }
 
     private boolean checkTso(List<ProcessConfig> configs, String tso, String format, String businessProcess) {
@@ -149,7 +145,7 @@ public class MergeOrchestratorService {
                 ZonedDateTime dateTime = ZonedDateTime.parse(date);
 
                 for (ProcessConfig processConfig : processConfigs) {
-                    if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso)) &&
+                    if (processConfig.getTsos().stream().anyMatch(ts -> ts.equals(tso)) &&
                             processConfig.getBusinessProcess().equals(businessProcess)) {
                         LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", date, processConfig.getProcess(), processConfig.getBusinessProcess(), format, tso);
                         mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null);
@@ -179,7 +175,7 @@ public class MergeOrchestratorService {
     void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso,
                boolean valid, UUID networkUuid, UUID caseUuid, String businessProcess,
                ZonedDateTime replacingDate, String replacingBusinessProcess) {
-        if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso)) &&
+        if (processConfig.getTsos().stream().anyMatch(ts -> ts.equals(tso)) &&
                 processConfig.getBusinessProcess().equals(businessProcess)) {
             LOGGER.info("Merge {} of process {} {} : IGM from TSO {} is {}valid", date, processConfig.getProcess(), processConfig.getBusinessProcess(), tso, valid ? " " : "not ");
             mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso,
@@ -281,10 +277,10 @@ public class MergeOrchestratorService {
         List<String> missingOrInvalidTsos = new ArrayList<>();
         ProcessConfig config = mergeConfigService.getConfig(processName).orElse(null);
         if (config != null) {
-            for (Tso tso : config.getTsos()) {
-                Optional<IgmEntity> entity = igmRepository.findByProcessAndDateAndTso(processName, ldt, tso.getSourcingActor());
+            for (String tso : config.getTsos()) {
+                Optional<IgmEntity> entity = igmRepository.findByProcessAndDateAndTso(processName, ldt, tso);
                 if (!entity.isPresent() || !entity.get().getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name())) {
-                    missingOrInvalidTsos.add(tso.getSourcingActor());
+                    missingOrInvalidTsos.add(tso);
                 }
             }
 

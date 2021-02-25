@@ -27,7 +27,7 @@ public class ProcessConfig {
 
     private String businessProcess;
 
-    private List<Tso> tsos;
+    private List<String> tsos;
 
     private boolean runBalancesAdjustment;
 }

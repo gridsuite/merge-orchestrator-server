@@ -68,10 +68,10 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        ArrayList<TsoEntity> tsos = new ArrayList<>();
-        tsos.add(new TsoEntity("FR"));
-        tsos.add(new TsoEntity("ES"));
-        tsos.add(new TsoEntity("PT"));
+        ArrayList<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
         processConfigRepository.save(new ProcessConfigEntity("SWE_1D", "1D", tsos, false));
     }
 
@@ -81,13 +81,13 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[{\"sourcingActor\":\"FR\"},{\"sourcingActor\":\"ES\"},{\"sourcingActor\":\"PT\"}],\"runBalancesAdjustment\":false}]"));
+                .andExpect(content().json("[{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}]"));
 
         mvc.perform(get("/" + VERSION + "/configs/SWE_1D")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[{\"sourcingActor\":\"FR\"},{\"sourcingActor\":\"ES\"},{\"sourcingActor\":\"PT\"}],\"runBalancesAdjustment\":false}"));
+                .andExpect(content().json("{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}"));
 
         mvc.perform(delete("/" + VERSION + "/configs/SWE_1D")
                 .contentType(APPLICATION_JSON))
