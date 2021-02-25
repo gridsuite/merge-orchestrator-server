@@ -73,23 +73,24 @@ public class NetworkConversionService {
     public FileInfos exportMerge(List<UUID> networkUuids, List<UUID> caseUuids, String format, String baseFileName) throws IOException {
         if (format.equals(CGMES_FORMAT)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ZipOutputStream repackagedZip = new ZipOutputStream(baos);
 
-            //Add merged IGMs profiles
-            List<FileInfos> mergedIgms = caseFetcherService.getCases(caseUuids);
-            for (FileInfos mergedIgm : mergedIgms) {
-                addFilteredCgmesFiles(repackagedZip, mergedIgm);
+            try (ZipOutputStream repackagedZip = new ZipOutputStream(baos)) {
+                //Add merged IGMs profiles
+                List<FileInfos> mergedIgms = caseFetcherService.getCases(caseUuids);
+                for (FileInfos mergedIgm : mergedIgms) {
+                    addFilteredCgmesFiles(repackagedZip, mergedIgm);
+                }
+
+                //Add SV profile
+                addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
+
+                //Add boundary files
+                addFilesToZip(repackagedZip, getBoundaries());
+
+                repackagedZip.close();
+
+                return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baos.toByteArray());
             }
-
-            //Add SV profile
-            addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
-
-            //Add boundary files
-            addFilesToZip(repackagedZip, getBoundaries());
-
-            repackagedZip.close();
-
-            return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baos.toByteArray());
         } else {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export/{format}");
             for (int i = 1; i < networkUuids.size(); ++i) {
