@@ -127,7 +127,7 @@ public class NetworkConversionService {
             if (entryCount > MAX_ZIP_ENTRIES_NUMBER) {
                 throw new IllegalStateException("Zip has too many entries.");
             }
-            while (entry != null) {
+            while (entry != null && entryCount < MAX_ZIP_ENTRIES_NUMBER) {
                 if (new File(entry.getName()).getCanonicalPath().contains("..")) {
                     throw new IllegalStateException("Entry is trying to leave the target dir: " + entry.getName());
                 }
