@@ -233,12 +233,7 @@ public class MergeOrchestratorService {
         List<IgmEntity> igmEntities =  findfValidatedIgms(processDate, process);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
-        String businessProcess;
-        if (mergeConfigService.getConfig(process).isPresent()) {
-            businessProcess = mergeConfigService.getConfig(process).get().getBusinessProcess();
-        } else {
-            throw new PowsyblException("Business process " + process + "does not exist");
-        }
+        String businessProcess = mergeConfigService.getConfig(process).orElseThrow(() -> new PowsyblException("Business process " + process + "does not exist")).getBusinessProcess();
         LocalDateTime requesterDateTime = timeZoneOffset != null ? LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.ofHours(Integer.parseInt(timeZoneOffset) / 60)) : processDate.toLocalDateTime();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMDD'T'HHmm'Z'");
         String baseFileName = requesterDateTime.format(formatter) + UNDERSCORE + businessProcess + UNDERSCORE + CGM + UNDERSCORE +  process;
