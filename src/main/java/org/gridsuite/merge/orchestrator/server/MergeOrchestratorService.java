@@ -188,7 +188,7 @@ public class MergeOrchestratorService {
                     replacingDate, replacingBusinessProcess);
 
             // get list of network UUID for validated IGMs
-            List<IgmEntity> igmEntities = findfValidatedIgms(dateTime, processConfig.getProcess());
+            List<IgmEntity> igmEntities = findValidatedIgms(dateTime, processConfig.getProcess());
             List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
             if (networkUuids.size() == processConfig.getTsos().size()) {
                 // all IGMs are available and valid for the merging process
@@ -215,7 +215,7 @@ public class MergeOrchestratorService {
         }
     }
 
-    private List<IgmEntity> findfValidatedIgms(ZonedDateTime dateTime, String process) {
+    private List<IgmEntity> findValidatedIgms(ZonedDateTime dateTime, String process) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
 
@@ -255,7 +255,7 @@ public class MergeOrchestratorService {
     }
 
     FileInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) throws IOException {
-        List<IgmEntity> igmEntities =  findfValidatedIgms(processDate, process);
+        List<IgmEntity> igmEntities =  findValidatedIgms(processDate, process);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
         String businessProcess = mergeConfigService.getConfig(process).orElseThrow(() -> new PowsyblException("Business process " + process + "does not exist")).getBusinessProcess();
