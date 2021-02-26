@@ -64,7 +64,7 @@ public class NetworkConversionServiceTest {
     }
 
     @Test
-    public void testExportXiidm() throws IOException {
+    public void testExportXiidm() {
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename("test_file.xiidm", StandardCharsets.UTF_8).build());
         when(networkConversionServerRest.exchange(anyString(),

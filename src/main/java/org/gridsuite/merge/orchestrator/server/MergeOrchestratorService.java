@@ -26,7 +26,6 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -254,7 +253,7 @@ public class MergeOrchestratorService {
                 .collect(Collectors.toList());
     }
 
-    FileInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) throws IOException {
+    FileInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) {
         List<IgmEntity> igmEntities =  findValidatedIgms(processDate, process);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());

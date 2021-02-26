@@ -70,7 +70,7 @@ public class NetworkConversionService {
         this.cgmesBoundaryService = cgmesBoundaryService;
     }
 
-    public FileInfos exportMerge(List<UUID> networkUuids, List<UUID> caseUuids, String format, String baseFileName) throws IOException {
+    public FileInfos exportMerge(List<UUID> networkUuids, List<UUID> caseUuids, String format, String baseFileName) {
         if (format.equals(CGMES_FORMAT)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -86,6 +86,9 @@ public class NetworkConversionService {
 
                 //Add boundary files
                 addFilesToZip(repackagedZip, getBoundaries());
+
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
             return new FileInfos(baseFileName.concat(UNDERSCORE + FILE_VERSION + ZIP), baos.toByteArray());
         } else {
@@ -115,7 +118,7 @@ public class NetworkConversionService {
         return boundaries;
     }
 
-    private void addFilteredCgmesFiles(ZipOutputStream repackagedZip, FileInfos cgmesZip) throws IOException {
+    private void addFilteredCgmesFiles(ZipOutputStream repackagedZip, FileInfos cgmesZip) {
         boolean isEntryToAdd;
         String fileName;
         int entryCount = 0;
@@ -144,6 +147,8 @@ public class NetworkConversionService {
                 entry = zis.getNextEntry();
                 entryCount++;
             }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
