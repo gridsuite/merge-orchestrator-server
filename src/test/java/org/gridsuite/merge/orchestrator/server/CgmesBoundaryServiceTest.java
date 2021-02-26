@@ -48,7 +48,7 @@ public class CgmesBoundaryServiceTest {
     }
 
     @Test
-    public void test() throws IOException {
+    public void test() {
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename("test_file.xiidm", StandardCharsets.UTF_8).build());
 
