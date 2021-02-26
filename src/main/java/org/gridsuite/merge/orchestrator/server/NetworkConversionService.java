@@ -9,6 +9,7 @@ package org.gridsuite.merge.orchestrator.server;
 import org.apache.commons.io.FilenameUtils;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
+import org.gridsuite.merge.orchestrator.server.utils.SecuredZipInputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -26,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -46,7 +46,8 @@ public class NetworkConversionService {
     private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
     private static final String TPBD_FILE_REGEX = "^(.*?(__ENTSOE_TPBD_).*(.xml))$";
     private static final String EQBD_FILE_REGEX = "^(.*?(__ENTSOE_EQBD_).*(.xml))$";
-    private static final int MAX_ZIP_ENTRIES_NUMBER = 100;
+    private static final int MAX_ZIP_ENTRIES_COUNT = 100;
+    private static final int MAX_ZIP_SIZE = 1000000000;
 
     private RestTemplate networkConversionServerRest;
 
@@ -78,7 +79,7 @@ public class NetworkConversionService {
                 //Add merged IGMs profiles
                 List<FileInfos> mergedIgms = caseFetcherService.getCases(caseUuids);
                 for (FileInfos mergedIgm : mergedIgms) {
-                    addFilteredCgmesFiles(repackagedZip, mergedIgm);
+                    addFilteredCgmesFiles(repackagedZip, mergedIgm.getData());
                 }
 
                 //Add SV profile
@@ -118,17 +119,12 @@ public class NetworkConversionService {
         return boundaries;
     }
 
-    private void addFilteredCgmesFiles(ZipOutputStream repackagedZip, FileInfos cgmesZip) {
+    private void addFilteredCgmesFiles(ZipOutputStream repackagedZip, byte[] cgmesZip) {
         boolean isEntryToAdd;
         String fileName;
-        int entryCount = 0;
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(cgmesZip.getData()))) {
+        try (SecuredZipInputStream zis = new SecuredZipInputStream(new ByteArrayInputStream(cgmesZip), MAX_ZIP_ENTRIES_COUNT, MAX_ZIP_SIZE)) {
             ZipEntry entry = zis.getNextEntry();
-            entryCount++;
-            if (entryCount > MAX_ZIP_ENTRIES_NUMBER) {
-                throw new IllegalStateException("Zip has too many entries.");
-            }
-            while (entry != null && entryCount < MAX_ZIP_ENTRIES_NUMBER) {
+            while (entry != null) {
                 if (new File(entry.getName()).getCanonicalPath().contains("..")) {
                     throw new IllegalStateException("Entry is trying to leave the target dir: " + entry.getName());
                 }
@@ -145,7 +141,6 @@ public class NetworkConversionService {
                     repackagedZip.closeEntry();
                 }
                 entry = zis.getNextEntry();
-                entryCount++;
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
