@@ -29,6 +29,7 @@ public class SecuredZipInputStream extends ZipInputStream {
         this.maxSize = maxSize;
     }
 
+    @Override
     public ZipEntry getNextEntry() {
         if (++entryCount > maxZipEntries) {
             throw new IllegalStateException("Zip has too many entries.");
