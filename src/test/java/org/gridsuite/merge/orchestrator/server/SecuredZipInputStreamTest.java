@@ -18,7 +18,6 @@ public class SecuredZipInputStreamTest {
     @Test
     public void test() throws URISyntaxException, IOException {
         byte[] fileContent = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("MicroGridTestConfiguration_T4_BE_BB_Complete_v2.zip").toURI()));
-        ByteArrayInputStream bais = new ByteArrayInputStream(fileContent);
         SecuredZipInputStream tooManyEntriesSecuredZis = new SecuredZipInputStream(new ByteArrayInputStream(fileContent), 3, 1000000000);
         assertThrows(IllegalStateException.class, () -> readZip(tooManyEntriesSecuredZis))
                     .getMessage().contains("Zip has too many entries.");
