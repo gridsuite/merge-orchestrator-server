@@ -1,19 +1,13 @@
 package org.gridsuite.merge.orchestrator.server.utils;
 
-import lombok.Getter;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-@Getter
 public class SecuredZipInputStream extends ZipInputStream {
-    private static final int DEFAULT_BUFFER_SIZE = 8192;
-
     private final int maxZipEntries;
     private final long maxSize;
     private int entryCount = 0;
@@ -30,15 +24,11 @@ public class SecuredZipInputStream extends ZipInputStream {
     }
 
     @Override
-    public ZipEntry getNextEntry() {
+    public ZipEntry getNextEntry() throws IOException {
         if (++entryCount > maxZipEntries) {
             throw new IllegalStateException("Zip has too many entries.");
         }
-        try {
-            return super.getNextEntry();
-        } catch  (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return super.getNextEntry();
     }
 
     @Override
