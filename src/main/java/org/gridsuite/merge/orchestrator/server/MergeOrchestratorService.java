@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.network.store.client.NetworkStoreService;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -53,6 +54,8 @@ public class MergeOrchestratorService {
     private static final String UUID_HEADER_KEY         = "uuid";
     private static final String FORMAT_HEADER_KEY       = "format";
     private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
+    private static final String UNDERSCORE = "_";
+    private static final String CGM = "CGM";
 
     private static final String GROOVY_TIMESTAMP_PARAMETER = "timestamp";
     private static final String GROOVY_PROCESS_NAME_PARAMETER = "processName";
@@ -149,7 +152,7 @@ public class MergeOrchestratorService {
                     if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso)) &&
                             processConfig.getBusinessProcess().equals(businessProcess)) {
                         LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", date, processConfig.getProcess(), processConfig.getBusinessProcess(), format, tso);
-                        mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null);
+                        mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null);
                     }
                 }
 
@@ -159,13 +162,12 @@ public class MergeOrchestratorService {
                     // check IGM quality
                     boolean valid = igmQualityCheckService.check(networkUuid);
 
-                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid, businessProcess, null, null);
+                    merge(processConfigs.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, businessProcess, null, null);
 
                     for (ProcessConfig processConfig : processConfigs.subList(1, processConfigs.size())) {
                         // import IGM into the network store
                         UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
-
-                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, businessProcess, null, null);
+                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, businessProcess, null, null);
                     }
                 }
             }
@@ -175,18 +177,18 @@ public class MergeOrchestratorService {
     }
 
     void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso,
-               boolean valid, UUID networkUuid, String businessProcess,
+               boolean valid, UUID networkUuid, UUID caseUuid, String businessProcess,
                ZonedDateTime replacingDate, String replacingBusinessProcess) {
         if (processConfig.getTsos().stream().anyMatch(ts -> isMatching(ts, tso)) &&
                 processConfig.getBusinessProcess().equals(businessProcess)) {
             LOGGER.info("Merge {} of process {} {} : IGM from TSO {} is {}valid", date, processConfig.getProcess(), processConfig.getBusinessProcess(), tso, valid ? " " : "not ");
             mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso,
-                    valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid,
+                    valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid, caseUuid,
                     replacingDate, replacingBusinessProcess);
 
             // get list of network UUID for validated IGMs
-            List<UUID> networkUuids = findNetworkUuidsOfValidatedIgms(dateTime, processConfig.getProcess());
-
+            List<IgmEntity> igmEntities = findValidatedIgms(dateTime, processConfig.getProcess());
+            List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
             if (networkUuids.size() == processConfig.getTsos().size()) {
                 // all IGMs are available and valid for the merging process
                 LOGGER.info("Merge {} of process {} {} : all IGMs have been received and are valid", date, processConfig.getProcess(), processConfig.getBusinessProcess());
@@ -212,13 +214,12 @@ public class MergeOrchestratorService {
         }
     }
 
-    private List<UUID> findNetworkUuidsOfValidatedIgms(ZonedDateTime dateTime, String process) {
+    private List<IgmEntity> findValidatedIgms(ZonedDateTime dateTime, String process) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
 
         return igmRepository.findByProcessAndDate(process, localDateTime).stream()
                 .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
-                .map(IgmEntity::getNetworkUuid)
                 .collect(Collectors.toList());
     }
 
@@ -252,12 +253,15 @@ public class MergeOrchestratorService {
                 .collect(Collectors.toList());
     }
 
-    ExportNetworkInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) {
-        List<UUID> networksUuids =  findNetworkUuidsOfValidatedIgms(processDate, process);
+    FileInfos exportMerge(String process, ZonedDateTime processDate, String format, String timeZoneOffset) {
+        List<IgmEntity> igmEntities =  findValidatedIgms(processDate, process);
+        List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
+        List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
+        String businessProcess = mergeConfigService.getConfig(process).orElseThrow(() -> new PowsyblException("Business process " + process + "does not exist")).getBusinessProcess();
         LocalDateTime requesterDateTime = timeZoneOffset != null ? LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.ofHours(Integer.parseInt(timeZoneOffset) / 60)) : processDate.toLocalDateTime();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
-        String baseFileName = process + "_" + requesterDateTime.format(formatter);
-        return networkConversionService.exportMerge(networksUuids, format, baseFileName);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMDD'T'HHmm'Z'");
+        String baseFileName = requesterDateTime.format(formatter) + UNDERSCORE + businessProcess + UNDERSCORE + CGM + UNDERSCORE +  process;
+        return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
     }
 
     private static Igm toIgm(IgmEntity entity) {
@@ -348,7 +352,7 @@ public class MergeOrchestratorService {
                     UUID currentNetworkUuid = previousEntity.isPresent() ? previousEntity.get().getNetworkUuid() : null;
 
                     mergeEventService.addMergeIgmEvent(config.getProcess(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE,
-                            currentNetworkUuid, replacingDate, replacingBusinessProcess);
+                            currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess);
 
                     // import case in the network store
                     UUID networkUuid = caseFetcherService.importCase(caseUuid);
@@ -388,7 +392,7 @@ public class MergeOrchestratorService {
             LOGGER.info("Merge {} of process {} {} : IGM from TSO {} replaced by date {}", formattedDate,
                     config.getProcess(), config.getBusinessProcess(), tso, formattedReplacingDate);
 
-            merge(config, processDate, formattedDate, tso, true, igmReplace.getNetworkUuid(),
+            merge(config, processDate, formattedDate, tso, true, igmReplace.getNetworkUuid(), igmReplace.getCaseUuid(),
                     config.getBusinessProcess(), igmReplace.getDate(), igmReplace.getBusinessProcess());
         }
 

@@ -7,7 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import io.swagger.annotations.*;
-import org.gridsuite.merge.orchestrator.server.dto.ExportNetworkInfos;
+import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmReplacingInfo;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.slf4j.Logger;
@@ -75,11 +75,11 @@ public class MergeOrchestratorController {
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
 
-        ExportNetworkInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
+        FileInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
 
         HttpHeaders header = new HttpHeaders();
-        header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getNetworkName(), StandardCharsets.UTF_8).build());
-        return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMergeInfo.getNetworkData());
+        header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getName(), StandardCharsets.UTF_8).build());
+        return ResponseEntity.ok().headers(header).contentType(MediaType.APPLICATION_OCTET_STREAM).body(exportedMergeInfo.getData());
     }
 
     @PutMapping(value = "{process}/{date}/replace-igms")

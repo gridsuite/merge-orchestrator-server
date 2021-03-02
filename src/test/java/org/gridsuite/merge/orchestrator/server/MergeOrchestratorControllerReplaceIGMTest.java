@@ -55,6 +55,9 @@ public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedC
     private CaseFetcherService caseFetcherService;
 
     @MockBean
+    private CgmesBoundaryService cgmesBoundaryService;
+
+    @MockBean
     private BalancesAdjustmentService balancesAdjustmentService;
 
     @MockBean

@@ -10,14 +10,12 @@ import com.powsybl.cases.datasource.CaseDataSourceClient;
 import com.powsybl.iidm.network.Network;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
+import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,6 +93,17 @@ public class CaseFetcherService {
             LOGGER.error("Error searching cases: {}", e.getMessage());
         }
         return Collections.emptyList();
+    }
+
+    public List<FileInfos> getCases(List<UUID> caseUuids) {
+        List<FileInfos> cases = new ArrayList<>();
+        String uri = DELIMITER + CASE_API_VERSION + "/cases/{caseUuid}?xiidm=false";
+        for (UUID caseUuid : caseUuids) {
+            ResponseEntity<byte[]> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, caseUuid.toString());
+            String fileName = caseUuid.toString();
+            cases.add(new FileInfos(fileName, responseEntity.getBody()));
+        }
+        return cases;
     }
 
     public UUID importCase(UUID caseUuid) {

@@ -51,14 +51,14 @@ public class MergeEventService {
         this.igmRepository = igmRepository;
     }
 
-    public void addMergeIgmEvent(String process, String businessProcess, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid,
+    public void addMergeIgmEvent(String process, String businessProcess, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid, UUID caseUuid,
                                  ZonedDateTime replacingDate, String replacingBusinessProcess) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         LocalDateTime localReplacingDateTime = replacingDate != null ? LocalDateTime.ofInstant(replacingDate.toInstant(), ZoneOffset.UTC) : null;
 
         mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(process, localDateTime, tso), status.name(), networkUuid,
+        igmRepository.save(new IgmEntity(new IgmEntityKey(process, localDateTime, tso), status.name(), networkUuid, caseUuid,
                 localReplacingDateTime, replacingBusinessProcess));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")

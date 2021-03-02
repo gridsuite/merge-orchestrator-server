@@ -29,14 +29,17 @@ public class IgmEntity {
 
     private UUID networkUuid;
 
+    private UUID caseUuid;
+
     private LocalDateTime replacingDate;
 
     private String replacingBusinessProcess;
 
-    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, LocalDateTime replacingDate, String replacingBusinessProcess) {
+    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, UUID caseUuid, LocalDateTime replacingDate, String replacingBusinessProcess) {
         this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
+        this.caseUuid = caseUuid;
         this.replacingDate = replacingDate;
         this.replacingBusinessProcess = replacingBusinessProcess;
     }
