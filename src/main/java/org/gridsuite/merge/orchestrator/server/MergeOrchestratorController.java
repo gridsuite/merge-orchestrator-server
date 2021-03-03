@@ -75,7 +75,7 @@ public class MergeOrchestratorController {
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
 
-        FileInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
+        FileInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format);
 
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getName(), StandardCharsets.UTF_8).build());
