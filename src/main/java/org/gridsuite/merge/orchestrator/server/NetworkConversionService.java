@@ -40,7 +40,7 @@ public class NetworkConversionService {
     private static final String CGMES_FORMAT = "CGMES";
     private static final String SV_PROFILE = "SV";
     private static final String UNDERSCORE = "_";
-    private static final String FILE_VERSION = "1";
+    private static final String FILE_VERSION = "001";
     private static final String XML_EXTENSION = ".xml";
     private static final String ZIP = ".zip";
     private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";

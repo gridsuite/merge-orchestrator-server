@@ -69,13 +69,12 @@ public class MergeOrchestratorController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The export merge for process")})
     public ResponseEntity<byte[]> exportNetwork(@ApiParam(value = "Process name") @PathVariable("process") String process,
                                                 @ApiParam(value = "Process date") @PathVariable("date") String date,
-                                                @ApiParam(value = "Export format")@PathVariable("format") String format,
-                                                @RequestParam(value = "timeZoneOffset", required = false) String timeZoneOffset) {
+                                                @ApiParam(value = "Export format")@PathVariable("format") String format) {
         LOGGER.debug("Exporting merge for process {} : {}", process, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
 
-        FileInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format, timeZoneOffset);
+        FileInfos exportedMergeInfo = mergeOrchestratorService.exportMerge(process, dateTime, format);
 
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename(exportedMergeInfo.getName(), StandardCharsets.UTF_8).build());

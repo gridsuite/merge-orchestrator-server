@@ -127,11 +127,11 @@ public class NetworkConversionServiceTest {
             }
         }
 
-        assertEquals("merge_name_1.zip", res.getName());
+        assertEquals("merge_name_001.zip", res.getName());
         assertEquals(15, files.size());
         assertEquals("EQ content", new String(files.get("EQBD"), StandardCharsets.UTF_8));
         assertEquals("TP content", new String(files.get("TPBD"), StandardCharsets.UTF_8));
-        assertEquals("SV content", new String(files.get("merge_name_SV_1.xml"), StandardCharsets.UTF_8));
+        assertEquals("SV content", new String(files.get("merge_name_SV_001.xml"), StandardCharsets.UTF_8));
 
         assertTrue(files.containsKey("20171002T0930Z_NL_DY_6.xml"));
         assertTrue(files.containsKey("20171002T0930Z_NL_DL_6.xml"));
