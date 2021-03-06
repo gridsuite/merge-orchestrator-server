@@ -6,27 +6,11 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.*;
-
-import javax.inject.Inject;
-
+import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import com.powsybl.iidm.network.NetworkFactory;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,8 +29,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.List;
-import java.util.UUID;
+import javax.inject.Inject;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+
+import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -55,8 +45,8 @@ import java.util.UUID;
 @RunWith(SpringRunner.class)
 @SpringBootTest(
         webEnvironment = WebEnvironment.MOCK)
-@ContextHierarchy({ @ContextConfiguration(classes = { MergeOrchestratorApplication.class,
-        TestChannelBinderConfiguration.class }), })
+@ContextHierarchy({@ContextConfiguration(classes = {MergeOrchestratorApplication.class,
+        TestChannelBinderConfiguration.class})})
 public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Inject
@@ -115,16 +105,19 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     private final NetworkFactory networkFactory = NetworkFactory.find("Default");
     private final ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 0, 0, 0, ZoneId.of("UTC"));
 
+    private void createProcessConfigs() {
+        Tso tsoFR = new Tso("FR", "");
+        Tso tsoES = new Tso("ES", "");
+        Tso tsoPT = new Tso("PT", "");
+        List<Tso> allTsos = List.of(tsoFR, tsoES, tsoPT);
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_1D", "1D", allTsos, false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_2D", "2D", allTsos, false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of(tsoFR, tsoES), false));
+    }
+
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        ArrayList<Tso> tsos = new ArrayList<>();
-        tsos.add(new Tso("FR", ""));
-        tsos.add(new Tso("ES", ""));
-        tsos.add(new Tso("PT", ""));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_1D", "1D", tsos, false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_2D", "2D", tsos, false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", tsos.subList(0, 2), false));
 
         Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR))
                 .thenReturn(UUID_NETWORK_ID_FR);
@@ -150,6 +143,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void testSingleMerge() {
+        createProcessConfigs();
+
         // send first tso FR with business process = 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
@@ -271,6 +266,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     @Test
     public void testMultipleMerge() {
+        createProcessConfigs();
+
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process SWE_2D and FRES_2D)
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
@@ -450,7 +447,185 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     }
 
     @Test
+    public void testImportIgmByOnlyConfigsConcerned() {
+        Tso tsoFR = new Tso("FR", "");
+        Tso tsoES = new Tso("ES", "");
+        Tso tsoPT = new Tso("PT", "");
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of(tsoFR, tsoES), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRPT_2D", "2D", List.of(tsoFR, tsoPT), false));
+
+        // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
+        // (for both process FRES_2D and FRPT_2D)
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+                .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D")));
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "FR")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        // Imported twice
+        Message<byte[]> message = output.receive(1000);
+        assertEquals("AVAILABLE", message.getHeaders().get("status"));
+        message = output.receive(1000);
+        assertEquals("AVAILABLE", message.getHeaders().get("status"));
+        message = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", message.getHeaders().get("status"));
+        message = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", message.getHeaders().get("status"));
+
+        List<MergeEntity> mergeEntities = mergeRepository.findAll();
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcess()));
+        assertEquals(2, mergeEntities.size());
+        assertEquals("FRES_2D", mergeEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertNull(mergeEntities.get(0).getStatus());
+        assertEquals("FRPT_2D", mergeEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
+        assertNull(mergeEntities.get(1).getStatus());
+
+        List<IgmEntity> igmEntities = igmRepository.findAll();
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcess()));
+        assertEquals(2, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals("FRES_2D", igmEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(1).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
+        assertEquals("FRPT_2D", igmEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
+
+        // send second tso ES with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
+        // (for process FRES_2D),
+        // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRES_2D)
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+                .thenReturn(
+                        List.of(new CaseInfos("es", UUID_CASE_ID_ES, "", "ES", "2D")));
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "ES")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_ES.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        // Imported once
+        message = output.receive(1000);
+        assertEquals("AVAILABLE", message.getHeaders().get("status"));
+        message = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", message.getHeaders().get("status"));
+        message = output.receive(1000);
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", message.getHeaders().get("status"));
+
+        mergeEntities = mergeRepository.findAll();
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcess()));
+        assertEquals(2, mergeEntities.size());
+        assertEquals("FRES_2D", mergeEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals("FRPT_2D", mergeEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
+        assertNull(mergeEntities.get(1).getStatus());
+
+        igmEntities = igmRepository.findAll();
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcess()));
+        assertEquals(3, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals("FRES_2D", igmEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(1).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
+        assertEquals("FRES_2D", igmEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(2).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(2).getStatus());
+        assertEquals("FRPT_2D", igmEntities.get(2).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
+
+        // send third tso PT with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
+        // (for process FRPT_2D),
+        // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRPT_2D)
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+                .thenReturn(List.of(new CaseInfos("pt", UUID_CASE_ID_PT, "", "PT", "2D")));
+
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "PT")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_PT.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        // Imported once
+        message = output.receive(1000);
+        assertEquals("AVAILABLE", message.getHeaders().get("status"));
+        message = output.receive(1000);
+        assertEquals("VALIDATION_SUCCEED", message.getHeaders().get("status"));
+        message = output.receive(1000);
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", message.getHeaders().get("status"));
+
+        mergeEntities = mergeRepository.findAll();
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcess()));
+        assertEquals(2, mergeEntities.size());
+        assertEquals("FRES_2D", mergeEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals("FRPT_2D", mergeEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(1).getStatus());
+
+        igmEntities = igmRepository.findAll();
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcess()));
+        assertEquals(4, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals("FRES_2D", igmEntities.get(0).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(1).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
+        assertEquals("FRES_2D", igmEntities.get(1).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(2).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(2).getStatus());
+        assertEquals("FRPT_2D", igmEntities.get(2).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
+        assertEquals(UUID_NETWORK_ID_PT, igmEntities.get(3).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(3).getStatus());
+        assertEquals("FRPT_2D", igmEntities.get(3).getKey().getProcess());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(3).getKey().getDate());
+
+        List<Merge> mergeInfos = mergeOrchestratorService.getMerges("FRES_2D");
+        assertEquals(1, mergeInfos.size());
+        assertEquals("FRES_2D", mergeInfos.get(0).getProcess());
+        assertEquals(runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED, mergeInfos.get(0).getStatus());
+        assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
+        assertEquals(2, mergeInfos.get(0).getIgms().size());
+        assertEquals("ES", mergeInfos.get(0).getIgms().get(0).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(0).getStatus());
+        assertEquals("FR", mergeInfos.get(0).getIgms().get(1).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(1).getStatus());
+
+        mergeInfos = mergeOrchestratorService.getMerges("FRPT_2D");
+        assertEquals(1, mergeInfos.size());
+        assertEquals("FRPT_2D", mergeInfos.get(0).getProcess());
+        assertEquals(runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED, mergeInfos.get(0).getStatus());
+        assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
+        assertEquals(2, mergeInfos.get(0).getIgms().size());
+        assertEquals("FR", mergeInfos.get(0).getIgms().get(0).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(0).getStatus());
+        assertEquals("PT", mergeInfos.get(0).getIgms().get(1).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, mergeInfos.get(0).getIgms().get(1).getStatus());
+
+        assertNull(output.receive(1000));
+    }
+
+    @Test
     public void parametersRepositoryTest() {
+        createProcessConfigs();
         assertEquals(3, processConfigRepository.findAll().size());
         List<TsoEntity> tsos = new ArrayList<>();
         tsos.add(new TsoEntity("FR", ""));
@@ -505,7 +680,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         UUID uuidReplacingCaseES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
         ZonedDateTime replacingDateES = ZonedDateTime.of(2019, 5, 1, 12, 30, 0, 0, ZoneId.of("UTC"));
 
-        Mockito.when(caseFetcherService.getCases(Arrays.asList("ES"), replacingDateES, "CGMES", "2D"))
+        Mockito.when(caseFetcherService.getCases(List.of("ES"), replacingDateES, "CGMES", "2D"))
                 .thenReturn(List.of(new CaseInfos("20190501T1230Z_1D_REE_001.zip", uuidReplacingCaseES, "CGMES", "ES", "2D")));
 
         UUID uuidReplacingNetworkES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
@@ -567,7 +742,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         UUID uuidReplacingCasePT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254f1");
         ZonedDateTime replacingDatePT = ZonedDateTime.of(2019, 5, 1, 17, 30, 0, 0, ZoneId.of("UTC"));
 
-        Mockito.when(caseFetcherService.getCases(Arrays.asList("PT"), replacingDatePT, "CGMES", "2D"))
+        Mockito.when(caseFetcherService.getCases(List.of("PT"), replacingDatePT, "CGMES", "2D"))
                 .thenReturn(List.of(new CaseInfos("20190501T1730Z_1D_REN_001.zip", uuidReplacingCasePT, "CGMES", "PT", "2D")));
 
         UUID uuidReplacingNetworkPT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254f2");

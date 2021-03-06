@@ -19,4 +19,8 @@ import lombok.Getter;
 public class Tso {
     private String sourcingActor;
     private String alternativeSourcingActor;
+
+    boolean isMatching(String tso) {
+        return this.getSourcingActor().equals(tso) || this.getAlternativeSourcingActor().equals(tso);
+    }
 }
