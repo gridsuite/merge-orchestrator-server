@@ -136,6 +136,11 @@ public class MergeOrchestratorService {
             // Send all availability messages
             processConfigsConcerned.forEach(processConfig -> {
                 LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", date, processConfig.getProcess(), processConfig.getBusinessProcess(), format, tso);
+
+                // if already received delete old network
+                Optional<IgmEntity> igmEntityOptional = igmRepository.findByProcessAndDateAndTso(processConfig.getProcess(), LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC), tso);
+                igmEntityOptional.ifPresent(igmEntity -> networkStoreService.deleteNetwork(igmEntity.getNetworkUuid()));
+
                 mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null);
             });
 

@@ -6,34 +6,30 @@
  */
 package org.gridsuite.merge.orchestrator.server.utils;
 
-import org.gridsuite.merge.orchestrator.server.dto.Merge;
-import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
+import org.gridsuite.merge.orchestrator.server.dto.Igm;
+import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
-public class MatcherMerge<T extends Merge> extends TypeSafeMatcher<T> {
+public class MatcherIgm extends TypeSafeMatcher<Igm> {
 
-    Merge reference;
+    Igm reference;
 
-    public MatcherMerge(String process, ZonedDateTime date, MergeStatus status) {
-        this.reference = new Merge(process, date, status, List.of());
+    public MatcherIgm(String tso, IgmStatus status) {
+        this.reference = new Igm(tso, status, null, null);
     }
 
     @Override
-    public boolean matchesSafely(T m) {
-        return reference.getProcess().equals(m.getProcess()) &&
-                reference.getDate().equals(m.getDate()) &&
-                reference.getStatus().equals(m.getStatus());
+    public boolean matchesSafely(Igm m) {
+        return reference.getTso().equals(m.getTso()) &&
+                reference.getStatus().equals(m.getStatus()) &&
+                Objects.equals(reference.getReplacingDate(), m.getReplacingDate()) &&
+                Objects.equals(reference.getReplacingBusinessProcess(), m.getReplacingBusinessProcess());
     }
 
     @Override

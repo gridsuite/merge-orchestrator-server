@@ -6,31 +6,30 @@
  */
 package org.gridsuite.merge.orchestrator.server.utils;
 
+import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
+import java.time.ZonedDateTime;
+import java.util.List;
 
 /**
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
-public class MatcherMergeInfos<T extends MergeEntity> extends TypeSafeMatcher<T> {
+public class MatcherMerge extends TypeSafeMatcher<Merge> {
 
-    MergeEntity reference;
+    Merge reference;
 
-    public MatcherMergeInfos(String process, LocalDateTime date, MergeStatus status) {
-        this.reference = new MergeEntity(new MergeEntityKey(process, date), status == null ? null : status.name());
+    public MatcherMerge(String process, ZonedDateTime date, MergeStatus status) {
+        this.reference = new Merge(process, date, status, List.of());
     }
 
     @Override
-    public boolean matchesSafely(T m) {
-        return reference.getKey().getProcess().equals(m.getKey().getProcess()) &&
-                reference.getKey().getDate().equals(m.getKey().getDate()) &&
-                Objects.equals(reference.getStatus(), m.getStatus());
+    public boolean matchesSafely(Merge m) {
+        return reference.getProcess().equals(m.getProcess()) &&
+                reference.getDate().equals(m.getDate()) &&
+                reference.getStatus().equals(m.getStatus());
     }
 
     @Override

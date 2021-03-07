@@ -6,33 +6,31 @@
  */
 package org.gridsuite.merge.orchestrator.server.utils;
 
-import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmEntityKey;
+import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeEntityKey;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Objects;
 
 /**
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
-public class MatcherIgmEntity<T extends IgmEntity> extends TypeSafeMatcher<T> {
+public class MatcherMergeEntity extends TypeSafeMatcher<MergeEntity> {
 
-    IgmEntity reference;
+    MergeEntity reference;
 
-    public MatcherIgmEntity(String process, LocalDateTime date, String tso, IgmStatus status, UUID networkUuid) {
-        this.reference = new IgmEntity(new IgmEntityKey(process, date, tso), status.name(), networkUuid, networkUuid, null, null);
+    public MatcherMergeEntity(String process, LocalDateTime date, MergeStatus status) {
+        this.reference = new MergeEntity(new MergeEntityKey(process, date), status == null ? null : status.name());
     }
 
     @Override
-    public boolean matchesSafely(T m) {
+    public boolean matchesSafely(MergeEntity m) {
         return reference.getKey().getProcess().equals(m.getKey().getProcess()) &&
                 reference.getKey().getDate().equals(m.getKey().getDate()) &&
-                reference.getKey().getTso().equals(m.getKey().getTso()) &&
-                reference.getStatus().equals(m.getStatus()) &&
-                reference.getNetworkUuid().equals(m.getNetworkUuid());
+                Objects.equals(reference.getStatus(), m.getStatus());
     }
 
     @Override

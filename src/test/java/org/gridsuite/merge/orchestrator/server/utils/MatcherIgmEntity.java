@@ -6,46 +6,33 @@
  */
 package org.gridsuite.merge.orchestrator.server.utils;
 
-import org.gridsuite.modification.server.ModificationType;
-import org.gridsuite.modification.server.dto.ElementaryModificationInfos;
+import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmEntityKey;
 import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
-public class MatcherIgmInfos extends MatcherModificationInfos<ElementaryModificationInfos> {
+public class MatcherIgmEntity extends TypeSafeMatcher<IgmEntity> {
 
-    public static MatcherElementaryModificationInfos createMatcherElementaryModificationInfos(String equipmentId, Set<String> substationIds,
-                                                                                       String equipmentAttributeName, Object equipmentAttributeValue) {
-        return new MatcherElementaryModificationInfos(ElementaryModificationInfos.builder()
-                .date(ZonedDateTime.now(ZoneOffset.UTC))
-                .type(ModificationType.ELEMENTARY)
-                .equipmentId(equipmentId)
-                .substationIds(substationIds)
-                .equipmentAttributeName(equipmentAttributeName)
-                .equipmentAttributeValue(equipmentAttributeValue)
-                .build());
-    }
+    IgmEntity reference;
 
-    public static MatcherElementaryModificationInfos createMatcherElementaryModificationInfos(ElementaryModificationInfos modificationInfos) {
-        return new MatcherElementaryModificationInfos(modificationInfos);
-    }
-
-    protected MatcherIgmInfos(ElementaryModificationInfos ref) {
-        super(ref);
+    public MatcherIgmEntity(String process, LocalDateTime date, String tso, IgmStatus status, UUID networkUuid) {
+        this.reference = new IgmEntity(new IgmEntityKey(process, date, tso), status.name(), networkUuid, networkUuid, null, null);
     }
 
     @Override
-    public boolean matchesSafely(ElementaryModificationInfos m) {
-        return super.matchesSafely(m)
-                && m.getEquipmentId().equals(reference.getEquipmentId())
-                && m.getSubstationIds().equals(reference.getSubstationIds())
-                && m.getEquipmentAttributeName().equals(reference.getEquipmentAttributeName())
-                && m.getEquipmentAttributeValue().equals(reference.getEquipmentAttributeValue());
+    public boolean matchesSafely(IgmEntity m) {
+        return reference.getKey().getProcess().equals(m.getKey().getProcess()) &&
+                reference.getKey().getDate().equals(m.getKey().getDate()) &&
+                reference.getKey().getTso().equals(m.getKey().getTso()) &&
+                reference.getStatus().equals(m.getStatus()) &&
+                reference.getNetworkUuid().equals(m.getNetworkUuid());
     }
 
     @Override
