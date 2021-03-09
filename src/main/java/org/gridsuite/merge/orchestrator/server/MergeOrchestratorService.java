@@ -265,10 +265,10 @@ public class MergeOrchestratorService {
         List<String> missingOrInvalidTsos = new ArrayList<>();
         ProcessConfig config = mergeConfigService.getConfig(configName).orElse(null);
         if (config != null) {
-            for (Tso tso : config.getTsos()) {
-                Optional<IgmEntity> entity = igmRepository.findByProcessAndDateAndTso(configName, ldt, tso.getSourcingActor());
+            for (String tso : config.getTsos()) {
+                Optional<IgmEntity> entity = igmRepository.findByProcessAndDateAndTso(configName, ldt, tso);
                 if (!entity.isPresent() || !entity.get().getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name())) {
-                    missingOrInvalidTsos.add(tso.getSourcingActor());
+                    missingOrInvalidTsos.add(tso);
                 }
             }
 

@@ -25,11 +25,11 @@ public class ProcessConfigEntity {
 
     private String businessProcess;
 
-    private List<TsoEntity> tsos;
+    private List<String> tsos;
 
     private boolean runBalancesAdjustment;
 
-    public ProcessConfigEntity(String process, String businessProcess, List<TsoEntity> tsos, boolean runBalancesAdjustment) {
+    public ProcessConfigEntity(String process, String businessProcess, List<String> tsos, boolean runBalancesAdjustment) {
         this.process = process;
         this.businessProcess = businessProcess;
         this.tsos = tsos;

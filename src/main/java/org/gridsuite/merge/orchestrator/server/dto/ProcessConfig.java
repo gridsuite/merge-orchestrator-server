@@ -30,12 +30,12 @@ public class ProcessConfig {
 
     private String businessProcess;
 
-    private List<Tso> tsos;
+    private List<String> tsos;
 
     private boolean runBalancesAdjustment;
 
     private boolean isMatching(String tso) {
-        return this.getTsos().stream().anyMatch(ts -> ts.isMatching(tso));
+        return this.getTsos().stream().anyMatch(ts -> ts.equals(tso));
     }
 
     private boolean isMatching(String tso, String businessProcess) {

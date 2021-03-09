@@ -114,13 +114,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     private final ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 0, 0, 0, ZoneId.of("UTC"));
 
     private void createProcessConfigs() {
-        Tso tsoFR = new Tso("FR", "");
-        Tso tsoES = new Tso("ES", "");
-        Tso tsoPT = new Tso("PT", "");
-        List<Tso> allTsos = List.of(tsoFR, tsoES, tsoPT);
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_1D", "1D", allTsos, false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_2D", "2D", allTsos, false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of(tsoFR, tsoES), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_1D", "1D", List.of("FR", "ES", "PT"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_2D", "2D", List.of("FR", "ES", "PT"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
     }
 
     @Before
@@ -451,10 +447,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                         "IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null)]",
                 igmRepository.findAll().toString());
 
-        ArrayList<Tso> tsos = new ArrayList<>();
-        tsos.add(new Tso("FR", ""));
-        tsos.add(new Tso("ES", ""));
-        tsos.add(new Tso("PT", ""));
+        ArrayList<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_2D", "2D", tsos, false));
     }
 
@@ -476,16 +472,13 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED;
         assertThat(merge, new MatcherMerge(merge.getProcess(), dateTime, mergeStatusOk));
         assertEquals(tsos.size(), merge.getIgms().size());
-        IntStream.range(0, tsos.size()).forEach(i -> assertThat(merge.getIgms().get((int) i), new MatcherIgm(tsos.get(i), IgmStatus.VALIDATION_SUCCEED)));
+        IntStream.range(0, tsos.size()).forEach(i -> assertThat(merge.getIgms().get(i), new MatcherIgm(tsos.get(i), IgmStatus.VALIDATION_SUCCEED)));
     }
 
     @Test
     public void testImportIgmByOnlyConfigsConcerned() {
-        Tso tsoFR = new Tso("FR", "");
-        Tso tsoES = new Tso("ES", "");
-        Tso tsoPT = new Tso("PT", "");
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of(tsoFR, tsoES), false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRPT_2D", "2D", List.of(tsoFR, tsoPT), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRPT_2D", "2D", List.of("FR", "PT"), false));
         MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED;
 
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
@@ -620,9 +613,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     public void parametersRepositoryTest() {
         createProcessConfigs();
         assertEquals(3, processConfigRepository.findAll().size());
-        List<TsoEntity> tsos = new ArrayList<>();
-        tsos.add(new TsoEntity("FR", ""));
-        tsos.add(new TsoEntity("ES", ""));
+        List<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
         ProcessConfigEntity processConfigEntity = new ProcessConfigEntity("XYZ_2D", "2D", tsos, true);
         processConfigRepository.save(processConfigEntity);
         assertEquals(4, processConfigRepository.findAll().size());
@@ -657,10 +650,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         igmRepository.deleteAll();
         mergeOrchestratorConfigService.deleteConfig("SWE_2D");
 
-        ArrayList<Tso> tsos = new ArrayList<>();
-        tsos.add(new Tso("FR", ""));
-        tsos.add(new Tso("ES", ""));
-        tsos.add(new Tso("PT", ""));
+        ArrayList<String> tsos = new ArrayList<>();
+        tsos.add("FR");
+        tsos.add("ES");
+        tsos.add("PT");
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("SWE_2D", "2D", tsos, false));
 
         // init incomplete merge and merge_igm data in database : missing ES and invalid PT igms
