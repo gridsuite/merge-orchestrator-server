@@ -1,8 +1,3 @@
-CREATE TYPE merge_orchestrator.tso (
-    sourcingActor text,
-    alternativeSourcingActor text,
-);
-
 CREATE TABLE merge_orchestrator.merge_igm (
     process text,
     date timestamp,
@@ -25,7 +20,7 @@ CREATE TABLE merge_orchestrator.merge (
 CREATE TABLE merge_orchestrator.configs (
     process text,
     businessProcess text,
-    tsos frozen<List<tso>>,
+    tsos frozen<List<text>>,
     runBalancesAdjustment boolean,
     PRIMARY KEY (process)
 );
