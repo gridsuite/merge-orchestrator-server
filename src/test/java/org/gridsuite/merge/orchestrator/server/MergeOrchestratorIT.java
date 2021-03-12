@@ -476,6 +476,56 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     }
 
     @Test
+    public void testDeleteMerge() {
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRPT_2D", "2D", List.of("FR", "PT"), false));
+
+        // send tsos FR, ES and PT with business process = 2D
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "FR")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "ES")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_ES.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "PT")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_PT.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        testImportIgmMessages(2, false);
+        testImportIgmMessages(1, true);
+        testImportIgmMessages(1, true);
+
+        testMergeOk(mergeOrchestratorService.getMerges("FRES_2D").get(0), List.of("ES", "FR"));
+        testMergeOk(mergeOrchestratorService.getMerges("FRPT_2D").get(0), List.of("FR", "PT"));
+
+        assertEquals(2, mergeRepository.findAll().size());
+        assertEquals(4, igmRepository.findAll().size());
+        assertEquals(4, igmRepository.findAll().size());
+
+        mergeOrchestratorConfigService.deleteConfig("FRPT_2D");
+        assertEquals(1, mergeRepository.findAll().size());
+        assertEquals(2, igmRepository.findAll().size());
+
+        mergeOrchestratorConfigService.deleteConfig("FRES_2D");
+        assertEquals(0, mergeRepository.findAll().size());
+        assertEquals(0, igmRepository.findAll().size());
+
+        assertNull(output.receive(1000));
+    }
+
+    @Test
     public void testImportIgmByOnlyConfigsConcerned() {
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRPT_2D", "2D", List.of("FR", "PT"), false));
@@ -483,8 +533,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process FRES_2D and FRPT_2D)
-        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
-                .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D")));
         input.send(MessageBuilder.withPayload("")
                 .setHeader("tso", "FR")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
@@ -515,9 +563,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         // send second tso ES with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
         // (for process FRES_2D),
         // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRES_2D)
-        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
-                .thenReturn(
-                        List.of(new CaseInfos("es", UUID_CASE_ID_ES, "", "ES", "2D")));
         input.send(MessageBuilder.withPayload("")
                 .setHeader("tso", "ES")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
@@ -544,9 +589,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         // send third tso PT with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
         // (for process FRPT_2D),
         // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRPT_2D)
-        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
-                .thenReturn(List.of(new CaseInfos("pt", UUID_CASE_ID_PT, "", "PT", "2D")));
-
         input.send(MessageBuilder.withPayload("")
                 .setHeader("tso", "PT")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
