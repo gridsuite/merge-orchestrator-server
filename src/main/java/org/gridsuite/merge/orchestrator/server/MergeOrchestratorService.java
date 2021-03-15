@@ -145,7 +145,7 @@ public class MergeOrchestratorService {
             });
 
             // Mergings
-            List<Boolean> igmQuality = new ArrayList<>();
+            List<Boolean> igmQuality = new ArrayList<>(1);
             processConfigsConcerned.forEach(processConfig -> {
                 // import IGM into the network store
                 UUID networkUuid = caseFetcherService.importCase(caseUuid);
