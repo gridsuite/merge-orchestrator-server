@@ -512,7 +512,6 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         assertEquals(2, mergeRepository.findAll().size());
         assertEquals(4, igmRepository.findAll().size());
-        assertEquals(4, igmRepository.findAll().size());
 
         mergeOrchestratorConfigService.deleteConfig("FRPT_2D");
         assertEquals(1, mergeRepository.findAll().size());
