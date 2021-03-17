@@ -6,14 +6,19 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.datastax.oss.driver.api.core.CqlSession;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
-import org.springframework.data.cassandra.config.AbstractCassandraConfiguration;
-import org.springframework.data.cassandra.config.CassandraClusterFactoryBean;
+import org.springframework.data.cassandra.config.CqlSessionFactoryBean;
+import org.springframework.data.cassandra.config.SessionFactoryFactoryBean;
+import org.springframework.data.cassandra.core.CassandraAdminTemplate;
+import org.springframework.data.cassandra.core.convert.CassandraConverter;
+import org.springframework.data.cassandra.core.convert.MappingCassandraConverter;
+import org.springframework.data.cassandra.core.mapping.CassandraMappingContext;
 import org.springframework.data.cassandra.repository.config.EnableCassandraRepositories;
 
 /**
@@ -24,20 +29,40 @@ import org.springframework.data.cassandra.repository.config.EnableCassandraRepos
 @PropertySource(value = {"classpath:cassandra.properties"})
 @PropertySource(value = {"file:/config/cassandra.properties"}, ignoreResourceNotFound = true)
 @EnableCassandraRepositories(basePackageClasses = {MergeRepository.class, IgmRepository.class})
-public class CassandraConfig extends AbstractCassandraConfiguration {
+public class CassandraConfig {
 
     static final String KEYSPACE_MERGE_ORCHESTRATOR = "merge_orchestrator";
 
-    @Override
-    protected String getKeyspaceName() {
-        return KEYSPACE_MERGE_ORCHESTRATOR;
+    @Bean
+    public CqlSessionFactoryBean session(Environment env) {
+        CqlSessionFactoryBean session = new CqlSessionFactoryBean();
+        session.setContactPoints(env.getRequiredProperty("cassandra.contact-points"));
+        session.setPort(Integer.parseInt(env.getRequiredProperty("cassandra.port")));
+        session.setLocalDatacenter("datacenter1");
+        session.setKeyspaceName(KEYSPACE_MERGE_ORCHESTRATOR);
+        return session;
     }
 
     @Bean
-    public CassandraClusterFactoryBean cluster(Environment env) {
-        CassandraClusterFactoryBean clusterFactory = new CassandraClusterFactoryBean();
-        clusterFactory.setContactPoints(env.getRequiredProperty("cassandra.contact-points"));
-        clusterFactory.setPort(Integer.parseInt(env.getRequiredProperty("cassandra.port")));
-        return clusterFactory;
+    public CassandraMappingContext mappingContext() {
+        return new CassandraMappingContext();
+    }
+
+    @Bean
+    public CassandraConverter converter(CassandraMappingContext mappingContext) {
+        return new MappingCassandraConverter(mappingContext);
+    }
+
+    @Bean
+    public SessionFactoryFactoryBean sessionFactory(CqlSession session, CassandraConverter converter) {
+        SessionFactoryFactoryBean sessionFactory = new SessionFactoryFactoryBean();
+        sessionFactory.setSession(session);
+        sessionFactory.setConverter(converter);
+        return sessionFactory;
+    }
+
+    @Bean
+    public CassandraAdminTemplate cassandraTemplate(CqlSession session, CassandraConverter converter) {
+        return new CassandraAdminTemplate(session, converter);
     }
 }

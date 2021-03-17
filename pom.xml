@@ -15,7 +15,7 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent-ws</artifactId>
-        <version>3</version>
+        <version>5</version>
         <relativePath/>
     </parent>
 
@@ -45,7 +45,8 @@
 
     <properties>
         <java.version>11</java.version>
-        <gridsuite-dependencies.version>4</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>5</gridsuite-dependencies.version>
+        <jib.to.image>gridsuite/merge-orchestrator-server</jib.to.image>
     </properties>
 
     <build>
@@ -176,6 +177,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.vaadin.external.google</groupId>
+                    <artifactId>android-json</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
