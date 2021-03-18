@@ -476,7 +476,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     }
 
     @Test
-    public void testImportIgmByOnlyConfigsConcerned() {
+    public void testImportIgmByOnlyMatchingConfigs() {
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRPT_2D", "2D", List.of("FR", "PT"), false));
         MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED;
