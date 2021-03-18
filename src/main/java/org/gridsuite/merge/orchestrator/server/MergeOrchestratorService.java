@@ -128,13 +128,13 @@ public class MergeOrchestratorService {
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
             ZonedDateTime dateTime = ZonedDateTime.parse(Objects.requireNonNull(date));
 
-            // Get all process configs concerned
-            List<ProcessConfig> processConfigsConcerned = mergeConfigService.getConfigs().stream()
+            // Get all matching process configs
+            List<ProcessConfig> matchingProcessConfigList = mergeConfigService.getConfigs().stream()
                     .filter(c -> c.isMatching(tso, format, businessProcess))
                     .collect(Collectors.toList());
 
             // Send all availability messages
-            processConfigsConcerned.forEach(processConfig -> {
+            matchingProcessConfigList.forEach(processConfig -> {
                 LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", date, processConfig.getProcess(), processConfig.getBusinessProcess(), format, tso);
 
                 // if already received delete old network
@@ -146,7 +146,7 @@ public class MergeOrchestratorService {
 
             // Mergings
             List<Boolean> igmQuality = new ArrayList<>(1);
-            processConfigsConcerned.forEach(processConfig -> {
+            matchingProcessConfigList.forEach(processConfig -> {
                 // import IGM into the network store
                 UUID networkUuid = caseFetcherService.importCase(caseUuid);
 
