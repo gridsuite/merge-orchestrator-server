@@ -9,6 +9,7 @@ package org.gridsuite.merge.orchestrator.server;
 import org.apache.commons.io.FilenameUtils;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
+import org.gridsuite.merge.orchestrator.server.utils.CgmesUtils;
 import org.gridsuite.merge.orchestrator.server.utils.SecuredZipInputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,10 +45,6 @@ public class NetworkConversionService {
     private static final String XML_EXTENSION = ".xml";
     private static final String ZIP = ".zip";
     private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
-    private static final String TPBD_FILE_REGEX = "^(.*?(__ENTSOE_TPBD_).*(.xml))$";
-    private static final String EQBD_FILE_REGEX = "^(.*?(__ENTSOE_EQBD_).*(.xml))$";
-    private static final int MAX_ZIP_ENTRIES_COUNT = 100;
-    private static final int MAX_ZIP_SIZE = 1000000000;
 
     private RestTemplate networkConversionServerRest;
 
@@ -83,10 +80,10 @@ public class NetworkConversionService {
                 }
 
                 //Add SV profile
-                addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
+                CgmesUtils.addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
 
                 //Add boundary files
-                addFilesToZip(repackagedZip, getBoundaries());
+                CgmesUtils.addFilesToZip(repackagedZip, getBoundaries());
 
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -122,7 +119,7 @@ public class NetworkConversionService {
     private void addFilteredCgmesFiles(ZipOutputStream repackagedZip, byte[] cgmesZip) {
         boolean isEntryToAdd;
         String fileName;
-        try (SecuredZipInputStream zis = new SecuredZipInputStream(new ByteArrayInputStream(cgmesZip), MAX_ZIP_ENTRIES_COUNT, MAX_ZIP_SIZE)) {
+        try (SecuredZipInputStream zis = new SecuredZipInputStream(new ByteArrayInputStream(cgmesZip), CgmesUtils.MAX_ZIP_ENTRIES_COUNT, CgmesUtils.MAX_ZIP_SIZE)) {
             ZipEntry entry = zis.getNextEntry();
             while (entry != null) {
                 if (new File(entry.getName()).getCanonicalPath().contains("..")) {
@@ -133,7 +130,7 @@ public class NetworkConversionService {
                 fileName = FilenameUtils.getName(entry.getName());
 
                 //Check if it is a boundary file or SV profile
-                isEntryToAdd = !fileName.equals("") && !fileName.matches(EQBD_FILE_REGEX) && !fileName.matches(TPBD_FILE_REGEX) && !fileName.matches(SV_PROFILE_REGEX);
+                isEntryToAdd = !fileName.equals("") && !fileName.matches(CgmesUtils.EQBD_FILE_REGEX) && !fileName.matches(CgmesUtils.TPBD_FILE_REGEX) && !fileName.matches(SV_PROFILE_REGEX);
                 //If true, we don't add it to the result zip
                 if (isEntryToAdd) {
                     repackagedZip.putNextEntry(new ZipEntry(fileName));
@@ -144,16 +141,6 @@ public class NetworkConversionService {
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    private static void addFilesToZip(ZipOutputStream zos, List<FileInfos> files) throws IOException {
-        ZipEntry entry;
-        for (FileInfos file : files) {
-            entry = new ZipEntry(file.getName());
-            zos.putNextEntry(entry);
-            zos.write(file.getData());
-            zos.closeEntry();
         }
     }
 

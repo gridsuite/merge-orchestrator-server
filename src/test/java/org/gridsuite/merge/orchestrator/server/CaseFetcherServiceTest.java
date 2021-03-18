@@ -6,6 +6,9 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.iidm.network.Network;
+import com.powsybl.network.store.client.NetworkStoreService;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.junit.Before;
@@ -48,9 +51,15 @@ public class CaseFetcherServiceTest {
     private UUID randomUuid2 = UUID.randomUUID();
     private UUID randomUuid3 = UUID.randomUUID();
 
+    @Mock
+    private CgmesBoundaryService cgmesBoundaryService;
+
+    @Mock
+    private NetworkStoreService networkStoreService;
+
     @Before
     public void setUp() {
-        caseFetcherService = new CaseFetcherService(caseServerRest);
+        caseFetcherService = new CaseFetcherService(caseServerRest, cgmesBoundaryService, networkStoreService);
 
         listCases = new ArrayList<>();
         listCases.add(Map.of("name", "20200702_0030_2D1_FR1.zip", "uuid", randomUuid1.toString(), "format", "CGMES", "tso", "FR", "businessProcess", "1D"));
@@ -61,21 +70,23 @@ public class CaseFetcherServiceTest {
     @Test
     public void test() {
         when(caseServerRest.exchange(eq("/v1/cases/search?q={q}"),
-                eq(HttpMethod.GET),
-                eq(HttpEntity.EMPTY),
-                eq(new ParameterizedTypeReference<List<Map<String, String>>>() { }),
-                eq("date:\"2020-07-01T10:30:00Z\" AND tso:(DE) AND format:CGMES AND businessProcess:1D")))
-                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+            eq(HttpMethod.GET),
+            eq(HttpEntity.EMPTY),
+            eq(new ParameterizedTypeReference<List<Map<String, String>>>() {
+            }),
+            eq("date:\"2020-07-01T10:30:00Z\" AND tso:(DE) AND format:CGMES AND businessProcess:1D")))
+            .thenReturn(ResponseEntity.ok(Collections.emptyList()));
 
         List<CaseInfos> infos = caseFetcherService.getCases(asList("DE"), ZonedDateTime.parse("2020-07-01T10:30:00.000+02:00"), "CGMES", "1D");
         assertTrue(infos.isEmpty());
 
         when(caseServerRest.exchange(eq("/v1/cases/search?q={q}"),
-                eq(HttpMethod.GET),
-                eq(HttpEntity.EMPTY),
-                eq(new ParameterizedTypeReference<List<Map<String, String>>>() { }),
-                eq("date:\"2020-07-02T00:30:00Z\" AND tso:(FR OR ES OR PT) AND format:CGMES AND businessProcess:1D")))
-                .thenReturn(ResponseEntity.ok(listCases));
+            eq(HttpMethod.GET),
+            eq(HttpEntity.EMPTY),
+            eq(new ParameterizedTypeReference<List<Map<String, String>>>() {
+            }),
+            eq("date:\"2020-07-02T00:30:00Z\" AND tso:(FR OR ES OR PT) AND format:CGMES AND businessProcess:1D")))
+            .thenReturn(ResponseEntity.ok(listCases));
 
         infos = caseFetcherService.getCases(asList("FR", "ES", "PT"), ZonedDateTime.parse("2020-07-02T00:30:00.000+02:00"), "CGMES", "1D");
         assertEquals(3, infos.size());
@@ -100,11 +111,12 @@ public class CaseFetcherServiceTest {
         List<UUID> caseUuids = List.of(randomUuid1, randomUuid2);
         HttpHeaders header = new HttpHeaders();
         when(caseServerRest.exchange(anyString(),
-                eq(HttpMethod.GET),
-                eq(HttpEntity.EMPTY),
-                eq(new ParameterizedTypeReference<byte[]>() { }),
-                anyString()))
-                .thenReturn(new ResponseEntity("fileContent".getBytes(), header, HttpStatus.OK));
+            eq(HttpMethod.GET),
+            eq(HttpEntity.EMPTY),
+            eq(new ParameterizedTypeReference<byte[]>() {
+            }),
+            anyString()))
+            .thenReturn(new ResponseEntity("fileContent".getBytes(), header, HttpStatus.OK));
 
         List<FileInfos> fileInfos = caseFetcherService.getCases(caseUuids);
         assertEquals(2, fileInfos.size());
@@ -112,5 +124,21 @@ public class CaseFetcherServiceTest {
         assertEquals("fileContent", new String(fileInfos.get(0).getData(), StandardCharsets.UTF_8));
         assertEquals(randomUuid2.toString(), fileInfos.get(1).getName());
         assertEquals("fileContent", new String(fileInfos.get(1).getData(), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void importCaseTest() {
+        List<BoundaryInfos> boundaries = new ArrayList<>();
+        boundaries.add(new BoundaryInfos("idBoundary1", "boundary1.xml", "fake content of boundary1"));
+        boundaries.add(new BoundaryInfos("idBoundary2", "boundary2.xml", "fake content of boundary2"));
+
+        UUID networkUuid = UUID.randomUUID();
+        Network expectedNetwork = Network.create(networkUuid.toString(), "CGMES");
+
+        when(cgmesBoundaryService.getBoundaries()).thenReturn(boundaries);
+        when(networkStoreService.importNetwork(any(CgmesCaseDataSourceClient.class))).thenReturn(expectedNetwork);
+        when(networkStoreService.getNetworkUuid(expectedNetwork)).thenReturn(networkUuid);
+
+        assertEquals(networkUuid, caseFetcherService.importCase(UUID.randomUUID()));
     }
 }
