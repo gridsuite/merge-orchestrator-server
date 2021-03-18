@@ -6,6 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -65,10 +68,12 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
     @MockBean
     private NetworkConversionService networkConversionService;
 
+    private List<String> tsos = new ArrayList<>();
+
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        ArrayList<String> tsos = new ArrayList<>();
+        tsos.clear();
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
@@ -98,5 +103,20 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json("[]"));
+
+        mvc.perform(post("/" + VERSION + "/configs")
+                .contentType(APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(new ProcessConfig("SWE_1D", "1D", tsos, false))))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/" + VERSION + "/configs/SWE_1D")
+            .contentType(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+            .andExpect(content().json("{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}"));
+
+        mvc.perform(delete("/" + VERSION + "/configs/SWE_1D")
+            .contentType(APPLICATION_JSON))
+            .andExpect(status().isOk());
     }
 }
