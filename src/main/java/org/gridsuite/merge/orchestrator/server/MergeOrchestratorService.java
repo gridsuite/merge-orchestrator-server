@@ -139,19 +139,20 @@ public class MergeOrchestratorService {
                 mergeEventService.addMergeIgmEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null);
             });
 
-            // Mergings
-            List<Boolean> igmQuality = new ArrayList<>(1);
-            matchingProcessConfigList.forEach(processConfig -> {
+            if (!matchingProcessConfigList.isEmpty()) {
                 // import IGM into the network store
                 UUID networkUuid = caseFetcherService.importCase(caseUuid);
+                // check IGM quality
+                boolean valid = igmQualityCheckService.check(networkUuid);
 
-                // check IGM quality only once
-                if (igmQuality.isEmpty()) {
-                    igmQuality.add(igmQualityCheckService.check(networkUuid));
+                merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null);
+
+                for (ProcessConfig processConfig : matchingProcessConfigList.subList(1, matchingProcessConfigList.size())) {
+                    // import IGM into the network store
+                    UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid);
+                    merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, null, null);
                 }
-
-                merge(processConfig, dateTime, date, tso, igmQuality.get(0), networkUuid, caseUuid, null, null);
-            });
+            }
         } catch (Exception e) {
             LOGGER.error("Merge error : ", e);
         }
