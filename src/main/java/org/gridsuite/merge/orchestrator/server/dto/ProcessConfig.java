@@ -10,6 +10,7 @@ import io.swagger.annotations.ApiModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -23,6 +24,8 @@ import java.util.List;
 @ApiModel("Process config")
 public class ProcessConfig {
 
+    public static final String ACCEPTED_FORMAT = "CGMES";
+
     private String process;
 
     private String businessProcess;
@@ -30,4 +33,17 @@ public class ProcessConfig {
     private List<String> tsos;
 
     private boolean runBalancesAdjustment;
+
+    private boolean isMatching(String tso) {
+        return this.getTsos().stream().anyMatch(ts -> ts.equals(tso));
+    }
+
+    private boolean isMatching(String tso, String businessProcess) {
+        return this.isMatching(tso) && this.getBusinessProcess().equals(businessProcess);
+    }
+
+    public boolean isMatching(String tso, String format, String businessProcess) {
+        return StringUtils.isNotEmpty(tso) && StringUtils.isNotEmpty(format) && StringUtils.isNotEmpty(businessProcess) &&
+                StringUtils.equals(format, ACCEPTED_FORMAT) && this.isMatching(tso, businessProcess);
+    }
 }

@@ -6,11 +6,9 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
-import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigEntity;
-import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,12 +28,16 @@ public class MergeOrchestratorConfigService {
 
     private final IgmRepository igmRepository;
 
+    private final NetworkStoreService networkStoreService;
+
     public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository,
                                           IgmRepository igmRepository,
-                                          MergeRepository mergeRepository) {
+                                          MergeRepository mergeRepository,
+                                          NetworkStoreService networkStoreService) {
         this.processConfigRepository = processConfigRepository;
         this.mergeRepository = mergeRepository;
         this.igmRepository = igmRepository;
+        this.networkStoreService = networkStoreService;
     }
 
     List<ProcessConfig> getConfigs() {
@@ -51,9 +53,10 @@ public class MergeOrchestratorConfigService {
     }
 
     public void deleteConfig(String process) {
-        processConfigRepository.deleteById(process);
-        mergeRepository.deleteByProcess(process);
+        igmRepository.findByProcess(process).stream().map(IgmEntity::getNetworkUuid).forEach(networkStoreService::deleteNetwork);
         igmRepository.deleteByProcess(process);
+        mergeRepository.deleteByProcess(process);
+        processConfigRepository.deleteById(process);
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
