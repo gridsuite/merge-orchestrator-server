@@ -29,6 +29,8 @@ public class IgmQualityCheckService {
 
     private static final String CASE_VALIDATION_API_VERSION = "v1";
 
+    private static final String VALIDATION_OK = "validationOk";
+
     private RestTemplate caseValidationServerRest;
 
     @Autowired
@@ -49,7 +51,7 @@ public class IgmQualityCheckService {
                     null,
                     String.class,
                     networkUuid.toString());
-            JsonNode node = new ObjectMapper().readTree(response.getBody()).path("loadFlowOk");
+            JsonNode node = new ObjectMapper().readTree(response.getBody()).path(VALIDATION_OK);
             if (!node.isMissingNode()) {
                 res = node.asBoolean();
             }
