@@ -8,7 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,9 +68,9 @@ public class CgmesCaseDataSourceClientTest {
     @Test
     public void test() throws IOException, URISyntaxException {
         UUID caseUuid = UUID.randomUUID();
-        List<FileInfos> boundaries = new ArrayList<>();
-        boundaries.add(new FileInfos("boundary1.xml", "fake content of boundary1".getBytes()));
-        boundaries.add(new FileInfos("boundary2.xml", "fake content of boundary2".getBytes()));
+        List<BoundaryInfos> boundaries = new ArrayList<>();
+        boundaries.add(new BoundaryInfos("urn:uuid:f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content of boundary1"));
+        boundaries.add(new BoundaryInfos("urn:uuid:3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary2.xml", "fake content of boundary2"));
 
         String fileName = "MicroGridTestConfiguration_T4_BE_BB_Complete_v2.zip";
         byte[] initialZip = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource(fileName).toURI()));

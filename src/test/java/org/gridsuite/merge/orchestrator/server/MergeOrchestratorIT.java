@@ -7,6 +7,19 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.iidm.network.NetworkFactory;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+
+import javax.inject.Inject;
+
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.*;
@@ -33,16 +46,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.inject.Inject;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.*;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -88,6 +94,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @MockBean
     private NetworkConversionService networkConversionService;
 
+    @MockBean
+    private CgmesBoundaryService cgmesBoundaryService;
+
     @Inject
     private MergeOrchestratorService mergeOrchestratorService;
 
@@ -123,13 +132,13 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
-        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_FR))
+        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_FR), any()))
                 .thenReturn(UUID_NETWORK_ID_FR);
-        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_ES))
+        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_ES), any()))
                 .thenReturn(UUID_NETWORK_ID_ES);
-        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_PT))
+        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_PT), any()))
                 .thenReturn(UUID_NETWORK_ID_PT);
-        Mockito.when(caseFetcherService.importCase(UUID_CASE_ID_PT_1))
+        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_PT_1), any()))
                 .thenReturn(UUID_NETWORK_ID_PT_1);
 
         Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_FR, PreloadingStrategy.COLLECTION))
@@ -154,6 +163,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         createProcessConfigs();
 
         // send first tso FR with business process = 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
+        Mockito.when(cgmesBoundaryService.getLastBoundaries())
+            .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
+                new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
+
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
         input.send(MessageBuilder.withPayload("")
@@ -278,6 +291,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process SWE_2D and FRES_2D)
+        Mockito.when(cgmesBoundaryService.getLastBoundaries())
+            .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
+                new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
+
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D")));
         input.send(MessageBuilder.withPayload("")
@@ -432,19 +449,14 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(3, processConfigRepository.findAll().size());
         assertEquals("[MergeEntity(key=MergeEntityKey(process=SWE_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null), " +
-                        "IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null), " +
-                        "IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6, caseUuid=7928181c-7977-4592-ba19-88027e4254e6, replacingDate=null, replacingBusinessProcess=null), " +
-                        "IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null), " +
-                        "IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null)]",
-                igmRepository.findAll().toString());
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6, caseUuid=7928181c-7977-4592-ba19-88027e4254e6, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71])]",
+            igmRepository.findAll().toString());
 
         mergeOrchestratorConfigService.deleteConfig("SWE_2D");
 
         assertEquals("[MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null), " +
-                        "IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null)]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71])]",
                 igmRepository.findAll().toString());
 
         ArrayList<String> tsos = new ArrayList<>();
@@ -699,8 +711,12 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // init incomplete merge and merge_igm data in database : missing ES and invalid PT igms
         mergeRepository.insert(new MergeEntity(new MergeEntityKey("SWE_2D", dateTime.toLocalDateTime()), null));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_2D", dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_FR, null, null, null));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_2D", dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_PT, null, null, null));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_2D", dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_FR, null, null, null, null));
+        igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_2D", dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_PT, null, null, null, null));
+
+        Mockito.when(cgmesBoundaryService.getLastBoundaries())
+            .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
+                new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
 
         // 1 - test replacing ES igm (at dateTime : 2019-05_01T12:30:00Z)
         //
@@ -711,7 +727,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(List.of(new CaseInfos("20190501T1230Z_1D_REE_001.zip", uuidReplacingCaseES, "CGMES", "ES", "2D")));
 
         UUID uuidReplacingNetworkES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
-        Mockito.when(caseFetcherService.importCase(uuidReplacingCaseES))
+        Mockito.when(caseFetcherService.importCase(eq(uuidReplacingCaseES), any()))
                 .thenReturn(uuidReplacingNetworkES);
 
         Map<String, IgmReplacingInfo> resReplacing = mergeOrchestratorService.replaceIGMs("SWE_2D", dateTime);
@@ -773,7 +789,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(List.of(new CaseInfos("20190501T1730Z_1D_REN_001.zip", uuidReplacingCasePT, "CGMES", "PT", "2D")));
 
         UUID uuidReplacingNetworkPT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254f2");
-        Mockito.when(caseFetcherService.importCase(uuidReplacingCasePT))
+        Mockito.when(caseFetcherService.importCase(eq(uuidReplacingCasePT), any()))
                 .thenReturn(uuidReplacingNetworkPT);
 
         resReplacing = mergeOrchestratorService.replaceIGMs("SWE_2D", dateTime);

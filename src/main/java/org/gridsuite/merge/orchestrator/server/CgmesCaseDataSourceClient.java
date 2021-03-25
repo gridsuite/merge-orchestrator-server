@@ -8,9 +8,11 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.cases.datasource.CaseDataSourceClient;
 import org.apache.commons.io.FilenameUtils;
-import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.utils.CgmesUtils;
 import org.gridsuite.merge.orchestrator.server.utils.SecuredZipInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.ByteArrayInputStream;
@@ -28,14 +30,16 @@ import java.util.zip.ZipOutputStream;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 public class CgmesCaseDataSourceClient extends CaseDataSourceClient {
-    private List<FileInfos> boundaries;
+    private static final Logger LOGGER = LoggerFactory.getLogger(CgmesCaseDataSourceClient.class);
 
-    public CgmesCaseDataSourceClient(RestTemplate restTemplate, UUID caseUuid, List<FileInfos> boundaries) {
+    private List<BoundaryInfos> boundaries;
+
+    public CgmesCaseDataSourceClient(RestTemplate restTemplate, UUID caseUuid, List<BoundaryInfos> boundaries) {
         super(restTemplate, caseUuid);
         this.boundaries = boundaries;
     }
 
-    private InputStream replaceBoundaries(InputStream input) {
+    private InputStream replaceBoundaries(InputStream input, String inputFileName) {
         boolean isEntryToAdd;
         String fileName;
 
@@ -63,7 +67,8 @@ public class CgmesCaseDataSourceClient extends CaseDataSourceClient {
             }
 
             // Add last boundary files
-            CgmesUtils.addFilesToZip(repackagedZip, boundaries);
+            boundaries.forEach(b -> LOGGER.info("Using last boundary {} with uuid {} when importing {}", b.getFilename(), b.getId(), inputFileName));
+            CgmesUtils.addFilesToZip(repackagedZip, CgmesBoundaryService.getFileInfosFromLastBoundaries(boundaries));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -74,12 +79,12 @@ public class CgmesCaseDataSourceClient extends CaseDataSourceClient {
     @Override
     public InputStream newInputStream(String suffix, String ext) {
         InputStream inputStream = super.newInputStream(suffix, ext);
-        return replaceBoundaries(inputStream);
+        return replaceBoundaries(inputStream, suffix + "." + ext);
     }
 
     @Override
     public InputStream newInputStream(String fileName) {
         InputStream inputStream = super.newInputStream(fileName);
-        return replaceBoundaries(inputStream);
+        return replaceBoundaries(inputStream, fileName);
     }
 }

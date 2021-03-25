@@ -27,7 +27,7 @@ public class IgmReplacingInfoTest {
         UUID caseUuid = UUID.randomUUID();
 
         ZonedDateTime date = ZonedDateTime.now();
-        IgmReplacingInfo igmInfo = new IgmReplacingInfo("FR", date, IgmStatus.VALIDATION_SUCCEED, caseUuid, networkUuid, "1D", null);
+        IgmReplacingInfo igmInfo = new IgmReplacingInfo("FR", date, IgmStatus.VALIDATION_SUCCEED, caseUuid, networkUuid, "1D", null, null);
         assertEquals("FR", igmInfo.getTso());
         assertEquals(date, igmInfo.getDate());
         assertEquals(IgmStatus.VALIDATION_SUCCEED, igmInfo.getStatus());

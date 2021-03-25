@@ -7,7 +7,6 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.io.FilenameUtils;
-import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.utils.CgmesUtils;
 import org.gridsuite.merge.orchestrator.server.utils.SecuredZipInputStream;
@@ -24,7 +23,6 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -83,7 +81,7 @@ public class NetworkConversionService {
                 CgmesUtils.addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
 
                 //Add boundary files
-                CgmesUtils.addFilesToZip(repackagedZip, getBoundaries());
+                CgmesUtils.addFilesToZip(repackagedZip, CgmesBoundaryService.getFileInfosFromLastBoundaries(cgmesBoundaryService.getLastBoundaries()));
 
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -105,15 +103,6 @@ public class NetworkConversionService {
             }
             return new FileInfos(baseFileName.concat(exportedFileExtension), responseEntity.getBody());
         }
-    }
-
-    private List<FileInfos> getBoundaries() {
-        List<BoundaryInfos> boundariesInfos = cgmesBoundaryService.getBoundaries();
-        List<FileInfos> boundaries = new ArrayList<>();
-        for (BoundaryInfos boundaryInfos : boundariesInfos) {
-            boundaries.add(new FileInfos(boundaryInfos.getFilename(), boundaryInfos.getBoundary().getBytes(StandardCharsets.UTF_8)));
-        }
-        return boundaries;
     }
 
     private void addFilteredCgmesFiles(ZipOutputStream repackagedZip, byte[] cgmesZip) {

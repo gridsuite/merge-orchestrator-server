@@ -52,14 +52,11 @@ public class CaseFetcherServiceTest {
     private UUID randomUuid3 = UUID.randomUUID();
 
     @Mock
-    private CgmesBoundaryService cgmesBoundaryService;
-
-    @Mock
     private NetworkStoreService networkStoreService;
 
     @Before
     public void setUp() {
-        caseFetcherService = new CaseFetcherService(caseServerRest, cgmesBoundaryService, networkStoreService);
+        caseFetcherService = new CaseFetcherService(caseServerRest, networkStoreService);
 
         listCases = new ArrayList<>();
         listCases.add(Map.of("name", "20200702_0030_2D1_FR1.zip", "uuid", randomUuid1.toString(), "format", "CGMES", "tso", "FR", "businessProcess", "1D"));
@@ -135,10 +132,9 @@ public class CaseFetcherServiceTest {
         UUID networkUuid = UUID.randomUUID();
         Network expectedNetwork = Network.create(networkUuid.toString(), "CGMES");
 
-        when(cgmesBoundaryService.getBoundaries()).thenReturn(boundaries);
         when(networkStoreService.importNetwork(any(CgmesCaseDataSourceClient.class))).thenReturn(expectedNetwork);
         when(networkStoreService.getNetworkUuid(expectedNetwork)).thenReturn(networkUuid);
 
-        assertEquals(networkUuid, caseFetcherService.importCase(UUID.randomUUID()));
+        assertEquals(networkUuid, caseFetcherService.importCase(UUID.randomUUID(), boundaries));
     }
 }

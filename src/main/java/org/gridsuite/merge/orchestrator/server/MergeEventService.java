@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -52,14 +53,14 @@ public class MergeEventService {
     }
 
     public void addMergeIgmEvent(String process, String businessProcess, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid, UUID caseUuid,
-                                 ZonedDateTime replacingDate, String replacingBusinessProcess) {
+                                 ZonedDateTime replacingDate, String replacingBusinessProcess, List<UUID> boundaries) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         LocalDateTime localReplacingDateTime = replacingDate != null ? LocalDateTime.ofInstant(replacingDate.toInstant(), ZoneOffset.UTC) : null;
 
         mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(process, localDateTime, tso), status.name(), networkUuid, caseUuid,
-                localReplacingDateTime, replacingBusinessProcess));
+                localReplacingDateTime, replacingBusinessProcess, boundaries));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
                 .setHeader("process", process)
