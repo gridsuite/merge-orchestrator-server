@@ -7,10 +7,8 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.cases.datasource.CaseDataSourceClient;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 
-import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -51,24 +49,17 @@ public class CaseFetcherService {
 
     private NetworkStoreService networkStoreService;
 
-    private CgmesBoundaryService cgmesBoundaryService;
-
-    private List<FileInfos> boundaries;
-
     @Autowired
     public CaseFetcherService(NetworkStoreService networkStoreService,
-                              CgmesBoundaryService cgmesBoundaryService,
                               RestTemplateBuilder builder,
                               @Value("${backing-services.case-server.base-uri:http://case-server/}") String caseServerBaseUri) {
         this.networkStoreService = networkStoreService;
-        this.cgmesBoundaryService = cgmesBoundaryService;
         this.caseServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseServerBaseUri))
                 .build();
     }
 
-    public CaseFetcherService(RestTemplate restTemplate, CgmesBoundaryService cgmesBoundaryService, NetworkStoreService networkStoreService) {
+    public CaseFetcherService(RestTemplate restTemplate, NetworkStoreService networkStoreService) {
         this.caseServerRest = restTemplate;
-        this.cgmesBoundaryService = cgmesBoundaryService;
         this.networkStoreService = networkStoreService;
     }
 
@@ -118,17 +109,7 @@ public class CaseFetcherService {
         return cases;
     }
 
-    public UUID importCase(UUID caseUuid) {
-        if (boundaries == null) {
-            boundaries = new ArrayList<>();
-            List<BoundaryInfos> bInfos = cgmesBoundaryService.getBoundaries();
-            if (bInfos.isEmpty()) {
-                throw new PowsyblException("No last boundaries available !!!");
-            }
-            for (BoundaryInfos boundaryInfos : bInfos) {
-                boundaries.add(new FileInfos(boundaryInfos.getFilename(), boundaryInfos.getBoundary().getBytes(StandardCharsets.UTF_8)));
-            }
-        }
+    public UUID importCase(UUID caseUuid, List<BoundaryInfos> boundaries) {
         CaseDataSourceClient dataSource = new CgmesCaseDataSourceClient(caseServerRest, caseUuid, boundaries);
         Network network = networkStoreService.importNetwork(dataSource);
         return networkStoreService.getNetworkUuid(network);

@@ -36,7 +36,8 @@ public interface IgmRepository extends CassandraRepository<IgmEntity, IgmEntityK
     @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date AND tso = :tso")
     Optional<IgmEntity> findByProcessAndDateAndTso(String process, LocalDateTime date, String tso);
 
-    @Query("UPDATE merge_igm SET status = :status, networkUuid = :networkUuid, replacingDate = :replacingDate, replacingBusinessProcess = :replacingBusinessProcess WHERE process = :process AND date = :date AND tso = :tso")
+    @Query("UPDATE merge_igm SET status = :status, networkUuid = :networkUuid, replacingDate = :replacingDate, replacingBusinessProcess = :replacingBusinessProcess, boundaries = :boundaries WHERE process = :process AND date = :date AND tso = :tso")
     void updateReplacingIgm(String process, LocalDateTime date, String tso,
-                            String status, UUID networkUuid, LocalDateTime replacingDate, String replacingBusinessProcess);
+                            String status, UUID networkUuid, LocalDateTime replacingDate, String replacingBusinessProcess,
+                            List<UUID> boundaries);
 }

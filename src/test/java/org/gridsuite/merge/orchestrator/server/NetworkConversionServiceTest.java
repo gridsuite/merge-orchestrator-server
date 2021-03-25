@@ -99,7 +99,7 @@ public class NetworkConversionServiceTest {
                 eq("CGMES")))
                 .thenReturn(new ResponseEntity("SV content".getBytes(), header, HttpStatus.OK));
 
-        when(cgmesBoundaryService.getBoundaries()).thenReturn(List.of(
+        when(cgmesBoundaryService.getLastBoundaries()).thenReturn(List.of(
                 new BoundaryInfos("idTPBD", "TPBD", "TP content"),
                 new BoundaryInfos("idEQBD", "EQBD", "EQ content")
         ));

@@ -7,6 +7,7 @@ CREATE TABLE merge_orchestrator.merge_igm (
     caseUuid uuid,
     replacingDate timestamp,
     replacingBusinessProcess text,
+    boundaries frozen<List<uuid>>,
     PRIMARY KEY (process, date, tso)
 );
 

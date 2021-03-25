@@ -56,7 +56,7 @@ public class CgmesBoundaryServiceTest {
                 any(),
                 any(ParameterizedTypeReference.class)))
                 .thenReturn(new ResponseEntity(response, header, HttpStatus.OK));
-        List<BoundaryInfos> res = cgmesBoundaryService.getBoundaries();
+        List<BoundaryInfos> res = cgmesBoundaryService.getLastBoundaries();
         assertEquals(2, res.size());
         assertEquals("id1", res.get(0).getId());
         assertEquals("boundary1", res.get(0).getBoundary());
