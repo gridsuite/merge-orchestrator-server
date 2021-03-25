@@ -194,10 +194,10 @@ public class MergeOrchestratorService {
                     boundariesIgms.addAll(e.getBoundaries());
                 }
             });
-            if (!igmEntities.stream().skip(1).allMatch(e -> e.getBoundaries() != null ? boundariesIgms.equals(new TreeSet<>(e.getBoundaries())) : false)) {
+            if (!igmEntities.stream().skip(1).allMatch(e -> e.getBoundaries() != null && boundariesIgms.equals(new TreeSet<>(e.getBoundaries())))) {
                 LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different last boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
             } else {
-                if (cgmesBoundaryService.getLastBoundaries().stream().map(b -> UUID.fromString(b.getId())).allMatch(uuid -> boundariesIgms.contains(uuid))) {
+                if (cgmesBoundaryService.getLastBoundaries().stream().map(b -> UUID.fromString(b.getId())).allMatch(boundariesIgms::contains)) {
                     LOGGER.warn("IGMs have been imported with different last boundaries than the current last boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
                 }
             }
