@@ -7,7 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.io.IOUtils;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -69,34 +71,29 @@ public class CgmesCaseDataSourceClientTest {
     public void test() throws IOException, URISyntaxException {
         UUID caseUuid = UUID.randomUUID();
         List<BoundaryInfos> boundaries = new ArrayList<>();
-        boundaries.add(new BoundaryInfos("urn:uuid:f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content of boundary1"));
-        boundaries.add(new BoundaryInfos("urn:uuid:3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary2.xml", "fake content of boundary2"));
+        String eqbdContent = "fake content of eqbd boundary";
+        String tpbdContent = "fake content of tpbd boundary";
 
-        String fileName = "MicroGridTestConfiguration_T4_BE_BB_Complete_v2.zip";
-        byte[] initialZip = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource(fileName).toURI()));
+        boundaries.add(new BoundaryInfos("urn:uuid:f1582c44-d9e2-4ea0-afdc-dba189ab4358", "20201121T0000Z__ENTSOE_EQBD_003.xml", eqbdContent));
+        boundaries.add(new BoundaryInfos("urn:uuid:3e3f7738-aab9-4284-a965-71d5cd151f71", "20201205T1000Z__ENTSOE_TPBD_004.xml", tpbdContent));
+
+        byte[] sshContent = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("20210326T0930Z_1D_BE_SSH_6.xml").toURI()));
 
         CgmesCaseDataSourceClient client = new CgmesCaseDataSourceClient(caseServerRest, caseUuid, boundaries);
 
-        // test with filename
-        given(caseServerRest.exchange(eq("/v1/cases/" + caseUuid + "/datasource?fileName=" + fileName),
+        given(caseServerRest.exchange(eq("/v1/cases/" + caseUuid + "/datasource?fileName=20210326T0930Z_1D_BE_SSH_6.xml"),
             eq(HttpMethod.GET),
             any(HttpEntity.class),
             eq(byte[].class)))
-            .willReturn(ResponseEntity.ok(initialZip));
+            .willReturn(ResponseEntity.ok(sshContent));
 
-        InputStream input = client.newInputStream(fileName);
-        testZipContent(input);
+        InputStream input = client.newInputStream("20210326T0930Z_1D_BE_SSH_6.xml");
+        assertArrayEquals(sshContent, IOUtils.toByteArray(input));
 
-        // test with suffixe and extension
-        String suffix = StringUtils.removeEnd(fileName, ".zip");
-        String ext = "zip";
-        given(caseServerRest.exchange(eq("/v1/cases/" + caseUuid + "/datasource?suffix=" + suffix + "&ext=" + ext),
-            eq(HttpMethod.GET),
-            any(HttpEntity.class),
-            eq(byte[].class)))
-            .willReturn(ResponseEntity.ok(initialZip));
+        input = client.newInputStream("20210326T0000Z__ENTSOE_EQBD_101.xml");
+        assertArrayEquals(eqbdContent.getBytes(StandardCharsets.UTF_8), IOUtils.toByteArray(input));
 
-        input = client.newInputStream(suffix, ext);
-        testZipContent(input);
+        input = client.newInputStream("20210326T0000Z__ENTSOE_TPBD_6.xml");
+        assertArrayEquals(tpbdContent.getBytes(StandardCharsets.UTF_8), IOUtils.toByteArray(input));
     }
 }

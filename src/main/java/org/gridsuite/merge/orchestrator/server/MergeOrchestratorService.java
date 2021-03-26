@@ -11,6 +11,7 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
+import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
@@ -152,7 +153,9 @@ public class MergeOrchestratorService {
                 // import IGM into the network store
                 List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
                 UUID networkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
-                List<UUID> lastBoundariesUuid = lastBoundaries.stream().map(b -> UUID.fromString(b.getId())).collect(Collectors.toList());
+                List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
+
+                LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
 
                 // check IGM quality
                 boolean valid = igmQualityCheckService.check(networkUuid);
@@ -197,7 +200,8 @@ public class MergeOrchestratorService {
             if (!igmEntities.stream().skip(1).allMatch(e -> e.getBoundaries() != null && boundariesIgms.equals(new TreeSet<>(e.getBoundaries())))) {
                 LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different last boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
             } else {
-                if (cgmesBoundaryService.getLastBoundaries().stream().map(b -> UUID.fromString(b.getId())).allMatch(boundariesIgms::contains)) {
+                List<UUID> lastBoundariesUuid = toUuidBoundaries(cgmesBoundaryService.getLastBoundaries());
+                if (!lastBoundariesUuid.stream().allMatch(boundariesIgms::contains)) {
                     LOGGER.warn("IGMs have been imported with different last boundaries than the current last boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
                 }
             }
@@ -361,7 +365,9 @@ public class MergeOrchestratorService {
                     // import case in the network store
                     List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
                     UUID networkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
-                    List<UUID> lastBoundariesUuid = lastBoundaries.stream().map(b -> UUID.fromString(b.getId())).collect(Collectors.toList());
+                    List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
+
+                    LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
 
                     mergeEventService.addMergeIgmEvent(config.getProcess(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE,
                         currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess, lastBoundariesUuid);
@@ -406,5 +412,9 @@ public class MergeOrchestratorService {
         }
 
         return replacingIGMs;
+    }
+
+    private static List<UUID> toUuidBoundaries(List<BoundaryInfos> boundaries) {
+        return boundaries.stream().map(b -> UUID.fromString(StringUtils.removeStart(b.getId(), "urn:uuid:"))).collect(Collectors.toList());
     }
 }
