@@ -6,7 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.junit.Before;
@@ -21,20 +20,15 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -50,21 +44,6 @@ public class CgmesCaseDataSourceClientTest {
 
     @Before
     public void setUp() {
-    }
-
-    private void testZipContent(InputStream input) {
-        Set<String> expectedEntries = Set.of("20171002T0930Z_1D_BE_SSH_6.xml", "20171002T0930Z_1D_BE_SV_6.xml",
-            "20171002T0930Z_1D_BE_TP_6.xml", "20171002T0930Z_BE_DL_6.xml", "20171002T0930Z_BE_DY_6.xml",
-            "20171002T0930Z_BE_EQ_6.xml", "20171002T0930Z_BE_GL_6.xml", "boundary1.xml", "boundary2.xml");
-        try (ZipInputStream zis = new ZipInputStream(input)) {
-            ZipEntry entry = zis.getNextEntry();
-            while (entry != null) {
-                assertTrue(expectedEntries.contains(FilenameUtils.getName(entry.getName())));
-                entry = zis.getNextEntry();
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     @Test
