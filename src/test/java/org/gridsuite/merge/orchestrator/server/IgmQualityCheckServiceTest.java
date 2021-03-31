@@ -55,7 +55,7 @@ public class IgmQualityCheckServiceTest {
                 any(),
                 eq(String.class),
                 eq(randomUuid1.toString())))
-                .thenReturn(ResponseEntity.ok("{\"loadFlowOk\": \"true\"}"));
+                .thenReturn(ResponseEntity.ok("{\"validationOk\": \"true\"}"));
         boolean res = igmQualityCheckService.check(randomUuid1);
         assertTrue(res);
 
@@ -73,7 +73,7 @@ public class IgmQualityCheckServiceTest {
                 any(),
                 eq(String.class),
                 eq(randomUuid3.toString())))
-                .thenReturn(ResponseEntity.ok("{loadFlowOk\": \"true\"}"));
+                .thenReturn(ResponseEntity.ok("{validationOk\": \"true\"}"));
         assertTrue(assertThrows(PowsyblException.class, () -> igmQualityCheckService.check(randomUuid3))
                 .getMessage().contains("Error parsing case validation result"));
     }
