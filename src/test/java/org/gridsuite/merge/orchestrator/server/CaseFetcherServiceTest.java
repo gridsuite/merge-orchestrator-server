@@ -47,9 +47,9 @@ public class CaseFetcherServiceTest {
 
     private List<Map<String, String>> listCases;
 
-    private UUID randomUuid1 = UUID.randomUUID();
-    private UUID randomUuid2 = UUID.randomUUID();
-    private UUID randomUuid3 = UUID.randomUUID();
+    private UUID caseUuid1 = UUID.fromString("47b85a5c-44ec-4afc-9f7e-29e63368e83d");
+    private UUID caseUuid2 = UUID.fromString("da47a173-22d2-47e8-8a84-aa66e2d0fafb");
+    private UUID caseUuid3 = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
 
     @Mock
     private NetworkStoreService networkStoreService;
@@ -59,9 +59,9 @@ public class CaseFetcherServiceTest {
         caseFetcherService = new CaseFetcherService(caseServerRest, networkStoreService);
 
         listCases = new ArrayList<>();
-        listCases.add(Map.of("name", "20200702_0030_2D1_FR1.zip", "uuid", randomUuid1.toString(), "format", "CGMES", "tso", "FR", "businessProcess", "1D"));
-        listCases.add(Map.of("name", "20200702_0030_2D1_ES1.zip", "uuid", randomUuid2.toString(), "format", "CGMES", "tso", "ES", "businessProcess", "1D"));
-        listCases.add(Map.of("name", "20200702_0030_2D1_PT1.zip", "uuid", randomUuid3.toString(), "format", "CGMES", "tso", "PT", "businessProcess", "1D"));
+        listCases.add(Map.of("name", "20200702_0030_2D1_FR1.zip", "uuid", caseUuid1.toString(), "format", "CGMES", "tso", "FR", "businessProcess", "1D"));
+        listCases.add(Map.of("name", "20200702_0030_2D1_ES1.zip", "uuid", caseUuid2.toString(), "format", "CGMES", "tso", "ES", "businessProcess", "1D"));
+        listCases.add(Map.of("name", "20200702_0030_2D1_PT1.zip", "uuid", caseUuid3.toString(), "format", "CGMES", "tso", "PT", "businessProcess", "1D"));
     }
 
     @Test
@@ -88,24 +88,24 @@ public class CaseFetcherServiceTest {
         infos = caseFetcherService.getCases(asList("FR", "ES", "PT"), ZonedDateTime.parse("2020-07-02T00:30:00.000+02:00"), "CGMES", "1D");
         assertEquals(3, infos.size());
         assertEquals("20200702_0030_2D1_FR1.zip", infos.get(0).getName());
-        assertEquals(randomUuid1.toString(), infos.get(0).getUuid().toString());
+        assertEquals(caseUuid1.toString(), infos.get(0).getUuid().toString());
         assertEquals("CGMES", infos.get(0).getFormat());
         assertEquals("FR", infos.get(0).getTso());
         assertEquals("1D", infos.get(0).getBusinessProcess());
 
         assertEquals("20200702_0030_2D1_ES1.zip", infos.get(1).getName());
-        assertEquals(randomUuid2.toString(), infos.get(1).getUuid().toString());
+        assertEquals(caseUuid2.toString(), infos.get(1).getUuid().toString());
         assertEquals("CGMES", infos.get(1).getFormat());
         assertEquals("ES", infos.get(1).getTso());
         assertEquals("1D", infos.get(1).getBusinessProcess());
 
         assertEquals("20200702_0030_2D1_PT1.zip", infos.get(2).getName());
-        assertEquals(randomUuid3.toString(), infos.get(2).getUuid().toString());
+        assertEquals(caseUuid3.toString(), infos.get(2).getUuid().toString());
         assertEquals("CGMES", infos.get(2).getFormat());
         assertEquals("PT", infos.get(2).getTso());
         assertEquals("1D", infos.get(2).getBusinessProcess());
 
-        List<UUID> caseUuids = List.of(randomUuid1, randomUuid2);
+        List<UUID> caseUuids = List.of(caseUuid1, caseUuid2);
         HttpHeaders header = new HttpHeaders();
         when(caseServerRest.exchange(anyString(),
             eq(HttpMethod.GET),
@@ -117,9 +117,9 @@ public class CaseFetcherServiceTest {
 
         List<FileInfos> fileInfos = caseFetcherService.getCases(caseUuids);
         assertEquals(2, fileInfos.size());
-        assertEquals(randomUuid1.toString(), fileInfos.get(0).getName());
+        assertEquals(caseUuid1.toString(), fileInfos.get(0).getName());
         assertEquals("fileContent", new String(fileInfos.get(0).getData(), StandardCharsets.UTF_8));
-        assertEquals(randomUuid2.toString(), fileInfos.get(1).getName());
+        assertEquals(caseUuid2.toString(), fileInfos.get(1).getName());
         assertEquals("fileContent", new String(fileInfos.get(1).getData(), StandardCharsets.UTF_8));
     }
 
@@ -129,12 +129,12 @@ public class CaseFetcherServiceTest {
         boundaries.add(new BoundaryInfos("idBoundary1", "boundary1.xml", "fake content of boundary1"));
         boundaries.add(new BoundaryInfos("idBoundary2", "boundary2.xml", "fake content of boundary2"));
 
-        UUID networkUuid = UUID.randomUUID();
+        UUID networkUuid = UUID.fromString("44a1954e-96b5-4be1-81c4-2a5b48e6a558");
         Network expectedNetwork = Network.create(networkUuid.toString(), "CGMES");
 
         when(networkStoreService.importNetwork(any(CgmesCaseDataSourceClient.class))).thenReturn(expectedNetwork);
         when(networkStoreService.getNetworkUuid(expectedNetwork)).thenReturn(networkUuid);
 
-        assertEquals(networkUuid, caseFetcherService.importCase(UUID.randomUUID(), boundaries));
+        assertEquals(networkUuid, caseFetcherService.importCase(UUID.fromString("b3a4bbc6-567d-48d4-a05d-5a109213c524"), boundaries));
     }
 }

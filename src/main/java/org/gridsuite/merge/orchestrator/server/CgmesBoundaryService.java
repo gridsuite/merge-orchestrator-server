@@ -82,7 +82,7 @@ public class CgmesBoundaryService {
         return lastBoundaries;
     }
 
-    public static List<FileInfos> getFileInfosFromLastBoundaries(List<BoundaryInfos> boundaryInfos) {
+    public static List<FileInfos> getFileInfosBoundaries(List<BoundaryInfos> boundaryInfos) {
         List<FileInfos> boundaries = new ArrayList<>();
         for (BoundaryInfos boundary : boundaryInfos) {
             boundaries.add(new FileInfos(boundary.getFilename(), boundary.getBoundary().getBytes(StandardCharsets.UTF_8)));

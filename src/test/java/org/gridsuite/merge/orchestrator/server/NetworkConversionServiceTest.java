@@ -52,9 +52,9 @@ public class NetworkConversionServiceTest {
     @Mock
     private CgmesBoundaryService cgmesBoundaryService;
 
-    private UUID randomNetworkUuid1 = UUID.randomUUID();
-    private UUID randomNetworkUuid2 = UUID.randomUUID();
-    private UUID randomNetworkUuid3 = UUID.randomUUID();
+    private UUID networkUuid1 = UUID.fromString("47b85a5c-44ec-4afc-9f7e-29e63368e83d");
+    private UUID networkUuid2 = UUID.fromString("da47a173-22d2-47e8-8a84-aa66e2d0fafb");
+    private UUID networkUuid3 = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
     private byte[] response = "TestFileContent".getBytes();
 
     @Before
@@ -71,10 +71,10 @@ public class NetworkConversionServiceTest {
                 eq(HttpMethod.GET),
                 any(),
                 any(ParameterizedTypeReference.class),
-                eq(randomNetworkUuid1.toString()),
+                eq(networkUuid1.toString()),
                 eq("XIIDM")))
                 .thenReturn(new ResponseEntity(response, header, HttpStatus.OK));
-        FileInfos res = networkConversionService.exportMerge(Arrays.asList(randomNetworkUuid1, randomNetworkUuid2, randomNetworkUuid3), null, "XIIDM", "merge_name");
+        FileInfos res = networkConversionService.exportMerge(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), null, "XIIDM", "merge_name");
         assertEquals(response, res.getData());
         assertEquals("merge_name.xiidm", res.getName());
     }
@@ -95,7 +95,7 @@ public class NetworkConversionServiceTest {
                 eq(HttpMethod.GET),
                 any(),
                 any(ParameterizedTypeReference.class),
-                eq(randomNetworkUuid1.toString()),
+                eq(networkUuid1.toString()),
                 eq("CGMES")))
                 .thenReturn(new ResponseEntity("SV content".getBytes(), header, HttpStatus.OK));
 
@@ -104,7 +104,7 @@ public class NetworkConversionServiceTest {
                 new BoundaryInfos("idEQBD", "EQBD", "EQ content")
         ));
 
-        FileInfos res = networkConversionService.exportMerge(Arrays.asList(randomNetworkUuid1, randomNetworkUuid2, randomNetworkUuid3), new ArrayList<>(), "CGMES", "merge_name");
+        FileInfos res = networkConversionService.exportMerge(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), new ArrayList<>(), "CGMES", "merge_name");
 
         Map<String, byte[]> files = new HashMap<>();
         byte[] buffer = new byte[1024];

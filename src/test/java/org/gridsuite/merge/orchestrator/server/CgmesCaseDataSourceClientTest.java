@@ -48,7 +48,7 @@ public class CgmesCaseDataSourceClientTest {
 
     @Test
     public void test() throws IOException, URISyntaxException {
-        UUID caseUuid = UUID.randomUUID();
+        UUID caseUuid = UUID.fromString("47b85a5c-44ec-4afc-9f7e-29e63368e83d");
         List<BoundaryInfos> boundaries = new ArrayList<>();
         String eqbdContent = "fake content of eqbd boundary";
         String tpbdContent = "fake content of tpbd boundary";

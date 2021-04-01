@@ -23,8 +23,8 @@ public class IgmReplacingInfoTest {
 
     @Test
     public void test() {
-        UUID networkUuid = UUID.randomUUID();
-        UUID caseUuid = UUID.randomUUID();
+        UUID networkUuid = UUID.fromString("47b85a5c-44ec-4afc-9f7e-29e63368e83d");
+        UUID caseUuid = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
 
         ZonedDateTime date = ZonedDateTime.now();
         IgmReplacingInfo igmInfo = new IgmReplacingInfo("FR", date, IgmStatus.VALIDATION_SUCCEED, caseUuid, networkUuid, "1D", null, null);

@@ -35,9 +35,9 @@ public class LoadFlowServiceTest {
 
     private LoadFlowService loadFlowService;
 
-    private UUID randomUuid1 = UUID.randomUUID();
-    private UUID randomUuid2 = UUID.randomUUID();
-    private UUID randomUuid3 = UUID.randomUUID();
+    private UUID networkUuid1 = UUID.fromString("47b85a5c-44ec-4afc-9f7e-29e63368e83d");
+    private UUID networkUuid2 = UUID.fromString("da47a173-22d2-47e8-8a84-aa66e2d0fafb");
+    private UUID networkUuid3 = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
 
     @Before
     public void setUp() {
@@ -50,9 +50,9 @@ public class LoadFlowServiceTest {
                 eq(HttpMethod.PUT),
                 any(),
                 eq(String.class),
-                eq(randomUuid1.toString())))
+                eq(networkUuid1.toString())))
                 .thenReturn(ResponseEntity.ok("{\"status\": \"TRUE\"}"));
-        String res = loadFlowService.run(Arrays.asList(randomUuid1, randomUuid2, randomUuid3));
+        String res = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
         assertEquals("{\"status\": \"TRUE\"}", res);
     }
 }
