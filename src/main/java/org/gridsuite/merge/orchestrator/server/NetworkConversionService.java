@@ -81,7 +81,7 @@ public class NetworkConversionService {
                 CgmesUtils.addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
 
                 //Add boundary files
-                CgmesUtils.addFilesToZip(repackagedZip, CgmesBoundaryService.getFileInfosFromLastBoundaries(cgmesBoundaryService.getLastBoundaries()));
+                CgmesUtils.addFilesToZip(repackagedZip, CgmesBoundaryService.getFileInfosBoundaries(cgmesBoundaryService.getLastBoundaries()));
 
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

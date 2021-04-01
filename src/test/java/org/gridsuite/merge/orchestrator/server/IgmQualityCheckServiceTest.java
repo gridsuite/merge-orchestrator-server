@@ -37,11 +37,9 @@ public class IgmQualityCheckServiceTest {
 
     private IgmQualityCheckService igmQualityCheckService;
 
-    private UUID randomUuid1 = UUID.randomUUID();
-
-    private UUID randomUuid2 = UUID.randomUUID();
-
-    private UUID randomUuid3 = UUID.randomUUID();
+    private UUID networkUuid1 = UUID.fromString("47b85a5c-44ec-4afc-9f7e-29e63368e83d");
+    private UUID networkUuid2 = UUID.fromString("da47a173-22d2-47e8-8a84-aa66e2d0fafb");
+    private UUID networkUuid3 = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
 
     @Before
     public void setUp() {
@@ -54,27 +52,27 @@ public class IgmQualityCheckServiceTest {
                 eq(HttpMethod.PUT),
                 any(),
                 eq(String.class),
-                eq(randomUuid1.toString())))
+                eq(networkUuid1.toString())))
                 .thenReturn(ResponseEntity.ok("{\"validationOk\": \"true\"}"));
-        boolean res = igmQualityCheckService.check(randomUuid1);
+        boolean res = igmQualityCheckService.check(networkUuid1);
         assertTrue(res);
 
         when(caseValidationServerRest.exchange(anyString(),
                 eq(HttpMethod.PUT),
                 any(),
                 eq(String.class),
-                eq(randomUuid2.toString())))
+                eq(networkUuid2.toString())))
                 .thenReturn(ResponseEntity.ok("{\"xxxxxxx\": \"true\"}"));
-        res = igmQualityCheckService.check(randomUuid2);
+        res = igmQualityCheckService.check(networkUuid2);
         assertFalse(res);
 
         when(caseValidationServerRest.exchange(anyString(),
                 eq(HttpMethod.PUT),
                 any(),
                 eq(String.class),
-                eq(randomUuid3.toString())))
+                eq(networkUuid3.toString())))
                 .thenReturn(ResponseEntity.ok("{validationOk\": \"true\"}"));
-        assertTrue(assertThrows(PowsyblException.class, () -> igmQualityCheckService.check(randomUuid3))
+        assertTrue(assertThrows(PowsyblException.class, () -> igmQualityCheckService.check(networkUuid3))
                 .getMessage().contains("Error parsing case validation result"));
     }
 }

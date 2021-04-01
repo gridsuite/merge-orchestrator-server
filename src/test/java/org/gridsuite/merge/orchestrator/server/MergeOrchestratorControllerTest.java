@@ -48,14 +48,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {MergeOrchestratorApplication.class})
 public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSetup {
 
-    private static final UUID UUID_NETWORK = UUID.randomUUID();
-    private static final UUID UUID_NETWORK_MERGE_1 = UUID.randomUUID();
-    private static final UUID UUID_NETWORK_MERGE_2 = UUID.randomUUID();
-    private static final UUID UUID_NETWORK_MERGE_3 = UUID.randomUUID();
-    private static final UUID UUID_CASE = UUID.randomUUID();
-    private static final UUID UUID_CASE_MERGE_1 = UUID.randomUUID();
-    private static final UUID UUID_CASE_MERGE_2 = UUID.randomUUID();
-    private static final UUID UUID_CASE_MERGE_3 = UUID.randomUUID();
+    private static final UUID UUID_NETWORK = UUID.fromString("db9b8260-0e8d-4e0c-aad4-56994c151925");
+    private static final UUID UUID_NETWORK_MERGE_1 = UUID.fromString("a7a38a4c-a733-4d5e-a38d-8c6ab121c497");
+    private static final UUID UUID_NETWORK_MERGE_2 = UUID.fromString("2218c9b7-8fe9-4c1e-b8fa-d75582563917");
+    private static final UUID UUID_NETWORK_MERGE_3 = UUID.fromString("eb801df9-c2ea-4291-819f-aed73cd25aea");
+    private static final UUID UUID_CASE = UUID.fromString("da4a9da3-b517-4f55-b7e8-ad12b10b60b3");
+    private static final UUID UUID_CASE_MERGE_1 = UUID.fromString("425131e8-3d5e-4584-a63b-10812b6ba2b8");
+    private static final UUID UUID_CASE_MERGE_2 = UUID.fromString("1dc86636-b886-4b39-8283-d9643bbedc7c");
+    private static final UUID UUID_CASE_MERGE_3 = UUID.fromString("872923ca-9a9a-439b-8a77-20795a2791df");
 
     @Autowired
     private MockMvc mvc;
