@@ -156,6 +156,9 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(true);
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT_1))
                 .thenReturn(true);
+
+        Mockito.when(loadFlowService.run(any()))
+            .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
     }
 
     @Test
@@ -239,7 +242,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertNull(output.receive(1000));
 
         // send third tso PT with business process 1D, expect one AVAILABLE, one VALIDATION_SUCCEED
-        // and one BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done)
+        // and one BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done)
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(
                         new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D"),
@@ -258,19 +261,19 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         messagePtIGM = output.receive(1000);
         assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
         Message<byte[]> messageMergeStarted = output.receive(1000);
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
         assertEquals("SWE_1D", mergeEntities.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
 
         assertTrue(mergeOrchestratorService.getMerges("FOO_1D").isEmpty());
         List<Merge> mergeInfos = mergeOrchestratorService.getMerges("SWE_1D");
         assertEquals(1, mergeInfos.size());
         assertEquals("SWE_1D", mergeInfos.get(0).getProcess());
-        assertEquals(runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED, mergeInfos.get(0).getStatus());
+        assertEquals(runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.FIRST_LOADFLOW_SUCCEED, mergeInfos.get(0).getStatus());
         assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
         assertEquals(3, mergeInfos.get(0).getIgms().size());
         assertEquals("ES", mergeInfos.get(0).getIgms().get(0).getTso());
@@ -337,7 +340,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send second tso ES with business process 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process SWE_2D and FRES_2D),
-        // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRES_2D)
+        // and expect BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done for process FRES_2D)
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(
                         List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D"),
@@ -358,14 +361,14 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         messageEsIGMProcess2 = output.receive(1000);
         assertEquals("VALIDATION_SUCCEED", messageEsIGMProcess2.getHeaders().get("status"));
         Message<byte[]> messageMergeStarted = output.receive(1000);
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
         mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcess()));
         assertEquals(2, mergeEntities.size());
         assertEquals("FRES_2D", mergeEntities.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
         assertEquals("SWE_2D", mergeEntities.get(1).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
         assertNull(mergeEntities.get(1).getStatus());
@@ -392,7 +395,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send third tso PT with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
         // (for process SWE_2D),
-        // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process SWE_2D)
+        // and expect BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done for process SWE_2D)
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(
                         new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D"),
@@ -411,17 +414,17 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         messagePtIGM = output.receive(1000);
         assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
         messageMergeStarted = output.receive(1000);
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
         mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcess()));
         assertEquals(2, mergeEntities.size());
         assertEquals("FRES_2D", mergeEntities.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
         assertEquals("SWE_2D", mergeEntities.get(1).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", mergeEntities.get(1).getStatus());
+        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(1).getStatus());
 
         assertTrue(mergeOrchestratorService.getMerges("FOO_1D").isEmpty());
         List<Merge> mergeInfos = mergeOrchestratorService.getMerges("SWE_1D");
@@ -429,7 +432,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         mergeInfos = mergeOrchestratorService.getMerges("SWE_2D");
         assertEquals(1, mergeInfos.size());
         assertEquals("SWE_2D", mergeInfos.get(0).getProcess());
-        assertEquals(runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED, mergeInfos.get(0).getStatus());
+        assertEquals(runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.FIRST_LOADFLOW_SUCCEED, mergeInfos.get(0).getStatus());
         assertEquals(dateTime.toLocalDateTime(), mergeInfos.get(0).getDate().toLocalDateTime());
         assertEquals(3, mergeInfos.get(0).getIgms().size());
         assertEquals("ES", mergeInfos.get(0).getIgms().get(0).getTso());
@@ -447,14 +450,14 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // test delete config
         assertEquals(3, processConfigRepository.findAll().size());
-        assertEquals("[MergeEntity(key=MergeEntityKey(process=SWE_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
+        assertEquals("[MergeEntity(key=MergeEntityKey(process=SWE_2D, date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
         assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6, caseUuid=7928181c-7977-4592-ba19-88027e4254e6, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71])]",
             igmRepository.findAll().toString());
 
         mergeOrchestratorConfigService.deleteConfig("SWE_2D");
 
-        assertEquals("[MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=LOADFLOW_SUCCEED)]",
+        assertEquals("[MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
         assertEquals("[IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71])]",
                 igmRepository.findAll().toString());
@@ -476,12 +479,12 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         );
 
         if (withMerge) {
-            assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "LOADFLOW_SUCCEED", output.receive(1000).getHeaders().get("status"));
+            assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", output.receive(1000).getHeaders().get("status"));
         }
     }
 
     private void testMergeOk(Merge merge, List<String> tsos) {
-        MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED;
+        MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.FIRST_LOADFLOW_SUCCEED;
         assertThat(merge, new MatcherMerge(merge.getProcess(), dateTime, mergeStatusOk));
         assertEquals(tsos.size(), merge.getIgms().size());
         IntStream.range(0, tsos.size()).forEach(i -> assertThat(merge.getIgms().get(i), new MatcherIgm(tsos.get(i), IgmStatus.VALIDATION_SUCCEED)));
@@ -540,7 +543,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     public void testImportIgmByOnlyMatchingConfigs() {
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
         mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRPT_2D", "2D", List.of("FR", "PT"), false));
-        MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.LOADFLOW_SUCCEED;
+        MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.FIRST_LOADFLOW_SUCCEED;
 
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process FRES_2D and FRPT_2D)
@@ -573,7 +576,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send second tso ES with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
         // (for process FRES_2D),
-        // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRES_2D)
+        // and expect BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done for process FRES_2D)
         input.send(MessageBuilder.withPayload("")
                 .setHeader("tso", "ES")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
@@ -599,7 +602,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send third tso PT with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
         // (for process FRPT_2D),
-        // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRPT_2D)
+        // and expect BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done for process FRPT_2D)
         input.send(MessageBuilder.withPayload("")
                 .setHeader("tso", "PT")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
@@ -633,7 +636,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send again tso PT with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
         // (for process FRPT_2D),
-        // and expect BALANCE_ADJUSTMENT_SUCCEED or LOADFLOW_SUCCEED message (merge done for process FRPT_2D)
+        // and expect BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done for process FRPT_2D)
         input.send(MessageBuilder.withPayload("")
                 .setHeader("tso", "PT")
                 .setHeader("date", "2019-05-01T10:00:00.000+01:00")
@@ -808,7 +811,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(1, mergeEntities.size());
         assertEquals("SWE_2D", mergeEntities.get(0).getKey().getProcess());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
-        assertEquals("LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals("FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
 
         igmEntities = igmRepository.findAll();
         assertEquals(3, igmEntities.size());
@@ -845,7 +848,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // test message has been sent for merge load flow
         Message<byte[]> messageMerge = output.receive(1000);
-        assertEquals("LOADFLOW_SUCCEED", messageMerge.getHeaders().get("status"));
+        assertEquals("FIRST_LOADFLOW_SUCCEED", messageMerge.getHeaders().get("status"));
         assertEquals("SWE_2D", messageEsIGM.getHeaders().get("process"));
     }
 }
