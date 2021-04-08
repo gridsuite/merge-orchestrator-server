@@ -48,9 +48,7 @@ public class LoadFlowService {
     }
 
     private boolean isMainComponentConverging(LoadFlowResult result) {
-        // Open LoadFlow and HADES 2 return the main synchronous component result as component 0;
-        // TODO: result.getComponentResults() will never return an empty list in next release. This check has to me removed.
-        if (result.getComponentResults().isEmpty()) {
+        if (result == null || result.getComponentResults().isEmpty()) {
             return false;
         }
         return result.getComponentResults().get(0).getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED;
