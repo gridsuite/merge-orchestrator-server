@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -33,7 +34,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.inject.Inject;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -55,19 +55,19 @@ import static org.mockito.ArgumentMatchers.any;
         TestChannelBinderConfiguration.class})})
 public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
-    @Inject
+    @Autowired
     InputDestination input;
 
-    @Inject
+    @Autowired
     OutputDestination output;
 
-    @Inject
+    @Autowired
     MergeRepository mergeRepository;
 
-    @Inject
+    @Autowired
     IgmRepository igmRepository;
 
-    @Inject
+    @Autowired
     ProcessConfigRepository processConfigRepository;
 
     @MockBean
@@ -88,10 +88,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @MockBean
     private NetworkConversionService networkConversionService;
 
-    @Inject
+    @Autowired
     private MergeOrchestratorService mergeOrchestratorService;
 
-    @Inject
+    @Autowired
     MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
     @Value("${parameters.run-balances-adjustment}")
