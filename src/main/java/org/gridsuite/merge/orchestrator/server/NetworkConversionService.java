@@ -42,7 +42,7 @@ public class NetworkConversionService {
     private static final String FILE_VERSION = "001";
     private static final String XML_EXTENSION = ".xml";
     private static final String ZIP = ".zip";
-    private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
+    private static final String SV_PROFILE_REGEX = "^(.*?(_SV_)[^\\.]++(.xml))$";
 
     private RestTemplate networkConversionServerRest;
 
