@@ -19,8 +19,9 @@ import java.util.zip.ZipOutputStream;
 public final class CgmesUtils {
     public static final int MAX_ZIP_ENTRIES_COUNT = 100;
     public static final int MAX_ZIP_SIZE = 1000000000;
-    public static final String TPBD_FILE_REGEX = "^(.*?(__ENTSOE_TPBD_).*(.xml))$";
-    public static final String EQBD_FILE_REGEX = "^(.*?(__ENTSOE_EQBD_).*(.xml))$";
+    public static final String TPBD_FILE_REGEX = "^(.*?(__ENTSOE_TPBD_).*(\\.xml))$";
+    public static final String EQBD_FILE_REGEX = "^(.*?(__ENTSOE_EQBD_).*(\\.xml))$";
+    public static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(\\.xml))$";
 
     private CgmesUtils() {
     }
