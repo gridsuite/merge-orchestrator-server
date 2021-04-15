@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -61,19 +62,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
         TestChannelBinderConfiguration.class})})
 public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
-    @Inject
+    @Autowired
     InputDestination input;
 
-    @Inject
+    @Autowired
     OutputDestination output;
 
-    @Inject
+    @Autowired
     MergeRepository mergeRepository;
 
-    @Inject
+    @Autowired
     IgmRepository igmRepository;
 
-    @Inject
+    @Autowired
     ProcessConfigRepository processConfigRepository;
 
     @MockBean
@@ -97,10 +98,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     @MockBean
     private CgmesBoundaryService cgmesBoundaryService;
 
-    @Inject
+    @Autowired
     private MergeOrchestratorService mergeOrchestratorService;
 
-    @Inject
+    @Autowired
     MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
     @Value("${parameters.run-balances-adjustment}")

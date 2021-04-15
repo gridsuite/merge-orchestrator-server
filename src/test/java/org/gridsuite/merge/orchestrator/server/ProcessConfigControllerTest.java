@@ -20,7 +20,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,13 +40,13 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
     @Autowired
     private MockMvc mvc;
 
-    @Inject
+    @Autowired
     ProcessConfigRepository processConfigRepository;
 
-    @Inject
+    @Autowired
     MergeRepository mergeRepository;
 
-    @Inject
+    @Autowired
     IgmRepository igmRepository;
 
     @MockBean

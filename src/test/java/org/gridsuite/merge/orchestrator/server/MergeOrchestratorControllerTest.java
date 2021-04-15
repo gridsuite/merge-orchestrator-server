@@ -23,7 +23,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import javax.inject.Inject;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
@@ -61,10 +60,10 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Autowired
     private MockMvc mvc;
 
-    @Inject
+    @Autowired
     MergeRepository mergeRepository;
 
-    @Inject
+    @Autowired
     IgmRepository igmRepository;
 
     @MockBean
@@ -88,7 +87,7 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @MockBean
     private MergeOrchestratorConfigService mergeConfigService;
 
-    @Inject
+    @Autowired
     private MergeOrchestratorService mergeOrchestratorService;
 
     @Before
