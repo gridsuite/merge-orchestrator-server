@@ -42,7 +42,6 @@ public class NetworkConversionService {
     private static final String FILE_VERSION = "001";
     private static final String XML_EXTENSION = ".xml";
     private static final String ZIP = ".zip";
-    private static final String SV_PROFILE_REGEX = "^(.*?(_SV_).*(.xml))$";
 
     private RestTemplate networkConversionServerRest;
 
@@ -119,7 +118,7 @@ public class NetworkConversionService {
                 fileName = FilenameUtils.getName(entry.getName());
 
                 //Check if it is a boundary file or SV profile
-                isEntryToAdd = !fileName.equals("") && !fileName.matches(CgmesUtils.EQBD_FILE_REGEX) && !fileName.matches(CgmesUtils.TPBD_FILE_REGEX) && !fileName.matches(SV_PROFILE_REGEX);
+                isEntryToAdd = !fileName.equals("") && !fileName.matches(CgmesUtils.EQBD_FILE_REGEX) && !fileName.matches(CgmesUtils.TPBD_FILE_REGEX) && !fileName.matches(CgmesUtils.SV_PROFILE_REGEX);
                 //If true, we don't add it to the result zip
                 if (isEntryToAdd) {
                     repackagedZip.putNextEntry(new ZipEntry(fileName));
