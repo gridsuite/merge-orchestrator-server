@@ -15,7 +15,7 @@ public class CaseInfosTest {
 
     @Test
     public void test() {
-        UUID uuid = UUID.randomUUID();
+        UUID uuid = UUID.fromString("0e14e487-5182-470a-ba33-859a9d4a5061");
         CaseInfos caseInfos = new CaseInfos("case", uuid, "XIIDM", "FR", "1D");
         assertEquals("XIIDM", caseInfos.getFormat());
         assertEquals("case", caseInfos.getName());

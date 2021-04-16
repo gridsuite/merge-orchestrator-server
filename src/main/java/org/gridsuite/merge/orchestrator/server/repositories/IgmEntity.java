@@ -12,6 +12,7 @@ import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,12 +36,17 @@ public class IgmEntity {
 
     private String replacingBusinessProcess;
 
-    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, UUID caseUuid, LocalDateTime replacingDate, String replacingBusinessProcess) {
+    private List<UUID> boundaries;
+
+    public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, UUID caseUuid,
+                     LocalDateTime replacingDate, String replacingBusinessProcess,
+                     List<UUID> boundaries) {
         this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
         this.caseUuid = caseUuid;
         this.replacingDate = replacingDate;
         this.replacingBusinessProcess = replacingBusinessProcess;
+        this.boundaries = boundaries;
     }
 }
