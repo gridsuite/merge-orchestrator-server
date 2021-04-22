@@ -17,9 +17,7 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -57,9 +55,6 @@ public class LoadFlowServiceTest {
     private void addLoadFlowResultExpectation(UUID networkUuid,
                                               List<LoadFlowResult.ComponentResult> componentResults,
                                               LoadFlowParameters params) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<LoadFlowParameters> requestEntity = new HttpEntity<>(params, headers);
         ArgumentMatcher<HttpEntity<LoadFlowParameters>> matcher = r -> r.getBody().isTransformerVoltageControlOn() == params.isTransformerVoltageControlOn() &&
             r.getBody().isSimulShunt() == params.isSimulShunt() &&
             r.getBody().isNoGeneratorReactiveLimits() == params.isNoGeneratorReactiveLimits();
