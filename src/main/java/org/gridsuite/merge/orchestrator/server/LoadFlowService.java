@@ -14,7 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
@@ -55,12 +58,15 @@ public class LoadFlowService {
     }
 
     private boolean stepRun(String step, LoadFlowParameters params, String uri, List<UUID> networksIds) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<LoadFlowParameters> requestEntity = new HttpEntity<>(params, headers);
+
         LoadFlowResult result = loadFlowServerRest.exchange(uri,
             HttpMethod.PUT,
-            null,
+            requestEntity,
             LoadFlowResult.class,
-            networksIds.get(0).toString(),
-            params).getBody();
+            networksIds.get(0).toString()).getBody();
 
         boolean isLoadFlowOk = isMainComponentConverging(result);
         if (!isLoadFlowOk) {

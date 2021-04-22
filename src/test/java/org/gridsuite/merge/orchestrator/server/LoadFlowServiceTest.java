@@ -16,7 +16,10 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -26,7 +29,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -54,13 +56,19 @@ public class LoadFlowServiceTest {
 
     private void addLoadFlowResultExpectation(UUID networkUuid,
                                               List<LoadFlowResult.ComponentResult> componentResults,
-                                              ArgumentMatcher<LoadFlowParameters> paramsMatcher) {
+                                              LoadFlowParameters params) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<LoadFlowParameters> requestEntity = new HttpEntity<>(params, headers);
+        ArgumentMatcher<HttpEntity<LoadFlowParameters>> matcher = r -> r.getBody().isTransformerVoltageControlOn() == params.isTransformerVoltageControlOn() &&
+            r.getBody().isSimulShunt() == params.isSimulShunt() &&
+            r.getBody().isNoGeneratorReactiveLimits() == params.isNoGeneratorReactiveLimits();
+
         when(loadFlowServerRest.exchange(anyString(),
             eq(HttpMethod.PUT),
-            any(),
+            argThat(matcher),
             eq(LoadFlowResult.class),
-            eq(networkUuid.toString()),
-            argThat(paramsMatcher)))
+            eq(networkUuid.toString())))
             .thenReturn(ResponseEntity.ok(new LoadFlowResultImpl(true, Collections.emptyMap(), null, componentResults)));
     }
 
@@ -70,30 +78,54 @@ public class LoadFlowServiceTest {
         List<LoadFlowResult.ComponentResult> componentResultsNok = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, LoadFlowResult.ComponentResult.Status.FAILED, 20, "slackBusId", 0));
 
         // first loadflow succeeds
-        addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params -> params.isTransformerVoltageControlOn() && params.isSimulShunt());
+        LoadFlowParameters params1 = new LoadFlowParameters()
+            .setTransformerVoltageControlOn(true)
+            .setSimulShunt(true)
+            .setDistributedSlack(true)
+            .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+            .setReadSlackBus(true)
+            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params1);
 
         MergeStatus status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
         assertEquals(MergeStatus.FIRST_LOADFLOW_SUCCEED, status);
 
         // first loadflow fails, but second loadflow succeeds
-        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params -> params.isTransformerVoltageControlOn() && params.isSimulShunt());
-        addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params -> !params.isTransformerVoltageControlOn() && !params.isSimulShunt());
+        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params1);
+
+        LoadFlowParameters params2 = new LoadFlowParameters()
+            .setTransformerVoltageControlOn(false)
+            .setSimulShunt(false)
+            .setDistributedSlack(true)
+            .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+            .setReadSlackBus(true)
+            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params2);
 
         status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
         assertEquals(MergeStatus.SECOND_LOADFLOW_SUCCEED, status);
 
         // first loadflow fails, second loadflow fails, but third loadflow succeeds
-        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params -> params.isTransformerVoltageControlOn() && params.isSimulShunt());
-        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params -> !params.isTransformerVoltageControlOn() && !params.isSimulShunt());
-        addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params -> params.isNoGeneratorReactiveLimits());
+        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params1);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params2);
+
+        LoadFlowParameters params3 = new LoadFlowParameters()
+            .setTransformerVoltageControlOn(false)
+            .setSimulShunt(false)
+            .setDistributedSlack(true)
+            .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+            .setReadSlackBus(true)
+            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES)
+            .setNoGeneratorReactiveLimits(true);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params3);
 
         status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
         assertEquals(MergeStatus.THIRD_LOADFLOW_SUCCEED, status);
 
         // neither loadflow succeeds
-        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params -> params.isTransformerVoltageControlOn() && params.isSimulShunt());
-        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params -> !params.isTransformerVoltageControlOn() && !params.isSimulShunt());
-        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params -> !params.isNoGeneratorReactiveLimits());
+        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params1);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params2);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params3);
 
         status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
         assertEquals(MergeStatus.LOADFLOW_FAILED, status);
