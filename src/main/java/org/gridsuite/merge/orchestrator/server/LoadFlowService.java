@@ -43,15 +43,15 @@ public class LoadFlowService {
         SECOND("Second"),
         THIRD("Third");
 
-        private String step;
+        private String value;
 
-        Step(final String step) {
-            this.step = step;
+        Step(final String value) {
+            this.value = value;
         }
 
         @Override
         public String toString() {
-            return step;
+            return value;
         }
     }
 
