@@ -8,6 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,7 +62,9 @@ public class LoadFlowService {
     private boolean stepRun(String step, LoadFlowParameters params, String uri, List<UUID> networksIds) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<LoadFlowParameters> requestEntity = new HttpEntity<>(params, headers);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        JsonLoadFlowParameters.write(params, baos);
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(baos.toByteArray(), headers);
 
         LoadFlowResult result = loadFlowServerRest.exchange(uri,
             HttpMethod.PUT,

@@ -9,6 +9,7 @@ package org.gridsuite.merge.orchestrator.server;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
+import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,9 +57,12 @@ public class LoadFlowServiceTest {
     private void addLoadFlowResultExpectation(UUID networkUuid,
                                               List<LoadFlowResult.ComponentResult> componentResults,
                                               LoadFlowParameters params) {
-        ArgumentMatcher<HttpEntity<LoadFlowParameters>> matcher = r -> r.getBody().isTransformerVoltageControlOn() == params.isTransformerVoltageControlOn() &&
-            r.getBody().isSimulShunt() == params.isSimulShunt() &&
-            r.getBody().isNoGeneratorReactiveLimits() == params.isNoGeneratorReactiveLimits();
+        ArgumentMatcher<HttpEntity<byte[]>> matcher = r -> {
+            LoadFlowParameters requestParams = JsonLoadFlowParameters.read(new ByteArrayInputStream(r.getBody()));
+            return requestParams.isTransformerVoltageControlOn() == params.isTransformerVoltageControlOn() &&
+                requestParams.isSimulShunt() == params.isSimulShunt() &&
+                requestParams.isNoGeneratorReactiveLimits() == params.isNoGeneratorReactiveLimits();
+        };
 
         when(loadFlowServerRest.exchange(anyString(),
             eq(HttpMethod.PUT),
