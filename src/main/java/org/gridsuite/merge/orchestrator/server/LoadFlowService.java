@@ -77,9 +77,9 @@ public class LoadFlowService {
     }
 
     private boolean stepRun(Step step, LoadFlowParameters params, String uri, List<UUID> networksIds) {
-        HttpHeaders headers = new HttpHeaders();
+        var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        var baos = new ByteArrayOutputStream();
         JsonLoadFlowParameters.write(params, baos);
         HttpEntity<byte[]> requestEntity = new HttpEntity<>(baos.toByteArray(), headers);
 

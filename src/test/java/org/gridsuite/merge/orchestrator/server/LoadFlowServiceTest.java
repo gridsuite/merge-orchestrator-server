@@ -64,13 +64,16 @@ public class LoadFlowServiceTest {
             argThat(matcher),
             eq(LoadFlowResult.class),
             eq(networkUuid.toString())))
-            .thenReturn(ResponseEntity.ok(new LoadFlowResultImpl(true, Collections.emptyMap(), null, componentResults)));
+            .thenReturn(ResponseEntity.ok(componentResults != null ?
+                new LoadFlowResultImpl(true, Collections.emptyMap(), null, componentResults)
+                : null));
     }
 
     @Test
     public void test() {
         List<LoadFlowResult.ComponentResult> componentResultsOk = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "slackBusId", 0));
         List<LoadFlowResult.ComponentResult> componentResultsNok = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, LoadFlowResult.ComponentResult.Status.FAILED, 20, "slackBusId", 0));
+        List<LoadFlowResult.ComponentResult> componentResultsEmpty = Collections.emptyList();
 
         // first loadflow succeeds
         LoadFlowParameters params1 = new LoadFlowParameters()
@@ -122,6 +125,19 @@ public class LoadFlowServiceTest {
         addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params2);
         addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params3);
 
+        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        assertEquals(MergeStatus.LOADFLOW_FAILED, status);
+
+        // test with empty componentResults and null LoadFlowResult
+        addLoadFlowResultExpectation(networkUuid1, componentResultsEmpty, params1);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsEmpty, params2);
+        addLoadFlowResultExpectation(networkUuid1, componentResultsEmpty, params3);
+        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        assertEquals(MergeStatus.LOADFLOW_FAILED, status);
+
+        addLoadFlowResultExpectation(networkUuid1, null, params1);
+        addLoadFlowResultExpectation(networkUuid1, null, params2);
+        addLoadFlowResultExpectation(networkUuid1, null, params3);
         status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
         assertEquals(MergeStatus.LOADFLOW_FAILED, status);
     }
