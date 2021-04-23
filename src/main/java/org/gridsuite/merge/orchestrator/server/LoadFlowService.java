@@ -38,6 +38,23 @@ public class LoadFlowService {
     private static final String LOAD_FLOW_API_VERSION = "v1";
     private static final String DELIMITER = "/";
 
+    private enum Step {
+        FIRST("First"),
+        SECOND("Second"),
+        THIRD("Third");
+
+        private String step;
+
+        Step(final String step) {
+            this.step = step;
+        }
+
+        @Override
+        public String toString() {
+            return step;
+        }
+    }
+
     private RestTemplate loadFlowServerRest;
 
     @Autowired
@@ -52,14 +69,14 @@ public class LoadFlowService {
         this.loadFlowServerRest = restTemplate;
     }
 
-    private boolean isMainComponentConverging(LoadFlowResult result) {
+    private boolean hasMainComponentConverged(LoadFlowResult result) {
         if (result == null || result.getComponentResults().isEmpty()) {
             return false;
         }
         return result.getComponentResults().get(0).getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED;
     }
 
-    private boolean stepRun(String step, LoadFlowParameters params, String uri, List<UUID> networksIds) {
+    private boolean stepRun(Step step, LoadFlowParameters params, String uri, List<UUID> networksIds) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -72,10 +89,10 @@ public class LoadFlowService {
             LoadFlowResult.class,
             networksIds.get(0).toString()).getBody();
 
-        boolean isLoadFlowOk = isMainComponentConverging(result);
+        boolean isLoadFlowOk = hasMainComponentConverged(result);
         if (!isLoadFlowOk) {
             String message = step + " loadflow failed with parameters : " + params;
-            if (!step.equals("Third")) {
+            if (step != Step.THIRD) {
                 LOGGER.warn(message);
             } else {
                 LOGGER.error(message);
@@ -100,19 +117,19 @@ public class LoadFlowService {
             .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
             .setReadSlackBus(true)
             .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        if (stepRun("First", params, uri, networksIds)) {
+        if (stepRun(Step.FIRST, params, uri, networksIds)) {
             return MergeStatus.FIRST_LOADFLOW_SUCCEED;
         }
 
         // second run : disabling transformer tap and switched shunt adjustment
         params.setTransformerVoltageControlOn(false);
         params.setSimulShunt(false);
-        if (stepRun("Second", params, uri, networksIds)) {
+        if (stepRun(Step.SECOND, params, uri, networksIds)) {
             return MergeStatus.SECOND_LOADFLOW_SUCCEED;
         }
 
         // third run : relaxing reactive power limits
         params.setNoGeneratorReactiveLimits(true);
-        return stepRun("Third", params, uri, networksIds) ? MergeStatus.THIRD_LOADFLOW_SUCCEED : MergeStatus.LOADFLOW_FAILED;
+        return stepRun(Step.THIRD, params, uri, networksIds) ? MergeStatus.THIRD_LOADFLOW_SUCCEED : MergeStatus.LOADFLOW_FAILED;
     }
 }
