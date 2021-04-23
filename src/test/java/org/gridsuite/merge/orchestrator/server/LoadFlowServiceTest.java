@@ -57,12 +57,7 @@ public class LoadFlowServiceTest {
     private void addLoadFlowResultExpectation(UUID networkUuid,
                                               List<LoadFlowResult.ComponentResult> componentResults,
                                               LoadFlowParameters params) {
-        ArgumentMatcher<HttpEntity<byte[]>> matcher = r -> {
-            LoadFlowParameters requestParams = JsonLoadFlowParameters.read(new ByteArrayInputStream(r.getBody()));
-            return requestParams.isTransformerVoltageControlOn() == params.isTransformerVoltageControlOn() &&
-                requestParams.isSimulShunt() == params.isSimulShunt() &&
-                requestParams.isNoGeneratorReactiveLimits() == params.isNoGeneratorReactiveLimits();
-        };
+        ArgumentMatcher<HttpEntity<byte[]>> matcher = r -> JsonLoadFlowParameters.read(new ByteArrayInputStream(r.getBody())).toString().equals(params.toString());
 
         when(loadFlowServerRest.exchange(anyString(),
             eq(HttpMethod.PUT),
