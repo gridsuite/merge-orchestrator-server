@@ -6,16 +6,25 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.json.JsonLoadFlowParameters;
+import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,9 +33,27 @@ import java.util.UUID;
  */
 @Service
 public class LoadFlowService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
     private static final String LOAD_FLOW_API_VERSION = "v1";
     private static final String DELIMITER = "/";
+
+    private enum Step {
+        FIRST("First"),
+        SECOND("Second"),
+        THIRD("Third");
+
+        private String value;
+
+        Step(final String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+    }
 
     private RestTemplate loadFlowServerRest;
 
@@ -42,18 +69,67 @@ public class LoadFlowService {
         this.loadFlowServerRest = restTemplate;
     }
 
-    public String run(List<UUID> networksIds) {
+    private boolean hasMainComponentConverged(LoadFlowResult result) {
+        if (result == null || result.getComponentResults().isEmpty()) {
+            return false;
+        }
+        return result.getComponentResults().get(0).getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED;
+    }
+
+    private boolean stepRun(Step step, LoadFlowParameters params, String uri, List<UUID> networksIds) {
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        var baos = new ByteArrayOutputStream();
+        JsonLoadFlowParameters.write(params, baos);
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(baos.toByteArray(), headers);
+
+        LoadFlowResult result = loadFlowServerRest.exchange(uri,
+            HttpMethod.PUT,
+            requestEntity,
+            LoadFlowResult.class,
+            networksIds.get(0).toString()).getBody();
+
+        boolean isLoadFlowOk = hasMainComponentConverged(result);
+        if (!isLoadFlowOk) {
+            String message = step + " loadflow failed with parameters : " + params;
+            if (step != Step.THIRD) {
+                LOGGER.warn(message);
+            } else {
+                LOGGER.error(message);
+            }
+        }
+
+        return isLoadFlowOk;
+    }
+
+    public MergeStatus run(List<UUID> networksIds) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run");
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
         }
         String uri = uriBuilder.build().toUriString();
 
-        ResponseEntity<String> res = loadFlowServerRest.exchange(uri,
-                HttpMethod.PUT,
-                null,
-                String.class,
-                networksIds.get(0).toString());
-        return res.getBody();
+        // first run with initial settings
+        LoadFlowParameters params = new LoadFlowParameters()
+            .setTransformerVoltageControlOn(true)
+            .setSimulShunt(true)
+            .setDistributedSlack(true)
+            .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+            .setReadSlackBus(true)
+            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        if (stepRun(Step.FIRST, params, uri, networksIds)) {
+            return MergeStatus.FIRST_LOADFLOW_SUCCEED;
+        }
+
+        // second run : disabling transformer tap and switched shunt adjustment
+        params.setTransformerVoltageControlOn(false);
+        params.setSimulShunt(false);
+        if (stepRun(Step.SECOND, params, uri, networksIds)) {
+            return MergeStatus.SECOND_LOADFLOW_SUCCEED;
+        }
+
+        // third run : relaxing reactive power limits
+        params.setNoGeneratorReactiveLimits(true);
+        return stepRun(Step.THIRD, params, uri, networksIds) ? MergeStatus.THIRD_LOADFLOW_SUCCEED : MergeStatus.LOADFLOW_FAILED;
     }
 }

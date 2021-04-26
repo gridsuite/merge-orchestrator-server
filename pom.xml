@@ -128,6 +128,10 @@
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-open-loadflow</artifactId>
+        </dependency>
 
         <!-- Runtime dependencies -->
         <dependency>
