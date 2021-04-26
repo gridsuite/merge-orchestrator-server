@@ -12,6 +12,7 @@ import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,10 @@ public class MergeOrchestratorConfigService {
     }
 
     public void deleteConfig(String process) {
-        igmRepository.findByProcess(process).stream().map(IgmEntity::getNetworkUuid).forEach(networkStoreService::deleteNetwork);
+        igmRepository.findByProcess(process).stream()
+                .map(IgmEntity::getNetworkUuid)
+                .filter(Objects::nonNull)
+                .forEach(networkStoreService::deleteNetwork);
         igmRepository.deleteByProcess(process);
         mergeRepository.deleteByProcess(process);
         processConfigRepository.deleteById(process);
