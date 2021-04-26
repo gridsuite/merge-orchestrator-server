@@ -222,12 +222,11 @@ public class MergeOrchestratorService {
                 mergeEventService.addMergeEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
             } else {
                 // load flow on the merged network
-                loadFlowService.run(networkUuids);
+                MergeStatus status = loadFlowService.run(networkUuids);
 
-                LOGGER.info("Merge {} of process {} {} : loadflow complete", date, processConfig.getProcess(), processConfig.getBusinessProcess());
+                LOGGER.info("Merge {} of process {} {} : loadflow complete with status {}", date, processConfig.getProcess(), processConfig.getBusinessProcess(), status);
 
-                // TODO check loadflow status
-                mergeEventService.addMergeEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, MergeStatus.LOADFLOW_SUCCEED);
+                mergeEventService.addMergeEvent(processConfig.getProcess(), processConfig.getBusinessProcess(), dateTime, status);
             }
         }
     }
