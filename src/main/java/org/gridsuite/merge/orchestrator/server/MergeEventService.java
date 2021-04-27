@@ -52,18 +52,18 @@ public class MergeEventService {
         this.igmRepository = igmRepository;
     }
 
-    public void addMergeIgmEvent(String process, String businessProcess, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid, UUID caseUuid,
+    public void addMergeIgmEvent(UUID processUuid, String businessProcess, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid, UUID caseUuid,
                                  ZonedDateTime replacingDate, String replacingBusinessProcess, List<UUID> boundaries) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         LocalDateTime localReplacingDateTime = replacingDate != null ? LocalDateTime.ofInstant(replacingDate.toInstant(), ZoneOffset.UTC) : null;
 
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(process, localDateTime, tso), status.name(), networkUuid, caseUuid,
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(processUuid, localDateTime, tso), status.name(), networkUuid, caseUuid,
                 localReplacingDateTime, replacingBusinessProcess, boundaries));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
-                .setHeader("process", process)
+                .setHeader("processUuid", processUuid)
                 .setHeader("businessProcess", businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("tso", tso)
@@ -71,13 +71,13 @@ public class MergeEventService {
                 .build());
     }
 
-    public void addMergeEvent(String process, String businessProcess, ZonedDateTime date, MergeStatus status) {
+    public void addMergeEvent(UUID processUuid, String businessProcess, ZonedDateTime date, MergeStatus status) {
         // Use of UTC Zone to store in cassandra database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(process, localDateTime), status.name()));
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
-                .setHeader("process", process)
+                .setHeader("processUuid", processUuid)
                 .setHeader("businessProcess", businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("status", status.name())

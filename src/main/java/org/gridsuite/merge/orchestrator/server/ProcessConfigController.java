@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Chamseddine Benhamed <Chamseddine.Benhamed at rte-france.com>
@@ -44,11 +45,11 @@ public class ProcessConfigController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(configs);
     }
 
-    @GetMapping(value = "/configs/{process}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/configs/{processUuid}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Get merge configuration by process", response = List.class)
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The merge configurations by the process")})
-    public ResponseEntity<ProcessConfig> getConfigs(@PathVariable String process) {
-        ProcessConfig config = mergeOrchestratorConfigService.getConfig(process).orElse(null);
+    public ResponseEntity<ProcessConfig> getConfigs(@PathVariable UUID processUuid) {
+        ProcessConfig config = mergeOrchestratorConfigService.getConfig(processUuid).orElse(null);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(config);
     }
 
@@ -60,11 +61,11 @@ public class ProcessConfigController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping(value = "/configs/{process}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/configs/{processUuid}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "Delete merge configuration for a specific process")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "configuration deleted")})
-    public ResponseEntity<Void> deleteConfigByProcess(@PathVariable String process) {
-        mergeOrchestratorConfigService.deleteConfig(process);
+    public ResponseEntity<Void> deleteConfigByProcess(@PathVariable UUID processUuid) {
+        mergeOrchestratorConfigService.deleteConfig(processUuid);
         return ResponseEntity.ok().build();
     }
 }

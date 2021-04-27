@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -21,12 +22,12 @@ import java.util.List;
 @Repository
 public interface MergeRepository extends CassandraRepository<MergeEntity, MergeEntityKey> {
 
-    @Query("SELECT * FROM merge WHERE process = :process")
-    List<MergeEntity> findByProcess(@Param("process") String process);
+    @Query("SELECT * FROM merge WHERE processUuid = :processUuid")
+    List<MergeEntity> findByProcessUuid(@Param("processUuid") UUID processUuid);
 
-    @Query("DELETE FROM merge WHERE process = :process")
-    void deleteByProcess(@Param("process") String process);
+    @Query("DELETE FROM merge WHERE processUuid = :processUuid")
+    void deleteByProcessUuid(@Param("processUuid") UUID processUuid);
 
-    @Query("SELECT * FROM merge WHERE process = :process AND date >= :minDate AND date <= :maxDate")
-    List<MergeEntity> findByProcessAndInterval(String process, LocalDateTime minDate, LocalDateTime maxDate);
+    @Query("SELECT * FROM merge WHERE processUuid = :processUuid AND date >= :minDate AND date <= :maxDate")
+    List<MergeEntity> findByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
 }

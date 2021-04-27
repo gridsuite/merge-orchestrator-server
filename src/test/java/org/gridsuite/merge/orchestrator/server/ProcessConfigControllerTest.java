@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -69,6 +70,8 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
 
     private List<String> tsos = new ArrayList<>();
 
+    private static final UUID SWE_1D_UUID = UUID.fromString("11111111-f60e-4766-bc5c-8f312c1984e4");
+
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
@@ -76,7 +79,7 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
-        processConfigRepository.save(new ProcessConfigEntity("SWE_1D", "1D", tsos, false));
+        processConfigRepository.save(new ProcessConfigEntity(SWE_1D_UUID, "SWE_1D", "1D", tsos, false));
     }
 
     @Test
@@ -85,15 +88,15 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}]"));
+                .andExpect(content().json("[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}]"));
 
-        mvc.perform(get("/" + VERSION + "/configs/SWE_1D")
+        mvc.perform(get("/" + VERSION + "/configs/" + SWE_1D_UUID)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}"));
+                .andExpect(content().json("{\"processUuid\":\"" + SWE_1D_UUID + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}"));
 
-        mvc.perform(delete("/" + VERSION + "/configs/SWE_1D")
+        mvc.perform(delete("/" + VERSION + "/configs/" + SWE_1D_UUID)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk());
 
@@ -105,16 +108,18 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
 
         mvc.perform(post("/" + VERSION + "/configs")
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(new ProcessConfig("SWE_1D", "1D", tsos, false))))
+                .content(new ObjectMapper().writeValueAsString(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", tsos, false))))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/" + VERSION + "/configs/SWE_1D")
+        UUID processUuid = processConfigRepository.findAll().get(0).getProcessUuid();
+
+        mvc.perform(get("/" + VERSION + "/configs/" + processUuid)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-            .andExpect(content().json("{\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}"));
+            .andExpect(content().json("{\"processUuid\":\"" + processUuid + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false}"));
 
-        mvc.perform(delete("/" + VERSION + "/configs/SWE_1D")
+        mvc.perform(delete("/" + VERSION + "/configs/" + processUuid)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk());
     }

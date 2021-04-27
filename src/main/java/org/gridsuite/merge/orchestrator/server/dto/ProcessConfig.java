@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com
@@ -25,6 +26,8 @@ import java.util.List;
 public class ProcessConfig {
 
     public static final String ACCEPTED_FORMAT = "CGMES";
+
+    private UUID processUuid;
 
     private String process;
 

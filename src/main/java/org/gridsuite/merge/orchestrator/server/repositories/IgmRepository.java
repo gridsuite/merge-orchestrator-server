@@ -21,23 +21,23 @@ import java.util.UUID;
 @Repository
 public interface IgmRepository extends CassandraRepository<IgmEntity, IgmEntityKey> {
 
-    @Query("SELECT * FROM merge_igm WHERE process = :process")
-    List<IgmEntity> findByProcess(String process);
+    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid")
+    List<IgmEntity> findByProcessUuid(UUID processUuid);
 
-    @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date")
-    List<IgmEntity> findByProcessAndDate(String process, LocalDateTime date);
+    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid AND date = :date")
+    List<IgmEntity> findByProcessUuidAndDate(UUID processUuid, LocalDateTime date);
 
-    @Query("DELETE FROM merge_igm WHERE process = :process")
-    void deleteByProcess(String process);
+    @Query("DELETE FROM merge_igm WHERE processUuid = :processUuid")
+    void deleteByProcessUuid(UUID processUuid);
 
-    @Query("SELECT * FROM merge_igm WHERE process = :process AND date >= :minDate AND date <= :maxDate")
-    List<IgmEntity> findByProcessAndInterval(String process, LocalDateTime minDate, LocalDateTime maxDate);
+    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid AND date >= :minDate AND date <= :maxDate")
+    List<IgmEntity> findByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
 
-    @Query("SELECT * FROM merge_igm WHERE process = :process AND date = :date AND tso = :tso")
-    Optional<IgmEntity> findByProcessAndDateAndTso(String process, LocalDateTime date, String tso);
+    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid AND date = :date AND tso = :tso")
+    Optional<IgmEntity> findByProcessUuidAndDateAndTso(UUID processUuid, LocalDateTime date, String tso);
 
-    @Query("UPDATE merge_igm SET status = :status, networkUuid = :networkUuid, replacingDate = :replacingDate, replacingBusinessProcess = :replacingBusinessProcess, boundaries = :boundaries WHERE process = :process AND date = :date AND tso = :tso")
-    void updateReplacingIgm(String process, LocalDateTime date, String tso,
+    @Query("UPDATE merge_igm SET status = :status, networkUuid = :networkUuid, replacingDate = :replacingDate, replacingBusinessProcess = :replacingBusinessProcess, boundaries = :boundaries WHERE processUuid = :processUuid AND date = :date AND tso = :tso")
+    void updateReplacingIgm(UUID processUuid, LocalDateTime date, String tso,
                             String status, UUID networkUuid, LocalDateTime replacingDate, String replacingBusinessProcess,
                             List<UUID> boundaries);
 }
