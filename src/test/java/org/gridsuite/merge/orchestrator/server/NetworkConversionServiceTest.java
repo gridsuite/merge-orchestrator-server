@@ -9,9 +9,11 @@ package org.gridsuite.merge.orchestrator.server;
 import org.apache.commons.io.FilenameUtils;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
+import org.gridsuite.merge.orchestrator.server.dto.NetworkInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -38,6 +40,7 @@ import static org.mockito.Mockito.when;
 /**
  * @author Nicolas Noir <nicolas.noir at rte-france.com>
  * @author Etienne Homer <etienne.homer at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @RunWith(MockitoJUnitRunner.class)
 public class NetworkConversionServiceTest {
@@ -146,6 +149,40 @@ public class NetworkConversionServiceTest {
         assertTrue(files.containsKey("20171002T0930Z_1D_BE_TP_6.xml"));
         assertTrue(files.containsKey("20171002T0930Z_BE_GL_6.xml"));
         assertTrue(files.containsKey("20171002T0930Z_BE_EQ_6.xml"));
+    }
 
+    @Test
+    public void importCaseTest() {
+        List<BoundaryInfos> boundaries = new ArrayList<>();
+        String boundary1Id = "idBoundary1";
+        String boundary1Filename = "boundary1.xml";
+        String boundary1Content = "fake content of boundary1";
+        String boundary2Id = "idBoundary2";
+        String boundary2Filename = "boundary2.xml";
+        String boundary2Content = "fake content of boundary2";
+        boundaries.add(new BoundaryInfos(boundary1Id, boundary1Filename, boundary1Content));
+        boundaries.add(new BoundaryInfos(boundary2Id, boundary2Filename, boundary2Content));
+
+        UUID caseUuid = UUID.fromString("b3a4bbc6-567d-48d4-a05d-5a109213c524");
+        UUID networkUuid = UUID.fromString("44a1954e-96b5-4be1-81c4-2a5b48e6a558");
+        String networkId = "networkId";
+
+        ArgumentMatcher<HttpEntity<List<BoundaryInfos>>> matcher = r -> {
+            List<BoundaryInfos> requestBoundaries = r.getBody();
+            return requestBoundaries.get(0).getId().equals(boundary1Id) &&
+                requestBoundaries.get(0).getFilename().equals(boundary1Filename) &&
+                requestBoundaries.get(0).getBoundary().equals(boundary1Content) &&
+                requestBoundaries.get(1).getId().equals(boundary2Id) &&
+                requestBoundaries.get(1).getFilename().equals(boundary2Filename) &&
+                requestBoundaries.get(1).getBoundary().equals(boundary2Content);
+        };
+
+        when(networkConversionServerRest.exchange(anyString(),
+            eq(HttpMethod.POST),
+            argThat(matcher),
+            eq(NetworkInfos.class)
+        )).thenReturn(ResponseEntity.ok(new NetworkInfos(networkUuid, networkId)));
+
+        assertEquals(networkUuid, networkConversionService.importCase(caseUuid, boundaries));
     }
 }

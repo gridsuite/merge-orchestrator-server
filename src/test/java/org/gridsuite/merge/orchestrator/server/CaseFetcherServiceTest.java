@@ -6,9 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.iidm.network.Network;
 import com.powsybl.network.store.client.NetworkStoreService;
-import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.junit.Before;
@@ -121,20 +119,5 @@ public class CaseFetcherServiceTest {
         assertEquals("fileContent", new String(fileInfos.get(0).getData(), StandardCharsets.UTF_8));
         assertEquals(caseUuid2.toString(), fileInfos.get(1).getName());
         assertEquals("fileContent", new String(fileInfos.get(1).getData(), StandardCharsets.UTF_8));
-    }
-
-    @Test
-    public void importCaseTest() {
-        List<BoundaryInfos> boundaries = new ArrayList<>();
-        boundaries.add(new BoundaryInfos("idBoundary1", "boundary1.xml", "fake content of boundary1"));
-        boundaries.add(new BoundaryInfos("idBoundary2", "boundary2.xml", "fake content of boundary2"));
-
-        UUID networkUuid = UUID.fromString("44a1954e-96b5-4be1-81c4-2a5b48e6a558");
-        Network expectedNetwork = Network.create(networkUuid.toString(), "CGMES");
-
-        when(networkStoreService.importNetwork(any(CgmesCaseDataSourceClient.class))).thenReturn(expectedNetwork);
-        when(networkStoreService.getNetworkUuid(expectedNetwork)).thenReturn(networkUuid);
-
-        assertEquals(networkUuid, caseFetcherService.importCase(UUID.fromString("b3a4bbc6-567d-48d4-a05d-5a109213c524"), boundaries));
     }
 }

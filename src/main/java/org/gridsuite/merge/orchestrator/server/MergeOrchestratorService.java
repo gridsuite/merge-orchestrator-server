@@ -153,7 +153,7 @@ public class MergeOrchestratorService {
                 try {
                     // import IGM into the network store
                     List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
-                    UUID networkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
+                    UUID networkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
                     List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
 
                     LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
@@ -165,7 +165,7 @@ public class MergeOrchestratorService {
 
                     for (ProcessConfig processConfig : matchingProcessConfigList.subList(1, matchingProcessConfigList.size())) {
                         // import IGM into the network store
-                        UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
+                        UUID processConfigNetworkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
                         merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, null, null, lastBoundariesUuid);
                     }
                 } catch (Exception e) {
@@ -369,7 +369,7 @@ public class MergeOrchestratorService {
 
                     // import case in the network store
                     List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
-                    UUID networkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
+                    UUID networkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
                     List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
 
                     LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
