@@ -8,10 +8,13 @@ package org.gridsuite.merge.orchestrator.server.dto;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 public enum MergeStatus {
     BALANCE_ADJUSTMENT_SUCCEED,
     BALANCE_ADJUSTMENT_FAILED,
-    LOADFLOW_SUCCEED,
+    FIRST_LOADFLOW_SUCCEED,
+    SECOND_LOADFLOW_SUCCEED,
+    THIRD_LOADFLOW_SUCCEED,
     LOADFLOW_FAILED,
 }

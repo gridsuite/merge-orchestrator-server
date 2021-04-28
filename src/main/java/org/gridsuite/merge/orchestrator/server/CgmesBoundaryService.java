@@ -6,8 +6,10 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
+import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
-import java.util.Collections;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,32 +49,44 @@ public class CgmesBoundaryService {
 
     @Autowired
     public CgmesBoundaryService(RestTemplateBuilder builder,
-                              @Value("${backing-services.cgmes-boundary-server.base-uri:http://cgmes-boundary-server/}") String cgmesBoundaryServerBaseUri) {
+                                @Value("${backing-services.cgmes-boundary-server.base-uri:http://cgmes-boundary-server/}") String cgmesBoundaryServerBaseUri) {
         this.cgmesBoundaryServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(cgmesBoundaryServerBaseUri))
-                .build();
+            .build();
     }
 
     public CgmesBoundaryService(RestTemplate restTemplate) {
         this.cgmesBoundaryServerRest = restTemplate;
     }
 
-    public List<BoundaryInfos> getBoundaries() {
+    public List<BoundaryInfos> getLastBoundaries() {
+        List<BoundaryInfos> lastBoundaries = new ArrayList<>();
         String uri = DELIMITER + CGMES_BOUNDARY_API_VERSION + "/boundaries/last";
         try {
-            ResponseEntity<List<Map<String, String>>> responseEntity = cgmesBoundaryServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() { });
+            ResponseEntity<List<Map<String, String>>> responseEntity = cgmesBoundaryServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() {
+            });
             List<Map<String, String>> body = responseEntity.getBody();
             if (body != null) {
-                return body.stream().map(c -> new BoundaryInfos(c.get(ID_KEY),
-                        c.get(FILE_NAME_KEY),
-                        c.get(BOUNDARY_KEY)))
-                        .collect(Collectors.toList());
+                lastBoundaries = body.stream().map(c -> new BoundaryInfos(c.get(ID_KEY),
+                    c.get(FILE_NAME_KEY),
+                    c.get(BOUNDARY_KEY)))
+                    .collect(Collectors.toList());
             } else {
                 LOGGER.error("Error searching boundaries: body is null {}", responseEntity);
             }
         } catch (HttpStatusCodeException e) {
             LOGGER.error("Error searching boundaries: {}", e.getMessage());
         }
-        return Collections.emptyList();
+        if (lastBoundaries.size() < 2) {
+            throw new PowsyblException("No last boundaries available !!!");
+        }
+        return lastBoundaries;
     }
 
+    public static List<FileInfos> getFileInfosBoundaries(List<BoundaryInfos> boundaryInfos) {
+        List<FileInfos> boundaries = new ArrayList<>();
+        for (BoundaryInfos boundary : boundaryInfos) {
+            boundaries.add(new FileInfos(boundary.getFilename(), boundary.getBoundary().getBytes(StandardCharsets.UTF_8)));
+        }
+        return boundaries;
+    }
 }
