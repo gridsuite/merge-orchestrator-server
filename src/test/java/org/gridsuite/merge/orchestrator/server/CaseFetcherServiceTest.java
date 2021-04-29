@@ -54,7 +54,7 @@ public class CaseFetcherServiceTest {
 
     @Before
     public void setUp() {
-        caseFetcherService = new CaseFetcherService(caseServerRest, networkStoreService);
+        caseFetcherService = new CaseFetcherService(caseServerRest);
 
         listCases = new ArrayList<>();
         listCases.add(Map.of("name", "20200702_0030_2D1_FR1.zip", "uuid", caseUuid1.toString(), "format", "CGMES", "tso", "FR", "businessProcess", "1D"));

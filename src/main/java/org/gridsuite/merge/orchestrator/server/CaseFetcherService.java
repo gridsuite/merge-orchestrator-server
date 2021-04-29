@@ -43,20 +43,14 @@ public class CaseFetcherService {
 
     private RestTemplate caseServerRest;
 
-    private NetworkStoreService networkStoreService;
-
     @Autowired
-    public CaseFetcherService(NetworkStoreService networkStoreService,
-                              RestTemplateBuilder builder,
+    public CaseFetcherService(RestTemplateBuilder builder,
                               @Value("${backing-services.case-server.base-uri:http://case-server/}") String caseServerBaseUri) {
-        this.networkStoreService = networkStoreService;
-        this.caseServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseServerBaseUri))
-                .build();
+        this.caseServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseServerBaseUri)).build();
     }
 
-    public CaseFetcherService(RestTemplate restTemplate, NetworkStoreService networkStoreService) {
+    public CaseFetcherService(RestTemplate restTemplate) {
         this.caseServerRest = restTemplate;
-        this.networkStoreService = networkStoreService;
     }
 
     private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {

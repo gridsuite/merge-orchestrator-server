@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.PowsyblException;
 import org.apache.commons.io.FilenameUtils;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
@@ -19,6 +20,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.ByteArrayInputStream;
@@ -33,6 +35,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -182,7 +185,21 @@ public class NetworkConversionServiceTest {
             argThat(matcher),
             eq(NetworkInfos.class)
         )).thenReturn(ResponseEntity.ok(new NetworkInfos(networkUuid, networkId)));
-
         assertEquals(networkUuid, networkConversionService.importCase(caseUuid, boundaries));
+
+        // errors tests
+        when(networkConversionServerRest.exchange(anyString(),
+            eq(HttpMethod.POST),
+            argThat(matcher),
+            eq(NetworkInfos.class)
+        )).thenReturn(ResponseEntity.ok(null));
+        assertThrows(PowsyblException.class, () -> networkConversionService.importCase(caseUuid, boundaries));
+
+        when(networkConversionServerRest.exchange(anyString(),
+            eq(HttpMethod.POST),
+            argThat(matcher),
+            eq(NetworkInfos.class)
+        )).thenThrow(RestClientException.class);
+        assertThrows(PowsyblException.class, () -> networkConversionService.importCase(caseUuid, boundaries));
     }
 }
