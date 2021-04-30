@@ -147,8 +147,8 @@ public class NetworkConversionService {
     }
 
     public UUID importCase(UUID caseUuid, List<BoundaryInfos> boundaries) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/cgmes");
-        String uri = uriBuilder.queryParam("caseUuid", caseUuid.toString()).build().toUriString();
+        var uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/cgmes");
+        var uri = uriBuilder.queryParam("caseUuid", caseUuid.toString()).build().toUriString();
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
