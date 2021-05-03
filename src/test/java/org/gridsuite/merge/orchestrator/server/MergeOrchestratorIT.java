@@ -6,18 +6,13 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.iidm.network.NetworkFactory;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.stream.IntStream;
 
+import com.powsybl.iidm.network.NetworkFactory;
+import com.powsybl.iidm.network.ValidationException;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.merge.orchestrator.server.dto.*;
@@ -45,9 +40,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.stream.IntStream;
-
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -110,6 +107,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
     private static final UUID UUID_CASE_ID_ES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
     private static final UUID UUID_NETWORK_ID_ES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
+    private static final UUID UUID_CASE_ID_ES_VALIDATION_FAILED = UUID.fromString("0c36a4e9-3e91-4e4b-811d-b034e2f3d489");
+    private static final UUID UUID_CASE_ID_ES_IMPORT_ERROR = UUID.fromString("0c36a4e9-3e91-4e4b-811d-b034e2f3d490");
 
     private static final UUID UUID_CASE_ID_PT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
     private static final UUID UUID_NETWORK_ID_PT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
@@ -139,6 +138,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(UUID_NETWORK_ID_PT);
         Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_PT_1), any()))
                 .thenReturn(UUID_NETWORK_ID_PT_1);
+        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_ES_VALIDATION_FAILED), any()))
+                .thenReturn(UUID_CASE_ID_ES_VALIDATION_FAILED);
+        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_ES_IMPORT_ERROR), any()))
+                .thenThrow(new ValidationException(UUID_CASE_ID_ES_IMPORT_ERROR::toString, "Inconsistent voltage limit range"));
 
         Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_FR, PreloadingStrategy.COLLECTION))
                 .thenReturn(networkFactory.createNetwork("fr", "iidm"));
@@ -146,6 +149,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(networkFactory.createNetwork("es", "iidm"));
         Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_PT, PreloadingStrategy.COLLECTION))
                 .thenReturn(networkFactory.createNetwork("pt", "iidm"));
+        Mockito.when(networkStoreService.getNetwork(UUID_CASE_ID_ES_VALIDATION_FAILED, PreloadingStrategy.COLLECTION))
+                .thenReturn(networkFactory.createNetwork("es", "iidm"));
 
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR))
                 .thenReturn(true);
@@ -155,6 +160,10 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(true);
         Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT_1))
                 .thenReturn(true);
+        Mockito.when(igmQualityCheckService.check(UUID_CASE_ID_ES_VALIDATION_FAILED))
+                .thenReturn(false);
+        Mockito.when(igmQualityCheckService.check(UUID_CASE_ID_ES_IMPORT_ERROR))
+                .thenReturn(false);
 
         Mockito.when(loadFlowService.run(any()))
             .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
@@ -166,8 +175,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
 
         // send first tso FR with business process = 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-            .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
-                new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
+                .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
+                        new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
 
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
@@ -294,8 +303,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process SWE_2D and FRES_2D)
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-            .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
-                new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
+                .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
+                        new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
 
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D")));
@@ -452,7 +461,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals("[MergeEntity(key=MergeEntityKey(process=SWE_2D, date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(process=FRES_2D, date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
         assertEquals("[IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=SWE_2D, date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e6, caseUuid=7928181c-7977-4592-ba19-88027e4254e6, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e5, caseUuid=7928181c-7977-4592-ba19-88027e4254e5, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71]), IgmEntity(key=IgmEntityKey(process=FRES_2D, date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=7928181c-7977-4592-ba19-88027e4254e4, caseUuid=7928181c-7977-4592-ba19-88027e4254e4, replacingDate=null, replacingBusinessProcess=null, boundaries=[f1582c44-d9e2-4ea0-afdc-dba189ab4358, 3e3f7738-aab9-4284-a965-71d5cd151f71])]",
-            igmRepository.findAll().toString());
+                igmRepository.findAll().toString());
 
         mergeOrchestratorConfigService.deleteConfig("SWE_2D");
 
@@ -469,12 +478,16 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     }
 
     private void testImportIgmMessages(int nbOfTimes, boolean withMerge) {
+        testImportIgmMessages(nbOfTimes, withMerge, true);
+    }
+
+    private void testImportIgmMessages(int nbOfTimes, boolean withMerge, boolean withValidationSucceed) {
         IntStream.range(0, nbOfTimes).forEach(i ->
                 assertEquals("AVAILABLE", output.receive(1000).getHeaders().get("status"))
         );
 
         IntStream.range(0, nbOfTimes).forEach(i ->
-                assertEquals("VALIDATION_SUCCEED", output.receive(1000).getHeaders().get("status"))
+                assertEquals(withValidationSucceed ? "VALIDATION_SUCCEED" : "VALIDATION_FAILED", output.receive(1000).getHeaders().get("status"))
         );
 
         if (withMerge) {
@@ -528,6 +541,76 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         assertEquals(4, igmRepository.findAll().size());
 
         mergeOrchestratorConfigService.deleteConfig("FRPT_2D");
+        assertEquals(1, mergeRepository.findAll().size());
+        assertEquals(2, igmRepository.findAll().size());
+
+        mergeOrchestratorConfigService.deleteConfig("FRES_2D");
+        assertEquals(0, mergeRepository.findAll().size());
+        assertEquals(0, igmRepository.findAll().size());
+
+        assertNull(output.receive(1000));
+    }
+
+    @Test
+    public void testDeleteIgmMergeWithImportError() {
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
+
+        // send tsos FR, ES and PT with business process = 2D
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "FR")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        // send tso ES with import network error
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "ES")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_ES_IMPORT_ERROR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        testImportIgmMessages(1, false);
+        testImportIgmMessages(1, false, false);
+
+        assertEquals(1, mergeRepository.findAll().size());
+        assertEquals(2, igmRepository.findAll().size());
+
+        mergeOrchestratorConfigService.deleteConfig("FRES_2D");
+        assertEquals(0, mergeRepository.findAll().size());
+        assertEquals(0, igmRepository.findAll().size());
+
+        assertNull(output.receive(1000));
+    }
+
+    @Test
+    public void  testDeleteIgmMergeWithValidationFailed() {
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig("FRES_2D", "2D", List.of("FR", "ES"), false));
+
+        // send tsos FR, ES and PT with business process = 2D
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "FR")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        // send tso ES with import network error
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "ES")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_ES_VALIDATION_FAILED.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        testImportIgmMessages(1, false);
+        testImportIgmMessages(1, false, false);
+
         assertEquals(1, mergeRepository.findAll().size());
         assertEquals(2, igmRepository.findAll().size());
 
@@ -717,8 +800,8 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
         igmRepository.insert(new IgmEntity(new IgmEntityKey("SWE_2D", dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_PT, null, null, null, null));
 
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-            .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
-                new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
+                .thenReturn(List.of(new BoundaryInfos("f1582c44-d9e2-4ea0-afdc-dba189ab4358", "boundary1.xml", "fake content for boundary 1"),
+                        new BoundaryInfos("3e3f7738-aab9-4284-a965-71d5cd151f71", "boundary1.xml", "fake content for boundary 2")));
 
         // 1 - test replacing ES igm (at dateTime : 2019-05_01T12:30:00Z)
         //
