@@ -14,6 +14,7 @@ import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
@@ -24,7 +25,7 @@ import java.time.LocalDateTime;
 public class IgmEntityKey implements Serializable {
 
     @PrimaryKeyColumn(ordinal = 0, type = PrimaryKeyType.PARTITIONED)
-    private String process;
+    private UUID processUuid;
 
     @PrimaryKeyColumn(ordinal = 1, type = PrimaryKeyType.CLUSTERED)
     private LocalDateTime date;
@@ -32,8 +33,8 @@ public class IgmEntityKey implements Serializable {
     @PrimaryKeyColumn(ordinal = 2, type = PrimaryKeyType.CLUSTERED)
     private String tso;
 
-    public IgmEntityKey(String process, LocalDateTime date, String tso) {
-        this.process = process;
+    public IgmEntityKey(UUID processUuid, LocalDateTime date, String tso) {
+        this.processUuid = processUuid;
         this.date = date;
         this.tso = tso;
     }

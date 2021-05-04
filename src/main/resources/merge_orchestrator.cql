@@ -1,5 +1,5 @@
 CREATE TABLE merge_orchestrator.merge_igm (
-    process text,
+    processuuid uuid,
     date timestamp,
     tso text,
     status text,
@@ -8,20 +8,21 @@ CREATE TABLE merge_orchestrator.merge_igm (
     replacingDate timestamp,
     replacingBusinessProcess text,
     boundaries frozen<List<uuid>>,
-    PRIMARY KEY (process, date, tso)
+    PRIMARY KEY (processuuid, date, tso)
 );
 
 CREATE TABLE merge_orchestrator.merge (
-    process text,
+    processuuid uuid,
     date timestamp,
     status text,
-    PRIMARY KEY (process, date)
+    PRIMARY KEY (processuuid, date)
 );
 
 CREATE TABLE merge_orchestrator.configs (
+    processuuid uuid,
     process text,
     businessProcess text,
     tsos frozen<List<text>>,
     runBalancesAdjustment boolean,
-    PRIMARY KEY (process)
+    PRIMARY KEY (processuuid)
 );

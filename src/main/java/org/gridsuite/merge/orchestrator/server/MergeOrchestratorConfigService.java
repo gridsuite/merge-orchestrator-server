@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -45,29 +46,29 @@ public class MergeOrchestratorConfigService {
         return processConfigRepository.findAll().stream().map(this::toProcessConfig).collect(Collectors.toList());
     }
 
-    Optional<ProcessConfig> getConfig(String process) {
-        return processConfigRepository.findById(process).map(this::toProcessConfig);
+    Optional<ProcessConfig> getConfig(UUID processUuid) {
+        return processConfigRepository.findById(processUuid).map(this::toProcessConfig);
     }
 
     void addConfig(ProcessConfig processConfig) {
         processConfigRepository.save(toProcessConfigEntity(processConfig));
     }
 
-    public void deleteConfig(String process) {
-        igmRepository.findByProcess(process).stream()
-                .map(IgmEntity::getNetworkUuid)
+    public void deleteConfig(UUID processUuid) {
+        igmRepository.findByProcessUuid(processUuid).stream()
                 .filter(Objects::nonNull)
+                .map(IgmEntity::getNetworkUuid)
                 .forEach(networkStoreService::deleteNetwork);
-        igmRepository.deleteByProcess(process);
-        mergeRepository.deleteByProcess(process);
-        processConfigRepository.deleteById(process);
+        igmRepository.deleteByProcessUuid(processUuid);
+        mergeRepository.deleteByProcessUuid(processUuid);
+        processConfigRepository.deleteById(processUuid);
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
-        return new ProcessConfig(processConfigEntity.getProcess(), processConfigEntity.getBusinessProcess(), processConfigEntity.getTsos(), processConfigEntity.isRunBalancesAdjustment());
+        return new ProcessConfig(processConfigEntity.getProcessUuid(), processConfigEntity.getProcess(), processConfigEntity.getBusinessProcess(), processConfigEntity.getTsos(), processConfigEntity.isRunBalancesAdjustment());
     }
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        return new ProcessConfigEntity(processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
+        return new ProcessConfigEntity(processConfig.getProcessUuid() == null ? UUID.randomUUID() : processConfig.getProcessUuid(), processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
     }
 }

@@ -13,6 +13,7 @@ import org.hamcrest.TypeSafeMatcher;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Slimane Amar <slimane.amar at rte-france.com>
@@ -21,13 +22,13 @@ public class MatcherMerge extends TypeSafeMatcher<Merge> {
 
     Merge reference;
 
-    public MatcherMerge(String process, ZonedDateTime date, MergeStatus status) {
-        this.reference = new Merge(process, date, status, List.of());
+    public MatcherMerge(UUID processUuid, ZonedDateTime date, MergeStatus status) {
+        this.reference = new Merge(processUuid, date, status, List.of());
     }
 
     @Override
     public boolean matchesSafely(Merge m) {
-        return reference.getProcess().equals(m.getProcess()) &&
+        return reference.getProcessUuid().equals(m.getProcessUuid()) &&
                 reference.getDate().equals(m.getDate()) &&
                 reference.getStatus().equals(m.getStatus());
     }

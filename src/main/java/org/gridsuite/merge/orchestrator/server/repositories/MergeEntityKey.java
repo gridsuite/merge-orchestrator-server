@@ -14,6 +14,7 @@ import org.springframework.data.cassandra.core.mapping.PrimaryKeyColumn;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
@@ -24,13 +25,13 @@ import java.time.LocalDateTime;
 public class MergeEntityKey implements Serializable {
 
     @PrimaryKeyColumn(ordinal = 0, type = PrimaryKeyType.PARTITIONED)
-    private String process;
+    private UUID processUuid;
 
     @PrimaryKeyColumn(ordinal = 1, type = PrimaryKeyType.CLUSTERED)
     private LocalDateTime date;
 
-    public MergeEntityKey(String process, LocalDateTime date) {
-        this.process = process;
+    public MergeEntityKey(UUID processUuid, LocalDateTime date) {
+        this.processUuid = processUuid;
         this.date = date;
     }
 }
