@@ -6,6 +6,17 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.network.store.client.NetworkStoreService;
 import groovy.lang.Binding;
@@ -25,17 +36,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-
-import java.io.InputStreamReader;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import static org.gridsuite.merge.orchestrator.server.dto.ProcessConfig.ACCEPTED_FORMAT;
 
@@ -144,28 +144,34 @@ public class MergeOrchestratorService {
 
                 // if already received delete old network
                 Optional<IgmEntity> igmEntityOptional = igmRepository.findByProcessUuidAndDateAndTso(processConfig.getProcessUuid(), LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC), tso);
-                igmEntityOptional.ifPresent(igmEntity -> networkStoreService.deleteNetwork(igmEntity.getNetworkUuid()));
+                igmEntityOptional.map(IgmEntity::getNetworkUuid).filter(Objects::nonNull).ifPresent(networkStoreService::deleteNetwork);
 
                 mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null, null);
             });
 
             if (!matchingProcessConfigList.isEmpty()) {
-                // import IGM into the network store
-                List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
-                UUID networkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
-                List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
-
-                LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
-
-                // check IGM quality
-                boolean valid = igmQualityCheckService.check(networkUuid);
-
-                merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null, lastBoundariesUuid);
-
-                for (ProcessConfig processConfig : matchingProcessConfigList.subList(1, matchingProcessConfigList.size())) {
+                try {
                     // import IGM into the network store
-                    UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
-                    merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, null, null, lastBoundariesUuid);
+                    List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
+                    UUID networkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
+                    List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
+
+                    LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
+
+                    // check IGM quality
+                    boolean valid = igmQualityCheckService.check(networkUuid);
+
+                    merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null, lastBoundariesUuid);
+
+                    for (ProcessConfig processConfig : matchingProcessConfigList.subList(1, matchingProcessConfigList.size())) {
+                        // import IGM into the network store
+                        UUID processConfigNetworkUuid = caseFetcherService.importCase(caseUuid, lastBoundaries);
+                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, null, null, lastBoundariesUuid);
+                    }
+                } catch (Exception e) {
+                    ProcessConfig processConfig = matchingProcessConfigList.get(0);
+                    mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.VALIDATION_FAILED, null, null, null, null, null);
+                    throw e;
                 }
             }
         } catch (Exception e) {
