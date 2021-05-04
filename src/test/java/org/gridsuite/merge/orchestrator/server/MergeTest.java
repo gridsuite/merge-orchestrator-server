@@ -14,6 +14,7 @@ import org.junit.Test;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -23,11 +24,13 @@ import static org.junit.Assert.assertNull;
  */
 public class MergeTest {
 
+    private static final UUID SWE_1D_UUID = UUID.fromString("11111111-f60e-4766-bc5c-8f312c1984e4");
+
     @Test
     public void test() {
         ZonedDateTime date = ZonedDateTime.now();
-        Merge merge1 = new Merge("SWE 1D", date, MergeStatus.LOADFLOW_FAILED, Collections.singletonList(new Igm("FR", IgmStatus.AVAILABLE, null, null)));
-        assertEquals("SWE 1D", merge1.getProcess());
+        Merge merge1 = new Merge(SWE_1D_UUID, date, MergeStatus.LOADFLOW_FAILED, Collections.singletonList(new Igm("FR", IgmStatus.AVAILABLE, null, null)));
+        assertEquals(SWE_1D_UUID, merge1.getProcessUuid());
         assertEquals(date, merge1.getDate());
         assertEquals(MergeStatus.LOADFLOW_FAILED, merge1.getStatus());
         assertEquals(1, merge1.getIgms().size());
@@ -37,7 +40,7 @@ public class MergeTest {
         assertNull(merge1.getIgms().get(0).getReplacingBusinessProcess());
 
         Merge mergeinfos2 = new Merge();
-        assertNull(mergeinfos2.getProcess());
+        assertNull(mergeinfos2.getProcessUuid());
         assertNull(mergeinfos2.getDate());
         assertNull(mergeinfos2.getStatus());
         assertNull(mergeinfos2.getIgms());

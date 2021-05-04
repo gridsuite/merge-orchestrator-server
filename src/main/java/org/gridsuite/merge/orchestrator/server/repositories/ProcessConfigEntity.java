@@ -11,6 +11,7 @@ import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com
@@ -21,6 +22,8 @@ import java.util.List;
 public class ProcessConfigEntity {
 
     @PrimaryKey
+    private UUID processUuid;
+
     private String process;
 
     private String businessProcess;
@@ -29,7 +32,8 @@ public class ProcessConfigEntity {
 
     private boolean runBalancesAdjustment;
 
-    public ProcessConfigEntity(String process, String businessProcess, List<String> tsos, boolean runBalancesAdjustment) {
+    public ProcessConfigEntity(UUID processUuid, String process, String businessProcess, List<String> tsos, boolean runBalancesAdjustment) {
+        this.processUuid = processUuid;
         this.process = process;
         this.businessProcess = businessProcess;
         this.tsos = tsos;

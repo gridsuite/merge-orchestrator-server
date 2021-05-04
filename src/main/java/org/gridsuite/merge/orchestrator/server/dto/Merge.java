@@ -14,6 +14,7 @@ import lombok.ToString;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -26,7 +27,7 @@ import java.util.List;
 @ApiModel("Merge attributes")
 public class Merge {
 
-    String process;
+    UUID processUuid;
 
     ZonedDateTime date;
 

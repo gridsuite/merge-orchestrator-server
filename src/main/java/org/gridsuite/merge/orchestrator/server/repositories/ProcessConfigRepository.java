@@ -9,9 +9,11 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 import org.springframework.data.cassandra.repository.CassandraRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 /**
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com
  */
 @Repository
-public interface ProcessConfigRepository extends CassandraRepository<ProcessConfigEntity, String> {
+public interface ProcessConfigRepository extends CassandraRepository<ProcessConfigEntity, UUID> {
 }

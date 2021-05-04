@@ -14,6 +14,7 @@ import org.hamcrest.TypeSafeMatcher;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * @author Slimane Amar <slimane.amar at rte-france.com>
@@ -22,13 +23,13 @@ public class MatcherMergeEntity extends TypeSafeMatcher<MergeEntity> {
 
     MergeEntity reference;
 
-    public MatcherMergeEntity(String process, LocalDateTime date, MergeStatus status) {
-        this.reference = new MergeEntity(new MergeEntityKey(process, date), status == null ? null : status.name());
+    public MatcherMergeEntity(UUID processUuid, LocalDateTime date, MergeStatus status) {
+        this.reference = new MergeEntity(new MergeEntityKey(processUuid, date), status == null ? null : status.name());
     }
 
     @Override
     public boolean matchesSafely(MergeEntity m) {
-        return reference.getKey().getProcess().equals(m.getKey().getProcess()) &&
+        return reference.getKey().getProcessUuid().equals(m.getKey().getProcessUuid()) &&
                 reference.getKey().getDate().equals(m.getKey().getDate()) &&
                 Objects.equals(reference.getStatus(), m.getStatus());
     }
