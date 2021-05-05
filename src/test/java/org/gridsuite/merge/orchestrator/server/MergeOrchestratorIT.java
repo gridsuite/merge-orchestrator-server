@@ -137,17 +137,17 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
-        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_FR), any()))
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_FR), any()))
                 .thenReturn(UUID_NETWORK_ID_FR);
-        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_ES), any()))
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_ES), any()))
                 .thenReturn(UUID_NETWORK_ID_ES);
-        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_PT), any()))
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_PT), any()))
                 .thenReturn(UUID_NETWORK_ID_PT);
-        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_PT_1), any()))
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_PT_1), any()))
                 .thenReturn(UUID_NETWORK_ID_PT_1);
-        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_ES_VALIDATION_FAILED), any()))
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_ES_VALIDATION_FAILED), any()))
                 .thenReturn(UUID_CASE_ID_ES_VALIDATION_FAILED);
-        Mockito.when(caseFetcherService.importCase(eq(UUID_CASE_ID_ES_IMPORT_ERROR), any()))
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_ES_IMPORT_ERROR), any()))
                 .thenThrow(new ValidationException(UUID_CASE_ID_ES_IMPORT_ERROR::toString, "Inconsistent voltage limit range"));
 
         Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_FR, PreloadingStrategy.COLLECTION))
@@ -825,7 +825,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(List.of(new CaseInfos("20190501T1230Z_1D_REE_001.zip", uuidReplacingCaseES, "CGMES", "ES", "2D")));
 
         UUID uuidReplacingNetworkES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
-        Mockito.when(caseFetcherService.importCase(eq(uuidReplacingCaseES), any()))
+        Mockito.when(networkConversionService.importCase(eq(uuidReplacingCaseES), any()))
                 .thenReturn(uuidReplacingNetworkES);
 
         Map<String, IgmReplacingInfo> resReplacing = mergeOrchestratorService.replaceIGMs(SWE_2D_UUID, dateTime);
@@ -887,7 +887,7 @@ public class MergeOrchestratorIT extends AbstractEmbeddedCassandraSetup {
                 .thenReturn(List.of(new CaseInfos("20190501T1730Z_1D_REN_001.zip", uuidReplacingCasePT, "CGMES", "PT", "2D")));
 
         UUID uuidReplacingNetworkPT = UUID.fromString("7928181c-7977-4592-ba19-88027e4254f2");
-        Mockito.when(caseFetcherService.importCase(eq(uuidReplacingCasePT), any()))
+        Mockito.when(networkConversionService.importCase(eq(uuidReplacingCasePT), any()))
                 .thenReturn(uuidReplacingNetworkPT);
 
         resReplacing = mergeOrchestratorService.replaceIGMs(SWE_2D_UUID, dateTime);

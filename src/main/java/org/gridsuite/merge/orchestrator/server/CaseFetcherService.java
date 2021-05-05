@@ -6,16 +6,12 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.cases.datasource.CaseDataSourceClient;
-import com.powsybl.iidm.network.Network;
-
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import com.powsybl.network.store.client.NetworkStoreService;
-import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.slf4j.Logger;
@@ -47,20 +43,14 @@ public class CaseFetcherService {
 
     private RestTemplate caseServerRest;
 
-    private NetworkStoreService networkStoreService;
-
     @Autowired
-    public CaseFetcherService(NetworkStoreService networkStoreService,
-                              RestTemplateBuilder builder,
+    public CaseFetcherService(RestTemplateBuilder builder,
                               @Value("${backing-services.case-server.base-uri:http://case-server/}") String caseServerBaseUri) {
-        this.networkStoreService = networkStoreService;
-        this.caseServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseServerBaseUri))
-                .build();
+        this.caseServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseServerBaseUri)).build();
     }
 
-    public CaseFetcherService(RestTemplate restTemplate, NetworkStoreService networkStoreService) {
+    public CaseFetcherService(RestTemplate restTemplate) {
         this.caseServerRest = restTemplate;
-        this.networkStoreService = networkStoreService;
     }
 
     private String getSearchQuery(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {
@@ -107,11 +97,5 @@ public class CaseFetcherService {
             cases.add(new FileInfos(fileName, responseEntity.getBody()));
         }
         return cases;
-    }
-
-    public UUID importCase(UUID caseUuid, List<BoundaryInfos> boundaries) {
-        CaseDataSourceClient dataSource = new CgmesCaseDataSourceClient(caseServerRest, caseUuid, boundaries);
-        Network network = networkStoreService.importNetwork(dataSource);
-        return networkStoreService.getNetworkUuid(network);
     }
 }

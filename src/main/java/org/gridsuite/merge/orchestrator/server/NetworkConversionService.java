@@ -6,8 +6,11 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.PowsyblException;
 import org.apache.commons.io.FilenameUtils;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
+import org.gridsuite.merge.orchestrator.server.dto.NetworkInfos;
 import org.gridsuite.merge.orchestrator.server.utils.CgmesUtils;
 import org.gridsuite.merge.orchestrator.server.utils.SecuredZipInputStream;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +18,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -31,6 +37,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * @author Nicolas Noir <nicolas.noir at rte-france.com>
  * @author Etienne Homer <etienne.homer at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
 public class NetworkConversionService {
@@ -137,5 +144,29 @@ public class NetworkConversionService {
         uri += networksIds.stream().skip(1).map(s -> "networkUuid=" + s.toString()).collect(Collectors.joining("&"));
         ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networksIds.get(0).toString(), CGMES_FORMAT);
         return new FileInfos(baseFileName.concat(UNDERSCORE + SV_PROFILE + UNDERSCORE + FILE_VERSION + XML_EXTENSION), responseEntity.getBody());
+    }
+
+    public UUID importCase(UUID caseUuid, List<BoundaryInfos> boundaries) {
+        var uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/cgmes");
+        var uri = uriBuilder.queryParam("caseUuid", caseUuid.toString()).build().toUriString();
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<List<BoundaryInfos>> requestEntity = new HttpEntity<>(boundaries, headers);
+
+        try {
+            ResponseEntity<NetworkInfos> responseEntity = networkConversionServerRest.exchange(uri,
+                HttpMethod.POST,
+                requestEntity,
+                NetworkInfos.class);
+            NetworkInfos infos = responseEntity.getBody();
+            if (infos != null) {
+                return infos.getNetworkUuid();
+            } else {
+                throw new PowsyblException("Error importing case " + caseUuid + " with boundaries !!");
+            }
+        } catch (RestClientException e) {
+            throw new PowsyblException("Error importing case " + caseUuid + " with boundaries !!");
+        }
     }
 }
