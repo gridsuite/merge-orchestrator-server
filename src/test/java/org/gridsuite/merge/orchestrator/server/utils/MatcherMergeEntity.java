@@ -29,8 +29,8 @@ public class MatcherMergeEntity extends TypeSafeMatcher<MergeEntity> {
 
     @Override
     public boolean matchesSafely(MergeEntity m) {
-        return reference.getKey().getProcessUuid().equals(m.getKey().getProcessUuid()) &&
-                reference.getKey().getDate().equals(m.getKey().getDate()) &&
+        return reference.getProcessUuid().equals(m.getProcessUuid()) &&
+                reference.getDate().equals(m.getDate()) &&
                 Objects.equals(reference.getStatus(), m.getStatus());
     }
 

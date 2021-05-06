@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @WebMvcTest(MergeOrchestratorController.class)
 @ContextConfiguration(classes = {MergeOrchestratorApplication.class})
-public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedCassandraSetup {
+public class MergeOrchestratorControllerReplaceIGMTest {
     @Autowired
     private MockMvc mvc;
 
@@ -65,6 +65,12 @@ public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedC
 
     @MockBean
     private NetworkConversionService networkConversionService;
+
+    @MockBean
+    private MergeOrchestratorConfigService mergeOrchestratorConfigService;
+
+    @MockBean
+    private MergeEventService mergeEventService;
 
     @MockBean
     private MergeOrchestratorService mergeOrchestratorService;

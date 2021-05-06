@@ -54,7 +54,7 @@ public class MergeEventService {
 
     public void addMergeIgmEvent(UUID processUuid, String businessProcess, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid, UUID caseUuid,
                                  ZonedDateTime replacingDate, String replacingBusinessProcess, List<UUID> boundaries) {
-        // Use of UTC Zone to store in cassandra database
+        // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         LocalDateTime localReplacingDateTime = replacingDate != null ? LocalDateTime.ofInstant(replacingDate.toInstant(), ZoneOffset.UTC) : null;
 
@@ -72,7 +72,7 @@ public class MergeEventService {
     }
 
     public void addMergeEvent(UUID processUuid, String businessProcess, ZonedDateTime date, MergeStatus status) {
-        // Use of UTC Zone to store in cassandra database
+        // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
         mergeInfosPublisher.onNext(MessageBuilder

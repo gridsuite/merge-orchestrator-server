@@ -9,7 +9,9 @@ package org.gridsuite.merge.orchestrator.server;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +34,10 @@ public class MergeOrchestratorConfigService {
 
     private final NetworkStoreService networkStoreService;
 
+    // Self injection for @transactional support in internal calls to other methods of this service
+    @Autowired
+    MergeOrchestratorConfigService self;
+
     public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository,
                                           IgmRepository igmRepository,
                                           MergeRepository mergeRepository,
@@ -42,18 +48,37 @@ public class MergeOrchestratorConfigService {
         this.networkStoreService = networkStoreService;
     }
 
-    List<ProcessConfig> getConfigs() {
-        return processConfigRepository.findAll().stream().map(this::toProcessConfig).collect(Collectors.toList());
+    public List<ProcessConfig> getConfigs() {
+        return self.doGetConfigs().stream().map(this::toProcessConfig).collect(Collectors.toList());
     }
 
-    Optional<ProcessConfig> getConfig(UUID processUuid) {
-        return processConfigRepository.findById(processUuid).map(this::toProcessConfig);
+    @Transactional(readOnly = true)
+    public List<ProcessConfigEntity> doGetConfigs() {
+        return processConfigRepository.findAll().stream().map(entity -> {
+            @SuppressWarnings("unused")
+            int ignoreSize = entity.getTsos().size();
+            return entity;
+        }).collect(Collectors.toList());
+    }
+
+    public Optional<ProcessConfig> getConfig(UUID processUuid) {
+        return self.doGetConfig(processUuid).map(this::toProcessConfig);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ProcessConfigEntity> doGetConfig(UUID processUuid) {
+        return processConfigRepository.findById(processUuid).map(entity -> {
+            @SuppressWarnings("unused")
+            int ignoreSize = entity.getTsos().size();
+            return entity;
+        });
     }
 
     void addConfig(ProcessConfig processConfig) {
         processConfigRepository.save(toProcessConfigEntity(processConfig));
     }
 
+    @Transactional
     public void deleteConfig(UUID processUuid) {
         igmRepository.findByProcessUuid(processUuid).stream()
                 .filter(Objects::nonNull)

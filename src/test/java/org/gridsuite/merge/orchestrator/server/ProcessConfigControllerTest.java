@@ -14,8 +14,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,9 +35,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @RunWith(SpringRunner.class)
-@WebMvcTest(ProcessConfigController.class)
-@ContextConfiguration(classes = {ProcessConfigController.class})
-public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup {
+@SpringBootTest
+@AutoConfigureMockMvc
+@ContextConfiguration(classes = {MergeOrchestratorApplication.class})
+public class ProcessConfigControllerTest {
     @Autowired
     private MockMvc mvc;
 
@@ -49,24 +50,6 @@ public class ProcessConfigControllerTest extends AbstractEmbeddedCassandraSetup 
 
     @Autowired
     IgmRepository igmRepository;
-
-    @MockBean
-    private IgmQualityCheckService igmQualityCheckService;
-
-    @MockBean
-    private CaseFetcherService caseFetcherService;
-
-    @MockBean
-    private BalancesAdjustmentService balancesAdjustmentService;
-
-    @MockBean
-    private CgmesBoundaryService cgmesBoundaryService;
-
-    @MockBean
-    private LoadFlowService loadFlowService;
-
-    @MockBean
-    private NetworkConversionService networkConversionService;
 
     private List<String> tsos = new ArrayList<>();
 

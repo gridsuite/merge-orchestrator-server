@@ -8,25 +8,44 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.Getter;
 import lombok.ToString;
-import org.springframework.data.cassandra.core.mapping.PrimaryKey;
-import org.springframework.data.cassandra.core.mapping.Table;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.IdClass;
+import javax.persistence.Table;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * @author Jon harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
+@Entity
 @Getter
 @ToString
-@Table("merge")
-public class MergeEntity {
+@Table(name = "merge")
+@IdClass(MergeEntityKey.class)
+public class MergeEntity implements Serializable {
 
-    @PrimaryKey
-    private MergeEntityKey key;
+    @Id
+    @Column(name = "processUuid")
+    private UUID processUuid;
 
+    @Id
+    @Column(name = "date")
+    private LocalDateTime date;
+
+    @Column(name = "status")
     private String status;
 
+    public MergeEntity() {
+    }
+
     public MergeEntity(MergeEntityKey key, String status) {
-        this.key = key;
+        this.processUuid = key.getProcessUuid();
+        this.date = key.getDate();
         this.status = status;
     }
 }
