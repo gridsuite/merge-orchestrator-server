@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -268,14 +267,14 @@ public class MergeOrchestratorService {
     }
 
     List<Merge> getMerges(UUID processUuid) {
-        Map<ZonedDateTime, Merge> mergesByDate = mergeRepository.findByProcessUuid(processUuid).stream()
-                .map(MergeOrchestratorService::toMerge)
-                .collect(Collectors.toMap(Merge::getDate, merge -> merge, (v1, v2) -> {
-                    throw new IllegalStateException();
-                }, TreeMap::new));
-        for (IgmEntity entity : igmRepository.findByProcessUuid(processUuid)) {
-            var date = ZonedDateTime.ofInstant(entity.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-            mergesByDate.get(date).getIgms().add(toIgm(entity));
+        Map<ZonedDateTime, Merge> mergesByDate = new HashMap<>();
+        List<MergeRepository.MergeIgm> mergeIgms = mergeRepository.findMergeWithIgmsByProcessUuid(processUuid);
+        for (MergeRepository.MergeIgm mergeIgm : mergeIgms) {
+            var date = ZonedDateTime.ofInstant(mergeIgm.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+            if (!mergesByDate.containsKey(date)) {
+                mergesByDate.put(date, toMerge(mergeIgm));
+            }
+            mergesByDate.get(date).getIgms().add(toIgm(mergeIgm));
         }
         return new ArrayList<>(mergesByDate.values());
     }
@@ -283,18 +282,17 @@ public class MergeOrchestratorService {
     List<Merge> getMerges(UUID processUuid, ZonedDateTime minDateTime, ZonedDateTime maxDateTime) {
         LocalDateTime minLocalDateTime = LocalDateTime.ofInstant(minDateTime.toInstant(), ZoneOffset.UTC);
         LocalDateTime maxLocalDateTime = LocalDateTime.ofInstant(maxDateTime.toInstant(), ZoneOffset.UTC);
-        return mergeRepository.findByProcessUuidAndInterval(processUuid, minLocalDateTime, maxLocalDateTime)
-                .stream()
-                .map(MergeOrchestratorService::toMerge)
-                .peek(merge -> {
-                    for (IgmEntity entity : igmRepository.findByProcessUuidAndInterval(processUuid, minLocalDateTime, maxLocalDateTime)) {
-                        var date = ZonedDateTime.ofInstant(entity.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-                        if (merge.getDate().equals(date)) {
-                            merge.getIgms().add(toIgm(entity));
-                        }
-                    }
-                })
-                .collect(Collectors.toList());
+
+        Map<ZonedDateTime, Merge> mergesByDate = new HashMap<>();
+        List<MergeRepository.MergeIgm> mergeIgms = mergeRepository.findMergeWithIgmsByProcessUuidAndInterval(processUuid, minLocalDateTime, maxLocalDateTime);
+        for (MergeRepository.MergeIgm mergeIgm : mergeIgms) {
+            var date = ZonedDateTime.ofInstant(mergeIgm.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+            if (!mergesByDate.containsKey(date)) {
+                mergesByDate.put(date, toMerge(mergeIgm));
+            }
+            mergesByDate.get(date).getIgms().add(toIgm(mergeIgm));
+        }
+        return new ArrayList<>(mergesByDate.values());
     }
 
     FileInfos exportMerge(UUID processUuid, ZonedDateTime processDate, String format) {
@@ -307,15 +305,15 @@ public class MergeOrchestratorService {
         return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
     }
 
-    private static Igm toIgm(IgmEntity entity) {
-        ZonedDateTime replacingDate = entity.getReplacingDate() != null ? ZonedDateTime.ofInstant(entity.getReplacingDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")) : null;
-        return new Igm(entity.getTso(), IgmStatus.valueOf(entity.getStatus()),
-                replacingDate, entity.getReplacingBusinessProcess());
+    private static Igm toIgm(MergeRepository.MergeIgm mergeIgm) {
+        ZonedDateTime replacingDate = mergeIgm.getReplacingDate() != null ? ZonedDateTime.ofInstant(mergeIgm.getReplacingDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")) : null;
+        return new Igm(mergeIgm.getTso(), IgmStatus.valueOf(mergeIgm.getIgmStatus()),
+            replacingDate, mergeIgm.getReplacingBusinessProcess());
     }
 
-    private static Merge toMerge(MergeEntity mergeEntity) {
-        var date = ZonedDateTime.ofInstant(mergeEntity.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-        return new Merge(mergeEntity.getProcessUuid(), date, mergeEntity.getStatus() != null ? MergeStatus.valueOf(mergeEntity.getStatus()) : null, new ArrayList<>());
+    private static Merge toMerge(MergeRepository.MergeIgm merge) {
+        var date = ZonedDateTime.ofInstant(merge.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+        return new Merge(merge.getProcessUuid(), date, merge.getStatus() != null ? MergeStatus.valueOf(merge.getStatus()) : null, new ArrayList<>());
     }
 
     public Map<String, IgmReplacingInfo> replaceIGMs(UUID processUuid, ZonedDateTime processDate) {

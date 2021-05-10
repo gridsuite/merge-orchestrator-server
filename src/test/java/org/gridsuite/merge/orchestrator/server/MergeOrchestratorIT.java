@@ -951,4 +951,51 @@ public class MergeOrchestratorIT {
         assertEquals("FIRST_LOADFLOW_SUCCEED", messageMerge.getHeaders().get("status"));
         assertEquals(SWE_2D_UUID, messageEsIGM.getHeaders().get("processUuid"));
     }
+
+    @Test
+    public void testGetMerges() {
+        ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 8, 30, 0, 0, ZoneId.of("UTC"));
+        ZonedDateTime replacingTime1 = ZonedDateTime.of(2020, 7, 21, 5, 30, 0, 0, ZoneId.of("UTC"));
+        ZonedDateTime replacingTime2 = ZonedDateTime.of(2020, 7, 22, 12, 30, 0, 0, ZoneId.of("UTC"));
+        ZonedDateTime replacingTime3 = ZonedDateTime.of(2020, 7, 15, 17, 30, 0, 0, ZoneId.of("UTC"));
+
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.AVAILABLE.name(), UUID_NETWORK_ID_FR, UUID_CASE_ID_FR, replacingTime1.toLocalDateTime(), "RT", null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_ES, UUID_CASE_ID_ES, replacingTime2.toLocalDateTime(), "2D", null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_PT, UUID_CASE_ID_PT, replacingTime3.toLocalDateTime(), "YR", null));
+
+        // test without date interval
+        List<Merge> merges = mergeOrchestratorService.getMerges(SWE_2D_UUID);
+        assertTrue(merges.isEmpty());
+
+        merges = mergeOrchestratorService.getMerges(SWE_1D_UUID);
+        assertEquals(1, merges.size());
+        assertEquals(SWE_1D_UUID, merges.get(0).getProcessUuid());
+        assertEquals(dateTime, merges.get(0).getDate());
+        assertEquals(MergeStatus.FIRST_LOADFLOW_SUCCEED, merges.get(0).getStatus());
+        assertEquals(3, merges.get(0).getIgms().size());
+        assertEquals("FR", merges.get(0).getIgms().get(0).getTso());
+        assertEquals(IgmStatus.AVAILABLE, merges.get(0).getIgms().get(0).getStatus());
+        assertEquals(replacingTime1, merges.get(0).getIgms().get(0).getReplacingDate());
+        assertEquals("RT", merges.get(0).getIgms().get(0).getReplacingBusinessProcess());
+        assertEquals("ES", merges.get(0).getIgms().get(1).getTso());
+        assertEquals(IgmStatus.VALIDATION_FAILED, merges.get(0).getIgms().get(1).getStatus());
+        assertEquals(replacingTime2, merges.get(0).getIgms().get(1).getReplacingDate());
+        assertEquals("2D", merges.get(0).getIgms().get(1).getReplacingBusinessProcess());
+        assertEquals("PT", merges.get(0).getIgms().get(2).getTso());
+        assertEquals(IgmStatus.VALIDATION_SUCCEED, merges.get(0).getIgms().get(2).getStatus());
+        assertEquals(replacingTime3, merges.get(0).getIgms().get(2).getReplacingDate());
+        assertEquals("YR", merges.get(0).getIgms().get(2).getReplacingBusinessProcess());
+
+        // test with date interval
+        ZonedDateTime minDate = ZonedDateTime.of(2020, 7, 20, 12, 30, 0, 0, ZoneId.of("UTC"));
+        ZonedDateTime maxDate = ZonedDateTime.of(2020, 7, 20, 15, 30, 0, 0, ZoneId.of("UTC"));
+        merges = mergeOrchestratorService.getMerges(SWE_1D_UUID, minDate, maxDate);
+        assertTrue(merges.isEmpty());
+
+        minDate = ZonedDateTime.of(2020, 7, 20, 6, 30, 0, 0, ZoneId.of("UTC"));
+        maxDate = ZonedDateTime.of(2020, 7, 20, 15, 30, 0, 0, ZoneId.of("UTC"));
+        merges = mergeOrchestratorService.getMerges(SWE_1D_UUID, minDate, maxDate);
+        assertEquals(1, merges.size());
+    }
 }

@@ -22,10 +22,27 @@ import java.util.UUID;
 @Repository
 public interface MergeRepository extends JpaRepository<MergeEntity, MergeEntityKey> {
 
-    List<MergeEntity> findByProcessUuid(@Param("processUuid") UUID processUuid);
-
     void deleteByProcessUuid(@Param("processUuid") UUID processUuid);
 
-    @Query(value = "SELECT merge from #{#entityName} as merge where merge.processUuid = :processUuid and merge.date >= :minDate and merge.date <= :maxDate")
-    List<MergeEntity> findByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
+    interface MergeIgm {
+        UUID getProcessUuid();
+
+        LocalDateTime getDate();
+
+        String getStatus();
+
+        String getTso();
+
+        String getIgmStatus();
+
+        LocalDateTime getReplacingDate();
+
+        String getReplacingBusinessProcess();
+    }
+
+    @Query(value = "SELECT m.processUuid AS processUuid, m.date AS date, m.status AS status, igm.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.processUuid = igm.processUuid AND m.date = igm.date WHERE m.processUuid = :processUuid")
+    List<MergeIgm> findMergeWithIgmsByProcessUuid(UUID processUuid);
+
+    @Query(value = "SELECT m.processUuid AS processUuid, m.date AS date, m.status AS status, igm.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.processUuid = igm.processUuid AND m.date = igm.date WHERE m.processUuid = :processUuid and m.date >= :minDate and m.date <= :maxDate")
+    List<MergeIgm> findMergeWithIgmsByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
 }
