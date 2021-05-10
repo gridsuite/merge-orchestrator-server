@@ -271,9 +271,7 @@ public class MergeOrchestratorService {
         List<MergeRepository.MergeIgm> mergeIgms = mergeRepository.findMergeWithIgmsByProcessUuid(processUuid);
         for (MergeRepository.MergeIgm mergeIgm : mergeIgms) {
             var date = ZonedDateTime.ofInstant(mergeIgm.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-            if (!mergesByDate.containsKey(date)) {
-                mergesByDate.put(date, toMerge(mergeIgm));
-            }
+            mergesByDate.computeIfAbsent(date, k -> toMerge(mergeIgm));
             mergesByDate.get(date).getIgms().add(toIgm(mergeIgm));
         }
         return new ArrayList<>(mergesByDate.values());
@@ -287,9 +285,7 @@ public class MergeOrchestratorService {
         List<MergeRepository.MergeIgm> mergeIgms = mergeRepository.findMergeWithIgmsByProcessUuidAndInterval(processUuid, minLocalDateTime, maxLocalDateTime);
         for (MergeRepository.MergeIgm mergeIgm : mergeIgms) {
             var date = ZonedDateTime.ofInstant(mergeIgm.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-            if (!mergesByDate.containsKey(date)) {
-                mergesByDate.put(date, toMerge(mergeIgm));
-            }
+            mergesByDate.computeIfAbsent(date, k -> toMerge(mergeIgm));
             mergesByDate.get(date).getIgms().add(toIgm(mergeIgm));
         }
         return new ArrayList<>(mergesByDate.values());
