@@ -19,7 +19,6 @@ import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.Index;
 import javax.persistence.Table;
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +32,7 @@ import java.util.UUID;
 @ToString
 @Table(name = "merge_igm")
 @IdClass(IgmEntityKey.class)
-public class IgmEntity implements Serializable {
+public class IgmEntity {
 
     @Id
     @Column(name = "processUuid")

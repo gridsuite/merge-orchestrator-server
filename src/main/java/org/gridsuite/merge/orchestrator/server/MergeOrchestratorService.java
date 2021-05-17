@@ -237,7 +237,7 @@ public class MergeOrchestratorService {
     }
 
     @Transactional(readOnly = true)
-    public List<IgmEntity> doFindValidatedIgms(UUID processUuid, LocalDateTime localDateTime) {
+    public List<IgmEntity> doFindIgmsByProcessUuidAndDate(UUID processUuid, LocalDateTime localDateTime) {
         return igmRepository.findByProcessUuidAndDate(processUuid, localDateTime).stream().map(entity -> {
             @SuppressWarnings("unused")
             int ignoreSize = entity.getBoundaries().size();
@@ -248,22 +248,18 @@ public class MergeOrchestratorService {
     public List<IgmEntity> findValidatedIgms(ZonedDateTime dateTime, UUID processUuid) {
         // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
-        return self.doFindValidatedIgms(processUuid, localDateTime).stream()
+        return self.doFindIgmsByProcessUuidAndDate(processUuid, localDateTime).stream()
             .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
             .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<IgmEntity> doFindAllIgms() {
+    public List<IgmEntity> findAllIgms() {
         return igmRepository.findAll().stream().map(entity -> {
             @SuppressWarnings("unused")
             int ignoreSize = entity.getBoundaries().size();
             return entity;
         }).collect(Collectors.toList());
-    }
-
-    public List<IgmEntity> findAllIgms() {
-        return self.doFindAllIgms();
     }
 
     List<Merge> getMerges(UUID processUuid) {

@@ -14,7 +14,6 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.Table;
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -27,7 +26,7 @@ import java.util.UUID;
 @ToString
 @Table(name = "merge")
 @IdClass(MergeEntityKey.class)
-public class MergeEntity implements Serializable {
+public class MergeEntity {
 
     @Id
     @Column(name = "processUuid")
