@@ -11,6 +11,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -22,8 +23,8 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -39,11 +40,11 @@ public class MergeEventService {
 
     private IgmRepository igmRepository;
 
-    private final EmitterProcessor<Message<String>> mergeInfosPublisher = EmitterProcessor.create();
+    private final Sinks.Many<Message<String>> mergeInfosPublisher = Sinks.many().multicast().onBackpressureBuffer();
 
     @Bean
     public Supplier<Flux<Message<String>>> publishMerge() {
-        return () -> mergeInfosPublisher.log(CATEGORY_BROKER_OUTPUT, Level.FINE);
+        return () -> mergeInfosPublisher.asFlux().log(CATEGORY_BROKER_OUTPUT, Level.FINE);
     }
 
     public MergeEventService(MergeRepository mergeRepository, IgmRepository igmRepository) {
@@ -67,19 +68,23 @@ public class MergeEventService {
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("tso", tso)
                 .setHeader("status", status.name())
-                .build());
+                .build()).isFailure()) {
+            LockSupport.parkNanos(10);
+        }
     }
 
     public void addMergeEvent(UUID processUuid, String businessProcess, ZonedDateTime date, MergeStatus status) {
         // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
-        mergeInfosPublisher.onNext(MessageBuilder
+        while (mergeInfosPublisher.tryEmitNext(MessageBuilder
                 .withPayload("")
                 .setHeader("processUuid", processUuid)
                 .setHeader("businessProcess", businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("status", status.name())
-                .build());
+                .build()).isFailure()) {
+            LockSupport.parkNanos(10);
+        }
     }
 }
