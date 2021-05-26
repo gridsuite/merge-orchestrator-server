@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -124,16 +125,25 @@ public class MergeOrchestratorIT {
 
     private static final UUID UUID_CASE_ID_UNKNOWN = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e9");
 
-    private static final String BOUNDARY_1_ID = "f1582c44-d9e2-4ea0-afdc-dba189ab4358";
-    private static final String BOUNDARY_2_ID = "3e3f7738-aab9-4284-a965-71d5cd151f71";
+    private static final String BOUNDARY_EQ_ID = "f1582c44-d9e2-4ea0-afdc-dba189ab4358";
+    private static final String BOUNDARY_TP_ID = "3e3f7738-aab9-4284-a965-71d5cd151f71";
+
+    private static final String SPECIFIC_BOUNDARY_EQ_ID = "66666666-d9e2-4ea0-afdc-dba189ab4358";
+    private static final String SPECIFIC_BOUNDARY_TP_ID = "77777777-aab9-4284-a965-71d5cd151f71";
 
     private final NetworkFactory networkFactory = NetworkFactory.find("Default");
     private final ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 0, 0, 0, ZoneId.of("UTC"));
 
     private void createProcessConfigs() {
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", List.of("FR", "ES", "PT"), false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", List.of("FR", "ES", "PT"), false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", List.of("FR", "ES", "PT"), false, true, null, null));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", List.of("FR", "ES", "PT"), false, true, null, null));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
+    }
+
+    private void createProcessConfigWithSpecificBoundaries() {
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", List.of("FR", "ES", "PT"), false, false,
+            new BoundaryInfo(SPECIFIC_BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", LocalDateTime.of(2021, 2, 10, 11, 0, 0)),
+            new BoundaryInfo(SPECIFIC_BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", LocalDateTime.of(2021, 5, 20, 9, 30, 0))));
     }
 
     private void cleanDB() {
@@ -193,8 +203,8 @@ public class MergeOrchestratorIT {
 
         // send first tso FR with business process = 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
-                        new BoundaryInfos(BOUNDARY_2_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
+                .thenReturn(List.of(new BoundaryContent(BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
+                        new BoundaryContent(BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
 
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
@@ -314,6 +324,134 @@ public class MergeOrchestratorIT {
         assertNull(output.receive(1000));
     }
 
+    private void testErrorMessage(String errorMessage) {
+        assertEquals(errorMessage, output.receive(1000).getHeaders().get("error"));
+    }
+
+    @Test
+    public void testMergeWithSpecificBoundaries() {
+        createProcessConfigWithSpecificBoundaries();
+
+        // first specific boundary available
+        Mockito.when(cgmesBoundaryService.getBoundary(SPECIFIC_BOUNDARY_EQ_ID))
+            .thenReturn(Optional.of(new BoundaryContent(SPECIFIC_BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary 1")));
+
+        // error when second specific boundary is unavailable
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+            .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "FR")
+                .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+                .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "1D")
+                .build());
+        assertEquals("AVAILABLE", output.receive(1000).getHeaders().get("status"));
+        testErrorMessage("Process SWE_1D (1D) : EQ and/or TP boundary not available !!");
+        assertEquals("VALIDATION_FAILED", output.receive(1000).getHeaders().get("status"));
+
+        // second specific boundary is now available
+        Mockito.when(cgmesBoundaryService.getBoundary(SPECIFIC_BOUNDARY_TP_ID))
+            .thenReturn(Optional.of(new BoundaryContent(SPECIFIC_BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary 2")));
+
+        // send first tso FR with business process = 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+            .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
+        input.send(MessageBuilder.withPayload("")
+            .setHeader("tso", "FR")
+            .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+            .setHeader("uuid", UUID_CASE_ID_FR.toString())
+            .setHeader("format", "CGMES")
+            .setHeader("businessProcess", "1D")
+            .build());
+        testImportIgmMessages(1, false);
+
+        List<MergeEntity> mergeEntities = mergeRepository.findAll();
+        assertEquals(1, mergeEntities.size());
+        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertNull(mergeEntities.get(0).getStatus());
+
+        List<IgmEntity> igmEntities = mergeOrchestratorService.findAllIgms();
+        assertEquals(1, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
+        assertEquals(SWE_1D_UUID, igmEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
+        assertEquals("FR", igmEntities.get(0).getKey().getTso());
+        assertEquals(UUID_CASE_ID_FR, igmEntities.get(0).getCaseUuid());
+        assertNull(igmEntities.get(0).getReplacingDate());
+        assertNull(igmEntities.get(0).getReplacingBusinessProcess());
+        assertEquals(igmEntities.get(0).getEqBoundary(), SPECIFIC_BOUNDARY_EQ_ID);
+        assertEquals(igmEntities.get(0).getTpBoundary(), SPECIFIC_BOUNDARY_TP_ID);
+
+        // send second tso ES with business process 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+            .thenReturn(
+                List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D"),
+                    new CaseInfos("es", UUID_CASE_ID_ES, "", "ES", "1D")));
+        input.send(MessageBuilder.withPayload("")
+            .setHeader("tso", "ES")
+            .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+            .setHeader("uuid", UUID_CASE_ID_ES.toString())
+            .setHeader("format", "CGMES")
+            .setHeader("businessProcess", "1D")
+            .build());
+        testImportIgmMessages(1, false);
+
+        mergeEntities = mergeRepository.findAll();
+        assertEquals(1, mergeEntities.size());
+        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
+        assertNull(mergeEntities.get(0).getStatus());
+
+        igmEntities = mergeOrchestratorService.findAllIgms();
+        assertEquals(2, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(1).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
+        assertEquals(SWE_1D_UUID, igmEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
+        assertEquals("ES", igmEntities.get(1).getKey().getTso());
+        assertEquals(UUID_CASE_ID_ES, igmEntities.get(1).getCaseUuid());
+        assertNull(igmEntities.get(1).getReplacingDate());
+        assertNull(igmEntities.get(1).getReplacingBusinessProcess());
+        assertEquals(igmEntities.get(1).getEqBoundary(), SPECIFIC_BOUNDARY_EQ_ID);
+        assertEquals(igmEntities.get(1).getTpBoundary(), SPECIFIC_BOUNDARY_TP_ID);
+
+        // send third tso PT with business process 1D, expect one AVAILABLE, one VALIDATION_SUCCEED
+        // and one BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done)
+        Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
+            .thenReturn(List.of(
+                new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D"),
+                new CaseInfos("es", UUID_CASE_ID_ES, "", "ES", "1D"),
+                new CaseInfos("pt", UUID_CASE_ID_PT, "", "PT", "1D")));
+
+        input.send(MessageBuilder.withPayload("")
+            .setHeader("tso", "PT")
+            .setHeader("date", "2019-05-01T10:00:00.000+01:00")
+            .setHeader("uuid", UUID_CASE_ID_PT.toString())
+            .setHeader("format", "CGMES")
+            .setHeader("businessProcess", "1D")
+            .build());
+        testImportIgmMessages(1, true);
+        testMergeOk(mergeOrchestratorService.getMerges(SWE_1D_UUID).get(0), List.of("FR", "ES", "PT"));
+
+        igmEntities = mergeOrchestratorService.findAllIgms();
+        assertEquals(3, igmEntities.size());
+        assertEquals(UUID_NETWORK_ID_PT, igmEntities.get(2).getNetworkUuid());
+        assertEquals("VALIDATION_SUCCEED", igmEntities.get(2).getStatus());
+        assertEquals(SWE_1D_UUID, igmEntities.get(2).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
+        assertEquals("PT", igmEntities.get(2).getKey().getTso());
+        assertEquals(UUID_CASE_ID_PT, igmEntities.get(2).getCaseUuid());
+        assertNull(igmEntities.get(2).getReplacingDate());
+        assertNull(igmEntities.get(2).getReplacingBusinessProcess());
+        assertEquals(igmEntities.get(2).getEqBoundary(), SPECIFIC_BOUNDARY_EQ_ID);
+        assertEquals(igmEntities.get(2).getTpBoundary(), SPECIFIC_BOUNDARY_TP_ID);
+
+        assertNull(output.receive(1000));
+    }
+
     @Test
     public void testMultipleMerge() {
         createProcessConfigs();
@@ -321,8 +459,8 @@ public class MergeOrchestratorIT {
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process SWE_2D and FRES_2D)
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
-                        new BoundaryInfos(BOUNDARY_2_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
+                .thenReturn(List.of(new BoundaryContent(BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
+                        new BoundaryContent(BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
 
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D")));
@@ -478,21 +616,21 @@ public class MergeOrchestratorIT {
         assertEquals(3, processConfigRepository.findAll().size());
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + ")]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_EQ_ID + ", tpBoundary=" + BOUNDARY_TP_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_EQ_ID + ", tpBoundary=" + BOUNDARY_TP_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_EQ_ID + ", tpBoundary=" + BOUNDARY_TP_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_EQ_ID + ", tpBoundary=" + BOUNDARY_TP_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_EQ_ID + ", tpBoundary=" + BOUNDARY_TP_ID + ")]",
             mergeOrchestratorService.findAllIgms().toString());
 
         mergeOrchestratorConfigService.deleteConfig(SWE_2D_UUID);
 
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + ")]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_EQ_ID + ", tpBoundary=" + BOUNDARY_TP_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_EQ_ID + ", tpBoundary=" + BOUNDARY_TP_ID + ")]",
                 mergeOrchestratorService.findAllIgms().toString());
 
         ArrayList<String> tsos = new ArrayList<>();
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", tsos, false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", tsos, false, true, null, null));
     }
 
     private void testImportIgmMessages(int nbOfTimes, boolean withMerge) {
@@ -522,8 +660,12 @@ public class MergeOrchestratorIT {
 
     @Test
     public void testDeleteMerge() {
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRPT_2D_UUID, "FRPT_2D", "2D", List.of("FR", "PT"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRPT_2D_UUID, "FRPT_2D", "2D", List.of("FR", "PT"), false, true, null, null));
+
+        Mockito.when(cgmesBoundaryService.getLastBoundaries())
+            .thenReturn(List.of(new BoundaryContent(BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary 1"),
+                new BoundaryContent(BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary 2")));
 
         // send tsos FR, ES and PT with business process = 2D
         input.send(MessageBuilder.withPayload("")
@@ -571,7 +713,11 @@ public class MergeOrchestratorIT {
 
     @Test
     public void testDeleteIgmMergeWithImportError() {
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
+
+        Mockito.when(cgmesBoundaryService.getLastBoundaries())
+            .thenReturn(List.of(new BoundaryContent(BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary 1"),
+                new BoundaryContent(BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary 2")));
 
         // send tsos FR, ES and PT with business process = 2D
         input.send(MessageBuilder.withPayload("")
@@ -606,7 +752,11 @@ public class MergeOrchestratorIT {
 
     @Test
     public void testDeleteIgmMergeWithValidationFailed() {
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
+
+        Mockito.when(cgmesBoundaryService.getLastBoundaries())
+            .thenReturn(List.of(new BoundaryContent(BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary 1"),
+                new BoundaryContent(BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary 2")));
 
         // send tsos FR, ES and PT with business process = 2D
         input.send(MessageBuilder.withPayload("")
@@ -641,9 +791,13 @@ public class MergeOrchestratorIT {
 
     @Test
     public void testImportIgmByOnlyMatchingConfigs() {
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false));
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRPT_2D_UUID, "FRPT_2D", "2D", List.of("FR", "PT"), false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRPT_2D_UUID, "FRPT_2D", "2D", List.of("FR", "PT"), false, true, null, null));
         MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.FIRST_LOADFLOW_SUCCEED;
+
+        Mockito.when(cgmesBoundaryService.getLastBoundaries())
+            .thenReturn(List.of(new BoundaryContent(BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary 1"),
+                new BoundaryContent(BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary 2")));
 
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process FRES_2D and FRPT_2D)
@@ -773,7 +927,7 @@ public class MergeOrchestratorIT {
         List<String> tsos = new ArrayList<>();
         tsos.add("FR");
         tsos.add("ES");
-        ProcessConfigEntity processConfigEntity = new ProcessConfigEntity(XYZ_2D_UUID, "XYZ_2D", "2D", tsos, true);
+        ProcessConfigEntity processConfigEntity = new ProcessConfigEntity(XYZ_2D_UUID, "XYZ_2D", "2D", tsos, true, true, null, null);
         processConfigRepository.save(processConfigEntity);
         configs = mergeOrchestratorConfigService.getConfigs();
         assertEquals(4, configs.size());
@@ -809,7 +963,7 @@ public class MergeOrchestratorIT {
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
-        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", tsos, false));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", tsos, false, true, null, null));
 
         // init incomplete merge and merge_igm data in database : missing ES and invalid PT igms
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_2D_UUID, dateTime.toLocalDateTime()), null));
@@ -817,8 +971,8 @@ public class MergeOrchestratorIT {
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_2D_UUID, dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_PT, null, null, null, null, null));
 
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
-                        new BoundaryInfos(BOUNDARY_2_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
+                .thenReturn(List.of(new BoundaryContent(BOUNDARY_EQ_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
+                        new BoundaryContent(BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
 
         // 1 - test replacing ES igm (at dateTime : 2019-05_01T12:30:00Z)
         //

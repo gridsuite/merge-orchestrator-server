@@ -41,6 +41,9 @@ public class MergeEventService {
 
     private final EmitterProcessor<Message<String>> mergeInfosPublisher = EmitterProcessor.create();
 
+    private static final String PROCESS_UUID = "processUuid";
+    private static final String BUSINESS_PROCESS = "businessProcess";
+
     @Bean
     public Supplier<Flux<Message<String>>> publishMerge() {
         return () -> mergeInfosPublisher.log(CATEGORY_BROKER_OUTPUT, Level.FINE);
@@ -62,8 +65,8 @@ public class MergeEventService {
                 localReplacingDateTime, replacingBusinessProcess, eqBoundary, tpBoundary));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
-                .setHeader("processUuid", processUuid)
-                .setHeader("businessProcess", businessProcess)
+                .setHeader(PROCESS_UUID, processUuid)
+                .setHeader(BUSINESS_PROCESS, businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("tso", tso)
                 .setHeader("status", status.name())
@@ -76,10 +79,19 @@ public class MergeEventService {
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
-                .setHeader("processUuid", processUuid)
-                .setHeader("businessProcess", businessProcess)
+                .setHeader(PROCESS_UUID, processUuid)
+                .setHeader(BUSINESS_PROCESS, businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("status", status.name())
                 .build());
+    }
+
+    public void addErrorEvent(UUID processUuid, String businessProcess, String errorMessage) {
+        mergeInfosPublisher.onNext(MessageBuilder
+            .withPayload("")
+            .setHeader(PROCESS_UUID, processUuid)
+            .setHeader(BUSINESS_PROCESS, businessProcess)
+            .setHeader("error", errorMessage)
+            .build());
     }
 }

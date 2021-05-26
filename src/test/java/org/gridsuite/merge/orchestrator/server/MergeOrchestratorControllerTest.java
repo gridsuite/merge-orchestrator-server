@@ -7,6 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.fasterxml.jackson.core.util.ByteArrayBuilder;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryContent;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
@@ -169,10 +170,12 @@ public class MergeOrchestratorControllerTest {
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2, UUID_CASE_MERGE_2, null, null, null, null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3, UUID_CASE_MERGE_3, null, null, null, null));
         String processDate = URLEncoder.encode(formatter.format(dateTime3), StandardCharsets.UTF_8);
-        given(networkConversionService.exportMerge(any(List.class), any(List.class), any(String.class), any(String.class)))
-                .willReturn(new FileInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));
         given(mergeConfigService.getConfig(any(UUID.class)))
-                .willReturn(Optional.of(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", null, false)));
+            .willReturn(Optional.of(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", null, false, true, null, null)));
+        given(cgmesBoundaryService.getLastBoundaries())
+            .willReturn(List.of(new BoundaryContent("idEQ", "EQ_boundary.xml", "fake eq boundary"), new BoundaryContent("idTP", "TP_boundary.xml", "fake tp boundary")));
+        given(networkConversionService.exportMerge(any(List.class), any(List.class), any(String.class), any(String.class), any(List.class)))
+                .willReturn(new FileInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/" + processDate + "/export/XIIDM")
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())
