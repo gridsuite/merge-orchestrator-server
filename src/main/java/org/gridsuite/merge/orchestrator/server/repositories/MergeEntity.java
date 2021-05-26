@@ -10,12 +10,9 @@ import lombok.Getter;
 import lombok.ToString;
 
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * @author Jon harper <jon.harper at rte-france.com>
@@ -25,16 +22,10 @@ import java.util.UUID;
 @Getter
 @ToString
 @Table(name = "merge")
-@IdClass(MergeEntityKey.class)
 public class MergeEntity {
 
-    @Id
-    @Column(name = "processUuid")
-    private UUID processUuid;
-
-    @Id
-    @Column(name = "date")
-    private LocalDateTime date;
+    @EmbeddedId
+    private MergeEntityKey key;
 
     @Column(name = "status")
     private String status;
@@ -43,8 +34,7 @@ public class MergeEntity {
     }
 
     public MergeEntity(MergeEntityKey key, String status) {
-        this.processUuid = key.getProcessUuid();
-        this.date = key.getDate();
+        this.key = key;
         this.status = status;
     }
 }

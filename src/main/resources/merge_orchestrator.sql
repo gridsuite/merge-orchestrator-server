@@ -41,9 +41,7 @@ create index igmEntity_boundaries_idx on IgmEntity_boundaries (IgmEntity_process
 create index processConfigEntity_tsos_idx on ProcessConfigEntity_tsos (ProcessConfigEntity_processUuid);
 
     alter table if exists IgmEntity_boundaries 
-       add constraint igmEntity_boundaries_fk 
-       foreign key (IgmEntity_date, IgmEntity_processUuid, IgmEntity_tso) 
-       references merge_igm;
+       add constraint igmEntity_boundaries_fk FOREIGN KEY (IgmEntity_date, IgmEntity_processUuid, IgmEntity_tso) REFERENCES merge_igm ON DELETE CASCADE;
 
     alter table if exists ProcessConfigEntity_tsos 
        add constraint processConfigEntity_tsos_fk 

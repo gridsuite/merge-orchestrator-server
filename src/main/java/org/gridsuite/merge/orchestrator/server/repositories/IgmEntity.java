@@ -13,10 +13,9 @@ import lombok.ToString;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
 import javax.persistence.Index;
 import javax.persistence.Table;
 import java.time.LocalDateTime;
@@ -31,20 +30,10 @@ import java.util.UUID;
 @Setter
 @ToString
 @Table(name = "merge_igm")
-@IdClass(IgmEntityKey.class)
 public class IgmEntity {
 
-    @Id
-    @Column(name = "processUuid")
-    private UUID processUuid;
-
-    @Id
-    @Column(name = "date")
-    private LocalDateTime date;
-
-    @Id
-    @Column(name = "tso")
-    private String tso;
+    @EmbeddedId
+    private IgmEntityKey key;
 
     @Column(name = "status")
     private String status;
@@ -63,7 +52,7 @@ public class IgmEntity {
 
     @Column(name = "boundary")
     @ElementCollection
-    @CollectionTable(foreignKey = @ForeignKey(name = "igmEntity_boundaries_fk"), indexes = {@Index(name = "igmEntity_boundaries_idx", columnList = "IgmEntity_processUuid, IgmEntity_date, IgmEntity_tso")})
+    @CollectionTable(foreignKey = @ForeignKey(name = "igmEntity_boundaries_fk", foreignKeyDefinition = "FOREIGN KEY (IgmEntity_date, IgmEntity_processUuid, IgmEntity_tso) REFERENCES merge_igm ON DELETE CASCADE"), indexes = {@Index(name = "igmEntity_boundaries_idx", columnList = "IgmEntity_processUuid, IgmEntity_date, IgmEntity_tso")})
     private List<UUID> boundaries;
 
     public IgmEntity() {
@@ -72,9 +61,7 @@ public class IgmEntity {
     public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, UUID caseUuid,
                      LocalDateTime replacingDate, String replacingBusinessProcess,
                      List<UUID> boundaries) {
-        this.processUuid = key.getProcessUuid();
-        this.date = key.getDate();
-        this.tso = key.getTso();
+        this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
         this.caseUuid = caseUuid;

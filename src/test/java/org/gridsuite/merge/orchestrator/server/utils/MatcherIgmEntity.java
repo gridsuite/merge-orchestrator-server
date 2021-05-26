@@ -28,9 +28,9 @@ public class MatcherIgmEntity extends TypeSafeMatcher<IgmEntity> {
 
     @Override
     public boolean matchesSafely(IgmEntity m) {
-        return reference.getProcessUuid().equals(m.getProcessUuid()) &&
-                reference.getDate().equals(m.getDate()) &&
-                reference.getTso().equals(m.getTso()) &&
+        return reference.getKey().getProcessUuid().equals(m.getKey().getProcessUuid()) &&
+                reference.getKey().getDate().equals(m.getKey().getDate()) &&
+                reference.getKey().getTso().equals(m.getKey().getTso()) &&
                 reference.getStatus().equals(m.getStatus()) &&
                 reference.getNetworkUuid().equals(m.getNetworkUuid());
     }

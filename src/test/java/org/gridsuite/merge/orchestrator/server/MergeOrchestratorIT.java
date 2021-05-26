@@ -212,16 +212,16 @@ public class MergeOrchestratorIT {
 
         List<MergeEntity> mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
-        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertNull(mergeEntities.get(0).getStatus());
 
         List<IgmEntity> igmEntities = mergeOrchestratorService.findAllIgms();
         assertEquals(1, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
-        assertEquals(SWE_1D_UUID, igmEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getDate());
+        assertEquals(SWE_1D_UUID, igmEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
 
         // send second tso ES with business process 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
@@ -242,20 +242,20 @@ public class MergeOrchestratorIT {
 
         mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
-        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertNull(mergeEntities.get(0).getStatus());
 
         igmEntities = mergeOrchestratorService.findAllIgms();
         assertEquals(2, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
-        assertEquals(SWE_1D_UUID, igmEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getDate());
+        assertEquals(SWE_1D_UUID, igmEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
         assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(1).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
-        assertEquals(SWE_1D_UUID, igmEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getDate());
+        assertEquals(SWE_1D_UUID, igmEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
 
         // send out of scope tso, expect no message
         input.send(MessageBuilder.withPayload("")
@@ -291,8 +291,8 @@ public class MergeOrchestratorIT {
 
         mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
-        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(SWE_1D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
 
         assertTrue(mergeOrchestratorService.getMerges(FOO_1D_UUID).isEmpty());
@@ -343,26 +343,26 @@ public class MergeOrchestratorIT {
         assertEquals("VALIDATION_SUCCEED", messageFrIGMProcess2.getHeaders().get("status"));
 
         List<MergeEntity> mergeEntities = mergeRepository.findAll();
-        mergeEntities.sort(Comparator.comparing(merge -> merge.getProcessUuid()));
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
-        assertEquals(FRES_2D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(FRES_2D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertNull(mergeEntities.get(0).getStatus());
-        assertEquals(SWE_2D_UUID, mergeEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getDate());
+        assertEquals(SWE_2D_UUID, mergeEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
         assertNull(mergeEntities.get(1).getStatus());
 
         List<IgmEntity> igmEntities = mergeOrchestratorService.findAllIgms();
-        igmEntities.sort(Comparator.comparing(igm -> igm.getProcessUuid()));
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcessUuid()));
         assertEquals(2, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
-        assertEquals(FRES_2D_UUID, igmEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getDate());
+        assertEquals(FRES_2D_UUID, igmEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(1).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
 
         // send second tso ES with business process 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process SWE_2D and FRES_2D),
@@ -390,34 +390,34 @@ public class MergeOrchestratorIT {
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
-        mergeEntities.sort(Comparator.comparing(merge -> merge.getProcessUuid()));
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
-        assertEquals(FRES_2D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(FRES_2D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
-        assertEquals(SWE_2D_UUID, mergeEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getDate());
+        assertEquals(SWE_2D_UUID, mergeEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
         assertNull(mergeEntities.get(1).getStatus());
 
         igmEntities = mergeOrchestratorService.findAllIgms();
-        igmEntities.sort(Comparator.comparing(igm -> igm.getProcessUuid()));
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcessUuid()));
         assertEquals(4, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
-        assertEquals(FRES_2D_UUID, igmEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getDate());
+        assertEquals(FRES_2D_UUID, igmEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
         assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(1).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
-        assertEquals(FRES_2D_UUID, igmEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getDate());
+        assertEquals(FRES_2D_UUID, igmEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(2).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(2).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(2).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(2).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
         assertEquals(UUID_NETWORK_ID_ES, igmEntities.get(3).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(3).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(3).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(3).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(3).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(3).getKey().getDate());
 
         // send third tso PT with business process 2D, expect one AVAILABLE and one VALIDATION_SUCCEED message
         // (for process SWE_2D),
@@ -443,13 +443,13 @@ public class MergeOrchestratorIT {
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
-        mergeEntities.sort(Comparator.comparing(merge -> merge.getProcessUuid()));
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
-        assertEquals(FRES_2D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(FRES_2D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
-        assertEquals(SWE_2D_UUID, mergeEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getDate());
+        assertEquals(SWE_2D_UUID, mergeEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
         assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(1).getStatus());
 
         assertTrue(mergeOrchestratorService.getMerges(FOO_1D_UUID).isEmpty());
@@ -476,16 +476,16 @@ public class MergeOrchestratorIT {
 
         // test delete config
         assertEquals(3, processConfigRepository.findAll().size());
-        assertEquals("[MergeEntity(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, status=FIRST_LOADFLOW_SUCCEED), MergeEntity(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, status=FIRST_LOADFLOW_SUCCEED)]",
+        assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR, status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR, status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES, status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES, status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT, status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "])]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "])]",
             mergeOrchestratorService.findAllIgms().toString());
 
         mergeOrchestratorConfigService.deleteConfig(SWE_2D_UUID);
 
-        assertEquals("[MergeEntity(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, status=FIRST_LOADFLOW_SUCCEED)]",
+        assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR, status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES, status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "])]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "])]",
                 mergeOrchestratorService.findAllIgms().toString());
 
         ArrayList<String> tsos = new ArrayList<>();
@@ -659,7 +659,7 @@ public class MergeOrchestratorIT {
         testImportIgmMessages(2, false);
 
         List<MergeEntity> mergeEntities = mergeRepository.findAll();
-        mergeEntities.sort(Comparator.comparing(merge -> merge.getProcessUuid()));
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
         assertThat(mergeEntities.get(0),
                 new MatcherMergeEntity(FRES_2D_UUID, dateTime.toLocalDateTime(), null));
@@ -667,7 +667,7 @@ public class MergeOrchestratorIT {
                 new MatcherMergeEntity(FRPT_2D_UUID, dateTime.toLocalDateTime(), null));
 
         List<IgmEntity> igmEntities = mergeOrchestratorService.findAllIgms();
-        igmEntities.sort(Comparator.comparing(igm -> igm.getProcessUuid()));
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcessUuid()));
         assertEquals(2, igmEntities.size());
         assertThat(igmEntities.get(0),
                 new MatcherIgmEntity(FRES_2D_UUID, dateTime.toLocalDateTime(), "FR", IgmStatus.VALIDATION_SUCCEED, UUID_NETWORK_ID_FR));
@@ -689,13 +689,13 @@ public class MergeOrchestratorIT {
         testImportIgmMessages(1, true);
 
         mergeEntities = mergeRepository.findAll();
-        mergeEntities.sort(Comparator.comparing(merge -> merge.getProcessUuid()));
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
         assertThat(mergeEntities.get(0),
                 new MatcherMergeEntity(FRES_2D_UUID, dateTime.toLocalDateTime(), mergeStatusOk));
 
         igmEntities = mergeOrchestratorService.findAllIgms();
-        igmEntities.sort(Comparator.comparing(igm -> igm.getProcessUuid()));
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcessUuid()));
         assertEquals(3, igmEntities.size());
         assertThat(igmEntities.get(1),
                 new MatcherIgmEntity(FRES_2D_UUID, dateTime.toLocalDateTime(), "ES", IgmStatus.VALIDATION_SUCCEED, UUID_NETWORK_ID_ES));
@@ -715,13 +715,13 @@ public class MergeOrchestratorIT {
         testImportIgmMessages(1, true);
 
         mergeEntities = mergeRepository.findAll();
-        mergeEntities.sort(Comparator.comparing(merge -> merge.getProcessUuid()));
+        mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
         assertThat(mergeEntities.get(1),
                 new MatcherMergeEntity(FRPT_2D_UUID, dateTime.toLocalDateTime(), mergeStatusOk));
 
         igmEntities = mergeOrchestratorService.findAllIgms();
-        igmEntities.sort(Comparator.comparing(igm -> igm.getProcessUuid()));
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcessUuid()));
         assertEquals(4, igmEntities.size());
         assertThat(igmEntities.get(3),
                 new MatcherIgmEntity(FRPT_2D_UUID, dateTime.toLocalDateTime(), "PT", IgmStatus.VALIDATION_SUCCEED, UUID_NETWORK_ID_PT));
@@ -749,7 +749,7 @@ public class MergeOrchestratorIT {
         testImportIgmMessages(1, true);
 
         igmEntities = mergeOrchestratorService.findAllIgms();
-        igmEntities.sort(Comparator.comparing(igm -> igm.getProcessUuid()));
+        igmEntities.sort(Comparator.comparing(igm -> igm.getKey().getProcessUuid()));
         assertEquals(4, igmEntities.size());
         assertThat(igmEntities.get(3),
                 new MatcherIgmEntity(FRPT_2D_UUID, dateTime.toLocalDateTime(), "PT", IgmStatus.VALIDATION_SUCCEED, UUID_CASE_ID_PT_1));
@@ -846,8 +846,8 @@ public class MergeOrchestratorIT {
         // test merge_igm replacement has been done for ES igm in database
         List<MergeEntity> mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
-        assertEquals(SWE_2D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(SWE_2D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertNull(mergeEntities.get(0).getStatus());
 
         List<IgmEntity> igmEntities = mergeOrchestratorService.findAllIgms();
@@ -855,22 +855,22 @@ public class MergeOrchestratorIT {
 
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
         assertNull(igmEntities.get(0).getReplacingDate());
         assertNull(igmEntities.get(0).getReplacingBusinessProcess());
 
         assertEquals(UUID_NETWORK_ID_PT, igmEntities.get(1).getNetworkUuid());
         assertEquals("VALIDATION_FAILED", igmEntities.get(1).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
         assertNull(igmEntities.get(1).getReplacingDate());
         assertNull(igmEntities.get(1).getReplacingBusinessProcess());
 
         assertEquals(uuidReplacingNetworkES, igmEntities.get(2).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(2).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(2).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(2).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
         assertEquals(replacingDateES.toLocalDateTime(), igmEntities.get(2).getReplacingDate());
         assertEquals("2D", igmEntities.get(2).getReplacingBusinessProcess());
 
@@ -909,30 +909,30 @@ public class MergeOrchestratorIT {
         // test merge_igm replacement has been done for PT igm in database
         mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
-        assertEquals(SWE_2D_UUID, mergeEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getDate());
+        assertEquals(SWE_2D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
         assertEquals("FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
 
         igmEntities = mergeOrchestratorService.findAllIgms();
         assertEquals(3, igmEntities.size());
         assertEquals(UUID_NETWORK_ID_FR, igmEntities.get(0).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(0).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(0).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(0).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(0).getKey().getDate());
         assertNull(igmEntities.get(0).getReplacingDate());
         assertNull(igmEntities.get(0).getReplacingBusinessProcess());
 
         assertEquals(uuidReplacingNetworkPT, igmEntities.get(1).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(1).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(1).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(1).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(1).getKey().getDate());
         assertEquals(replacingDatePT.toLocalDateTime(), igmEntities.get(1).getReplacingDate());
         assertEquals("2D", igmEntities.get(1).getReplacingBusinessProcess());
 
         assertEquals(uuidReplacingNetworkES, igmEntities.get(2).getNetworkUuid());
         assertEquals("VALIDATION_SUCCEED", igmEntities.get(2).getStatus());
-        assertEquals(SWE_2D_UUID, igmEntities.get(2).getProcessUuid());
-        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getDate());
+        assertEquals(SWE_2D_UUID, igmEntities.get(2).getKey().getProcessUuid());
+        assertEquals(dateTime.toLocalDateTime(), igmEntities.get(2).getKey().getDate());
         assertEquals(replacingDateES.toLocalDateTime(), igmEntities.get(2).getReplacingDate());
         assertEquals("2D", igmEntities.get(2).getReplacingBusinessProcess());
 
