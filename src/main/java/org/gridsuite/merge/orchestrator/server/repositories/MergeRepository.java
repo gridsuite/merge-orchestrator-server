@@ -24,6 +24,9 @@ public interface MergeRepository extends JpaRepository<MergeEntity, MergeEntityK
 
     void deleteByProcessUuid(@Param("processUuid") UUID processUuid);
 
+    @Query(value = "SELECT m.reportUUID from MergeEntity m WHERE m.processUuid = :processUuid")
+    List<UUID> getReportsFor(UUID processUuid);
+
     interface MergeIgm {
         UUID getProcessUuid();
 

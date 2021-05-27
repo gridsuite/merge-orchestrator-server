@@ -227,7 +227,8 @@ public class MergeOrchestratorService {
                 mergeEventService.addMergeEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, MergeStatus.BALANCE_ADJUSTMENT_SUCCEED);
             } else {
                 // load flow on the merged network
-                MergeStatus status = loadFlowService.run(networkUuids);
+                var mergeEntity = mergeEventService.getOrCreateMergeEntity(processConfig.getProcessUuid(), dateTime);
+                MergeStatus status = loadFlowService.run(networkUuids, mergeEntity.getReportUUID());
 
                 LOGGER.info("Merge {} of process {} {} : loadflow complete with status {}", date, processConfig.getProcess(), processConfig.getBusinessProcess(), status);
 

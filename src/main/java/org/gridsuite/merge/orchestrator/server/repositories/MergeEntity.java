@@ -7,6 +7,7 @@
 package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 import javax.persistence.Column;
@@ -23,6 +24,7 @@ import java.util.UUID;
  */
 @Entity
 @Getter
+@Setter
 @ToString
 @Table(name = "merge")
 @IdClass(MergeEntityKey.class)
@@ -39,6 +41,9 @@ public class MergeEntity {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "report")
+    private UUID reportUUID;
+
     public MergeEntity() {
     }
 
@@ -46,5 +51,6 @@ public class MergeEntity {
         this.processUuid = key.getProcessUuid();
         this.date = key.getDate();
         this.status = status;
+        this.reportUUID = UUID.randomUUID();
     }
 }

@@ -58,7 +58,9 @@ public class MergeEventService {
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         LocalDateTime localReplacingDateTime = replacingDate != null ? LocalDateTime.ofInstant(replacingDate.toInstant(), ZoneOffset.UTC) : null;
 
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), null));
+        var mergeEntity = getOrCreateMergeEntity(processUuid, date);
+        mergeEntity.setStatus(null);
+        mergeRepository.save(mergeEntity);
         igmRepository.save(new IgmEntity(new IgmEntityKey(processUuid, localDateTime, tso), status.name(), networkUuid, caseUuid,
                 localReplacingDateTime, replacingBusinessProcess, boundaries));
         mergeInfosPublisher.onNext(MessageBuilder
@@ -73,8 +75,9 @@ public class MergeEventService {
 
     public void addMergeEvent(UUID processUuid, String businessProcess, ZonedDateTime date, MergeStatus status) {
         // Use of UTC Zone to store in database
-        LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
-        mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
+        var mergeEntity = getOrCreateMergeEntity(processUuid, date);
+        mergeEntity.setStatus(status.name());
+        mergeRepository.save(mergeEntity);
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
                 .setHeader("processUuid", processUuid)
@@ -82,5 +85,11 @@ public class MergeEventService {
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("status", status.name())
                 .build());
+    }
+
+    MergeEntity getOrCreateMergeEntity(UUID processUuid, ZonedDateTime date) {
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
+        var key = new MergeEntityKey(processUuid, localDateTime);
+        return mergeRepository.findById(key).orElseGet(() -> new MergeEntity(key, null));
     }
 }
