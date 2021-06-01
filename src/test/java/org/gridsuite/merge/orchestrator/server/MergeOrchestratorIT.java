@@ -193,8 +193,8 @@ public class MergeOrchestratorIT {
 
         // send first tso FR with business process = 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "boundary1.xml", "fake content for boundary 1"),
-                        new BoundaryInfos(BOUNDARY_2_ID, "boundary2.xml", "fake content for boundary 2")));
+                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
+                        new BoundaryInfos(BOUNDARY_2_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
 
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D")));
@@ -321,8 +321,8 @@ public class MergeOrchestratorIT {
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
         // (for both process SWE_2D and FRES_2D)
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "boundary1.xml", "fake content for boundary 1"),
-                        new BoundaryInfos(BOUNDARY_2_ID, "boundary2.xml", "fake content for boundary 2")));
+                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
+                        new BoundaryInfos(BOUNDARY_2_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
 
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "2D")));
@@ -478,14 +478,14 @@ public class MergeOrchestratorIT {
         assertEquals(3, processConfigRepository.findAll().size());
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED), MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "])]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + ")]",
             mergeOrchestratorService.findAllIgms().toString());
 
         mergeOrchestratorConfigService.deleteConfig(SWE_2D_UUID);
 
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED)]",
                 mergeRepository.findAll().toString());
-        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "]), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, boundaries=[" + BOUNDARY_1_ID + ", " + BOUNDARY_2_ID + "])]",
+        assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + ")]",
                 mergeOrchestratorService.findAllIgms().toString());
 
         ArrayList<String> tsos = new ArrayList<>();
@@ -813,12 +813,12 @@ public class MergeOrchestratorIT {
 
         // init incomplete merge and merge_igm data in database : missing ES and invalid PT igms
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_2D_UUID, dateTime.toLocalDateTime()), null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_2D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_FR, null, null, null, null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_2D_UUID, dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_PT, null, null, null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_2D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_FR, null, null, null, null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_2D_UUID, dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_PT, null, null, null, null, null));
 
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
-                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "boundary1.xml", "fake content for boundary 1"),
-                        new BoundaryInfos(BOUNDARY_2_ID, "boundary2.xml", "fake content for boundary 2")));
+                .thenReturn(List.of(new BoundaryInfos(BOUNDARY_1_ID, "20210315T0000Z__ENTSOE_EQBD_002.xml", "fake content for boundary eq"),
+                        new BoundaryInfos(BOUNDARY_2_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", "fake content for boundary tp")));
 
         // 1 - test replacing ES igm (at dateTime : 2019-05_01T12:30:00Z)
         //
@@ -960,9 +960,9 @@ public class MergeOrchestratorIT {
         ZonedDateTime replacingTime3 = ZonedDateTime.of(2020, 7, 15, 17, 30, 0, 0, ZoneId.of("UTC"));
 
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.AVAILABLE.name(), UUID_NETWORK_ID_FR, UUID_CASE_ID_FR, replacingTime1.toLocalDateTime(), "RT", null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_ES, UUID_CASE_ID_ES, replacingTime2.toLocalDateTime(), "2D", null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_PT, UUID_CASE_ID_PT, replacingTime3.toLocalDateTime(), "YR", null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.AVAILABLE.name(), UUID_NETWORK_ID_FR, UUID_CASE_ID_FR, replacingTime1.toLocalDateTime(), "RT", null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_FAILED.name(), UUID_NETWORK_ID_ES, UUID_CASE_ID_ES, replacingTime2.toLocalDateTime(), "2D", null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_ID_PT, UUID_CASE_ID_PT, replacingTime3.toLocalDateTime(), "YR", null, null));
 
         // test without date interval
         List<Merge> merges = mergeOrchestratorService.getMerges(SWE_2D_UUID);

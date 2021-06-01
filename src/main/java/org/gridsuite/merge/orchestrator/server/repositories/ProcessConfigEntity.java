@@ -27,7 +27,7 @@ import java.util.UUID;
 @Getter
 @Entity
 @Table(name = "configs")
-public class ProcessConfigEntity {
+public class ProcessConfigEntity extends AbstractManuallyAssignedIdentifierEntity<UUID> {
 
     @Id
     @Column(name = "processUuid")
@@ -53,5 +53,10 @@ public class ProcessConfigEntity {
         this.businessProcess = businessProcess;
         this.tsos = tsos;
         this.runBalancesAdjustment = runBalancesAdjustment;
+    }
+
+    @Override
+    public UUID getId() {
+        return processUuid;
     }
 }
