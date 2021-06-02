@@ -484,17 +484,22 @@ public class MergeOrchestratorService {
         String finalTpBoundary = tpBoundary;
         // check if boundaries id used for each igm during import are different
         if (!igmEntities.stream().skip(1).allMatch(e -> e.getEqBoundary() != null && finalEqBoundary != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary) && e.getTpBoundary() != null && finalTpBoundary != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary))) {
-            LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different last boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
+            LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
         } else {
-            // check if boundaries id used for each igm differ from last boundaries now available
-            List<BoundaryContent> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
-            eqBoundary = getEqBoundary(lastBoundaries);
-            tpBoundary = getTpBoundary(lastBoundaries);
+            // check if boundaries id used for each igm differ from boundaries now available
+            if (processConfig.isUseLastBoundarySet()) {
+                List<BoundaryContent> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
+                eqBoundary = getEqBoundary(lastBoundaries);
+                tpBoundary = getTpBoundary(lastBoundaries);
+            } else {
+                eqBoundary = cgmesBoundaryService.getBoundary(processConfig.getEqBoundary().getId()).map(BoundaryContent::getId).orElse(null);
+                tpBoundary = cgmesBoundaryService.getBoundary(processConfig.getTpBoundary().getId()).map(BoundaryContent::getId).orElse(null);
+            }
 
             String finalTpBoundary2 = tpBoundary;
             String finalEqBoundary2 = eqBoundary;
             if (!igmEntities.stream().allMatch(e -> e.getEqBoundary() != null && finalEqBoundary2 != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary2) && e.getTpBoundary() != null && finalTpBoundary2 != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary2))) {
-                LOGGER.warn("IGMs have been imported with different last boundaries than the current last boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
+                LOGGER.warn("IGMs have been imported with different boundaries than the current boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
             }
         }
     }

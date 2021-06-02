@@ -20,7 +20,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
@@ -74,7 +74,7 @@ public class CgmesBoundaryService {
             } else {
                 LOGGER.error("Error searching boundaries: body is null {}", responseEntity);
             }
-        } catch (HttpStatusCodeException e) {
+        } catch (RestClientException e) {
             LOGGER.error("Error searching boundaries: {}", e.getMessage());
         }
         return lastBoundaries;
@@ -91,7 +91,7 @@ public class CgmesBoundaryService {
             } else {
                 LOGGER.error("Error searching boundary with id {} : body is null {}", boundaryId, responseEntity);
             }
-        } catch (HttpStatusCodeException e) {
+        } catch (RestClientException e) {
             LOGGER.error("Error searching boundary with id {} : {}", boundaryId, e.getMessage());
         }
         return Optional.empty();
