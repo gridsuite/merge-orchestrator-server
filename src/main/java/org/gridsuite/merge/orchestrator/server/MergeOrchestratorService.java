@@ -59,6 +59,7 @@ public class MergeOrchestratorService {
     private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
     private static final String UNDERSCORE = "_";
     private static final String CGM = "CGM";
+    private static final String PROCESS = "Process";
 
     private static final String GROOVY_TIMESTAMP_PARAMETER = "timestamp";
     private static final String GROOVY_PROCESS_NAME_PARAMETER = "processName";
@@ -155,7 +156,7 @@ public class MergeOrchestratorService {
                     // import IGM into the network store
                     List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(processConfig);
                     if (configBoundaries.isEmpty()) {
-                        var errorMessage = "Process " + processConfig.getProcess() + " (" + processConfig.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
+                        var errorMessage = PROCESS + " " + processConfig.getProcess() + " (" + processConfig.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
                         mergeEventService.addErrorEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), errorMessage);
                         throw new PowsyblException(errorMessage);
                     }
@@ -286,7 +287,7 @@ public class MergeOrchestratorService {
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
         Optional<ProcessConfig> config = mergeConfigService.getConfig(processUuid);
         if (!config.isPresent()) {
-            throw new PowsyblException("Process " + processUuid + "does not exist");
+            throw new PowsyblException(PROCESS + " " + processUuid + "does not exist");
         }
         String businessProcess = config.get().getBusinessProcess();
         List<BoundaryContent> boundaries = getProcessConfigBoundaries(config.get());
@@ -368,7 +369,7 @@ public class MergeOrchestratorService {
         for (String tso : missingOrInvalidTsos) {
             List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(config);
             if (configBoundaries.isEmpty()) {
-                var errorMessage = "Process " + config.getProcess() + " (" + config.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
+                var errorMessage = PROCESS + " " + config.getProcess() + " (" + config.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
                 mergeEventService.addErrorEvent(config.getProcessUuid(), config.getBusinessProcess(), errorMessage);
                 return replacingIGMs;
             }

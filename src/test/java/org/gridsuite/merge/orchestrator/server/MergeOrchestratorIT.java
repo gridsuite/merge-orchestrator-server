@@ -382,8 +382,8 @@ public class MergeOrchestratorIT {
         assertEquals(UUID_CASE_ID_FR, igmEntities.get(0).getCaseUuid());
         assertNull(igmEntities.get(0).getReplacingDate());
         assertNull(igmEntities.get(0).getReplacingBusinessProcess());
-        assertEquals(igmEntities.get(0).getEqBoundary(), SPECIFIC_BOUNDARY_EQ_ID);
-        assertEquals(igmEntities.get(0).getTpBoundary(), SPECIFIC_BOUNDARY_TP_ID);
+        assertEquals(SPECIFIC_BOUNDARY_EQ_ID, igmEntities.get(0).getEqBoundary());
+        assertEquals(SPECIFIC_BOUNDARY_TP_ID, igmEntities.get(0).getTpBoundary());
 
         // send second tso ES with business process 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
@@ -415,8 +415,8 @@ public class MergeOrchestratorIT {
         assertEquals(UUID_CASE_ID_ES, igmEntities.get(1).getCaseUuid());
         assertNull(igmEntities.get(1).getReplacingDate());
         assertNull(igmEntities.get(1).getReplacingBusinessProcess());
-        assertEquals(igmEntities.get(1).getEqBoundary(), SPECIFIC_BOUNDARY_EQ_ID);
-        assertEquals(igmEntities.get(1).getTpBoundary(), SPECIFIC_BOUNDARY_TP_ID);
+        assertEquals(SPECIFIC_BOUNDARY_EQ_ID, igmEntities.get(1).getEqBoundary());
+        assertEquals(SPECIFIC_BOUNDARY_TP_ID, igmEntities.get(1).getTpBoundary());
 
         // send third tso PT with business process 1D, expect one AVAILABLE, one VALIDATION_SUCCEED
         // and one BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done)
@@ -446,8 +446,8 @@ public class MergeOrchestratorIT {
         assertEquals(UUID_CASE_ID_PT, igmEntities.get(2).getCaseUuid());
         assertNull(igmEntities.get(2).getReplacingDate());
         assertNull(igmEntities.get(2).getReplacingBusinessProcess());
-        assertEquals(igmEntities.get(2).getEqBoundary(), SPECIFIC_BOUNDARY_EQ_ID);
-        assertEquals(igmEntities.get(2).getTpBoundary(), SPECIFIC_BOUNDARY_TP_ID);
+        assertEquals(SPECIFIC_BOUNDARY_EQ_ID, igmEntities.get(2).getEqBoundary());
+        assertEquals(SPECIFIC_BOUNDARY_TP_ID, igmEntities.get(2).getTpBoundary());
 
         assertNull(output.receive(1000));
     }
