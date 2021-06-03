@@ -10,6 +10,8 @@ import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,8 @@ import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants
  */
 @Service
 public class MergeOrchestratorConfigService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorConfigService.class);
 
     @Value("${backing-services.report-server.base-uri:https://report-server}")
     String reportServerURI;
@@ -80,7 +84,8 @@ public class MergeOrchestratorConfigService {
             var restTemplate = new RestTemplate();
             var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "report" + DELIMITER + report.toString();
             restTemplate.exchange(resourceUrl, HttpMethod.DELETE, null, ReporterModel.class);
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+            LOGGER.error(exception.getMessage());
         }
     }
 
