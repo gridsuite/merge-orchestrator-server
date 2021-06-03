@@ -67,12 +67,12 @@ public class MergeOrchestratorConfigService {
 
     @Transactional
     public void deleteConfig(UUID processUuid) {
-        igmRepository.findByProcessUuid(processUuid).stream()
+        igmRepository.findByKeyProcessUuid(processUuid).stream()
                 .filter(Objects::nonNull)
                 .map(IgmEntity::getNetworkUuid)
                 .forEach(networkStoreService::deleteNetwork);
-        igmRepository.deleteByProcessUuid(processUuid);
-        mergeRepository.deleteByProcessUuid(processUuid);
+        igmRepository.deleteByKeyProcessUuid(processUuid);
+        mergeRepository.deleteByKeyProcessUuid(processUuid);
         processConfigRepository.deleteById(processUuid);
     }
 
