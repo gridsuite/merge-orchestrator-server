@@ -71,8 +71,8 @@ public class LoadFlowServiceTest {
 
     @Test
     public void test() {
-        List<LoadFlowResult.ComponentResult> componentResultsOk = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "slackBusId", 0));
-        List<LoadFlowResult.ComponentResult> componentResultsNok = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, LoadFlowResult.ComponentResult.Status.FAILED, 20, "slackBusId", 0));
+        List<LoadFlowResult.ComponentResult> componentResultsOk = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "slackBusId", 0));
+        List<LoadFlowResult.ComponentResult> componentResultsNok = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, 0, LoadFlowResult.ComponentResult.Status.FAILED, 20, "slackBusId", 0));
         List<LoadFlowResult.ComponentResult> componentResultsEmpty = Collections.emptyList();
 
         // first loadflow succeeds
