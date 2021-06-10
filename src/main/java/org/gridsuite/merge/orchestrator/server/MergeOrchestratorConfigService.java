@@ -87,12 +87,17 @@ public class MergeOrchestratorConfigService {
     }
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        return new ProcessConfigEntity(processConfig.getProcessUuid() == null ? UUID.randomUUID() : processConfig.getProcessUuid(),
+        boolean isNew = processConfig.getProcessUuid() == null;
+        ProcessConfigEntity entity = new ProcessConfigEntity(isNew ? UUID.randomUUID() : processConfig.getProcessUuid(),
             processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(),
             processConfig.isRunBalancesAdjustment(),
             processConfig.isUseLastBoundarySet(),
             toBoundaryEntity(processConfig.getEqBoundary()),
             toBoundaryEntity(processConfig.getTpBoundary()));
+        if (!isNew) {
+            entity.markNotNew();
+        }
+        return entity;
     }
 
     private BoundaryEntity toBoundaryEntity(BoundaryInfo boundary) {
