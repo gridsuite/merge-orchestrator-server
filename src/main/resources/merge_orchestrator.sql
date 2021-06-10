@@ -47,12 +47,14 @@ create index processConfigEntity_tsos_idx on ProcessConfigEntity_tsos (ProcessCo
     alter table if exists configs 
        add constraint eqBoundary_id_fk 
        foreign key (eqBoundary_id) 
-       references boundary;
+       references boundary 
+       on delete cascade;
 
     alter table if exists configs 
        add constraint tpBoundary_id_fk 
        foreign key (tpBoundary_id) 
-       references boundary;
+       references boundary 
+       on delete cascade;
 
     alter table if exists ProcessConfigEntity_tsos 
        add constraint processConfigEntity_tsos_fk 

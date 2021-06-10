@@ -8,6 +8,8 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
@@ -60,6 +62,7 @@ public class ProcessConfigEntity extends AbstractManuallyAssignedIdentifierEntit
         foreignKey = @ForeignKey(
             name = "eqBoundary_id_fk"
         ))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     BoundaryEntity eqBoundary;
 
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -68,6 +71,7 @@ public class ProcessConfigEntity extends AbstractManuallyAssignedIdentifierEntit
         foreignKey = @ForeignKey(
             name = "tpBoundary_id_fk"
         ))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     BoundaryEntity tpBoundary;
 
     public ProcessConfigEntity(UUID processUuid, String process, String businessProcess, List<String> tsos, boolean runBalancesAdjustment,
