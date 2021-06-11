@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "boundary")
-public class BoundaryEntity {
+public class BoundaryEntity extends AbstractManuallyAssignedIdentifierEntity<String> {
     @Id
     @Column(name = "id")
     private String id;
@@ -35,4 +35,9 @@ public class BoundaryEntity {
 
     @Column(name = "scenarioTime")
     private LocalDateTime scenarioTime;
+
+    @Override
+    public String getId() {
+        return id;
+    }
 }

@@ -28,6 +28,8 @@ public class MergeOrchestratorConfigService {
 
     private final ProcessConfigRepository processConfigRepository;
 
+    private final BoundaryRepository boundaryRepository;
+
     private final MergeRepository mergeRepository;
 
     private final IgmRepository igmRepository;
@@ -35,10 +37,12 @@ public class MergeOrchestratorConfigService {
     private final NetworkStoreService networkStoreService;
 
     public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository,
+                                          BoundaryRepository boundaryRepository,
                                           IgmRepository igmRepository,
                                           MergeRepository mergeRepository,
                                           NetworkStoreService networkStoreService) {
         this.processConfigRepository = processConfigRepository;
+        this.boundaryRepository = boundaryRepository;
         this.mergeRepository = mergeRepository;
         this.igmRepository = igmRepository;
         this.networkStoreService = networkStoreService;
@@ -62,8 +66,10 @@ public class MergeOrchestratorConfigService {
         }).map(this::toProcessConfig);
     }
 
+    @Transactional
     void addConfig(ProcessConfig processConfig) {
-        processConfigRepository.save(toProcessConfigEntity(processConfig));
+        ProcessConfigEntity entity = toProcessConfigEntity(processConfig);
+        processConfigRepository.save(entity);
     }
 
     @Transactional
@@ -87,14 +93,30 @@ public class MergeOrchestratorConfigService {
     }
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        boolean isNew = processConfig.getProcessUuid() == null;
-        ProcessConfigEntity entity = new ProcessConfigEntity(isNew ? UUID.randomUUID() : processConfig.getProcessUuid(),
+        Optional<BoundaryEntity> eqBoundary = Optional.empty();
+        Optional<BoundaryEntity> tpBoundary = Optional.empty();
+
+        if (processConfig.getEqBoundary() != null) {
+            eqBoundary = boundaryRepository.findById(processConfig.getEqBoundary().getId()).map(e -> {
+                e.markNotNew();
+                return e;
+            });
+        }
+        if (processConfig.getTpBoundary() != null) {
+            tpBoundary = boundaryRepository.findById(processConfig.getTpBoundary().getId()).map(e -> {
+                e.markNotNew();
+                return e;
+            });
+        }
+
+        boolean isNewProcessConfig = processConfig.getProcessUuid() == null;
+        ProcessConfigEntity entity = new ProcessConfigEntity(isNewProcessConfig ? UUID.randomUUID() : processConfig.getProcessUuid(),
             processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(),
             processConfig.isRunBalancesAdjustment(),
             processConfig.isUseLastBoundarySet(),
-            toBoundaryEntity(processConfig.getEqBoundary()),
-            toBoundaryEntity(processConfig.getTpBoundary()));
-        if (!isNew) {
+            eqBoundary.orElse(toBoundaryEntity(processConfig.getEqBoundary())),
+            tpBoundary.orElse(toBoundaryEntity(processConfig.getTpBoundary())));
+        if (!isNewProcessConfig) {
             entity.markNotNew();
         }
         return entity;
