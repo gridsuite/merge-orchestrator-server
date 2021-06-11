@@ -67,7 +67,7 @@ public class MergeOrchestratorConfigService {
     }
 
     @Transactional
-    void addConfig(ProcessConfig processConfig) {
+    public void addConfig(ProcessConfig processConfig) {
         // saving boundaries if needed
         if (processConfig.getEqBoundary() != null) {
             boundaryRepository.findById(processConfig.getEqBoundary().getId()).ifPresentOrElse(b -> { }, () -> boundaryRepository.save(toBoundaryEntity(processConfig.getEqBoundary())));
@@ -76,7 +76,7 @@ public class MergeOrchestratorConfigService {
             boundaryRepository.findById(processConfig.getTpBoundary().getId()).ifPresentOrElse(b -> { }, () -> boundaryRepository.save(toBoundaryEntity(processConfig.getTpBoundary())));
         }
 
-        ProcessConfigEntity entity = toProcessConfigEntity(processConfig);
+        var entity = toProcessConfigEntity(processConfig);
         processConfigRepository.save(entity);
     }
 
@@ -102,7 +102,7 @@ public class MergeOrchestratorConfigService {
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
         boolean isNewProcessConfig = processConfig.getProcessUuid() == null;
-        ProcessConfigEntity entity = new ProcessConfigEntity(isNewProcessConfig ? UUID.randomUUID() : processConfig.getProcessUuid(),
+        var entity = new ProcessConfigEntity(isNewProcessConfig ? UUID.randomUUID() : processConfig.getProcessUuid(),
             processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(),
             processConfig.isRunBalancesAdjustment(),
             processConfig.isUseLastBoundarySet(),
