@@ -7,6 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Before;
@@ -53,6 +54,12 @@ public class ProcessConfigControllerTest {
     @Autowired
     IgmRepository igmRepository;
 
+    @Autowired
+    BoundaryRepository boundaryRepository;
+
+    @Autowired
+    private MergeOrchestratorConfigService mergeOrchestratorConfigService;
+
     private List<String> tsos = new ArrayList<>();
 
     private static final UUID SWE_1D_UUID = UUID.fromString("11111111-f60e-4766-bc5c-8f312c1984e4");
@@ -65,10 +72,10 @@ public class ProcessConfigControllerTest {
         tsos.add("FR");
         tsos.add("ES");
         tsos.add("PT");
-        processConfigRepository.save(new ProcessConfigEntity(SWE_1D_UUID, "SWE_1D", "1D", tsos, false, true, null, null));
-        processConfigRepository.save(new ProcessConfigEntity(SWE_2D_UUID, "SWE_2D", "2D", tsos, false, false,
-            new BoundaryEntity("idEQ", "filename_EQ.xml", LocalDateTime.of(2021, 05, 10, 10, 30, 0)),
-            new BoundaryEntity("idTP", "filename_TP.xml", LocalDateTime.of(2021, 04, 06, 07, 30, 0))));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", tsos, false, true, null, null));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", tsos, false, false,
+            new BoundaryInfo("idEQ", "filename_EQ.xml", LocalDateTime.of(2021, 05, 10, 10, 30, 0)),
+            new BoundaryInfo("idTP", "filename_TP.xml", LocalDateTime.of(2021, 04, 06, 07, 30, 0))));
     }
 
     @Test

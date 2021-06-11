@@ -73,6 +73,9 @@ public class MergeOrchestratorIT {
     @Autowired
     ProcessConfigRepository processConfigRepository;
 
+    @Autowired
+    BoundaryRepository boundaryRepository;
+
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
 
@@ -150,6 +153,7 @@ public class MergeOrchestratorIT {
         processConfigRepository.deleteAll();
         igmRepository.deleteAll();
         mergeRepository.deleteAll();
+        boundaryRepository.deleteAll();
     }
 
     @Before
@@ -927,8 +931,7 @@ public class MergeOrchestratorIT {
         List<String> tsos = new ArrayList<>();
         tsos.add("FR");
         tsos.add("ES");
-        ProcessConfigEntity processConfigEntity = new ProcessConfigEntity(XYZ_2D_UUID, "XYZ_2D", "2D", tsos, true, true, null, null);
-        processConfigRepository.save(processConfigEntity);
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(XYZ_2D_UUID, "XYZ_2D", "2D", tsos, true, true, null, null));
         configs = mergeOrchestratorConfigService.getConfigs();
         assertEquals(4, configs.size());
 

@@ -9,7 +9,6 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
@@ -54,11 +53,11 @@ public class ProcessConfigEntity extends AbstractManuallyAssignedIdentifierEntit
     @Column(name = "useLastBoundarySet")
     private boolean useLastBoundarySet;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(foreignKey = @ForeignKey(name = "eqBoundary_id_fk_constraint"))
     BoundaryEntity eqBoundary;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(foreignKey = @ForeignKey(name = "tpBoundary_id_fk_constraint"))
     BoundaryEntity tpBoundary;
 
