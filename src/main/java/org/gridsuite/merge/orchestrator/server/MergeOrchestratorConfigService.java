@@ -82,7 +82,7 @@ public class MergeOrchestratorConfigService {
     void deleteReport(UUID report) {
         try {
             var restTemplate = new RestTemplate();
-            var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "report" + DELIMITER + report.toString();
+            var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER + report.toString();
             restTemplate.exchange(resourceUrl, HttpMethod.DELETE, null, ReporterModel.class);
         } catch (Exception exception) {
             LOGGER.error(exception.getMessage());
