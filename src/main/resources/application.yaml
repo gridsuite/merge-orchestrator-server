@@ -57,6 +57,8 @@ backing-services:
     base-uri: http://localhost:5021
   network-conversion:
     base-uri: http://localhost:5003
+  report-server:
+    base-uri: http://localhost:5028
 
 network-store-server:
   preloading-strategy: COLLECTION
