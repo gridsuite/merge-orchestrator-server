@@ -76,7 +76,7 @@ public class LoadFlowService {
         return result.getComponentResults().get(0).getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED;
     }
 
-    private boolean stepRun(Step step, LoadFlowParameters params, String uri, List<UUID> networksIds, UUID reporter) {
+    private boolean stepRun(Step step, LoadFlowParameters params, String uri, List<UUID> networksIds) {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         var baos = new ByteArrayOutputStream();
@@ -107,8 +107,8 @@ public class LoadFlowService {
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
         }
-        uriBuilder = uriBuilder.queryParam("reportId", report.toString());
-        uriBuilder = uriBuilder.queryParam("reportName", Step.FIRST.value);
+        uriBuilder = uriBuilder.queryParam(MergeOrchestratorConstants.REPORT_ID, report.toString());
+        uriBuilder = uriBuilder.queryParam(MergeOrchestratorConstants.REPORT_NAME, Step.FIRST.value);
         String uri = uriBuilder.build().toUriString();
 
         // first run with initial settings
@@ -119,25 +119,25 @@ public class LoadFlowService {
             .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
             .setReadSlackBus(true)
             .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        if (stepRun(Step.FIRST, params, uri, networksIds, report)) {
+        if (stepRun(Step.FIRST, params, uri, networksIds)) {
             return MergeStatus.FIRST_LOADFLOW_SUCCEED;
         }
 
-        uriBuilder = uriBuilder.queryParam("reportName", Step.SECOND.value);
+        uriBuilder = uriBuilder.queryParam(MergeOrchestratorConstants.REPORT_NAME, Step.SECOND.value);
         uri = uriBuilder.build().toUriString();
 
         // second run : disabling transformer tap and switched shunt adjustment
         params.setTransformerVoltageControlOn(false);
         params.setSimulShunt(false);
-        if (stepRun(Step.SECOND, params, uri, networksIds, report)) {
+        if (stepRun(Step.SECOND, params, uri, networksIds)) {
             return MergeStatus.SECOND_LOADFLOW_SUCCEED;
         }
 
-        uriBuilder = uriBuilder.queryParam("reportName", Step.THIRD.value);
+        uriBuilder = uriBuilder.queryParam(MergeOrchestratorConstants.REPORT_NAME, Step.THIRD.value);
         uri = uriBuilder.build().toUriString();
 
         // third run : relaxing reactive power limits
         params.setNoGeneratorReactiveLimits(true);
-        return stepRun(Step.THIRD, params, uri, networksIds, report) ? MergeStatus.THIRD_LOADFLOW_SUCCEED : MergeStatus.LOADFLOW_FAILED;
+        return stepRun(Step.THIRD, params, uri, networksIds) ? MergeStatus.THIRD_LOADFLOW_SUCCEED : MergeStatus.LOADFLOW_FAILED;
     }
 }

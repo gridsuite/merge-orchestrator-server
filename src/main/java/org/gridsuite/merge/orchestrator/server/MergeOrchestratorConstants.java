@@ -17,4 +17,6 @@ final class MergeOrchestratorConstants {
 
     static final String REPORT_API_VERSION = "v1";
     static final String DELIMITER = "/";
+    static final String REPORT_NAME = "reportName";
+    static final String REPORT_ID = "reportId";
 }
