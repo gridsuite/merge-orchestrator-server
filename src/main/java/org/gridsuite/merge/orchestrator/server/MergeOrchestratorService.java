@@ -422,8 +422,6 @@ public class MergeOrchestratorService {
             e.setReplacingBusinessProcess(replacingBusinessProcess);
             e.setEqBoundary(replacingEqBoundary);
             e.setTpBoundary(replacingTpBoundary);
-
-            igmRepository.save(e);
         });
     }
 
