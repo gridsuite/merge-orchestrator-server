@@ -10,17 +10,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.persistence.CollectionTable;
 import javax.persistence.Column;
-import javax.persistence.ElementCollection;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.ForeignKey;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.Index;
 import javax.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -31,20 +25,10 @@ import java.util.UUID;
 @Setter
 @ToString
 @Table(name = "merge_igm")
-@IdClass(IgmEntityKey.class)
 public class IgmEntity {
 
-    @Id
-    @Column(name = "processUuid")
-    private UUID processUuid;
-
-    @Id
-    @Column(name = "date")
-    private LocalDateTime date;
-
-    @Id
-    @Column(name = "tso")
-    private String tso;
+    @EmbeddedId
+    private IgmEntityKey key;
 
     @Column(name = "status")
     private String status;
@@ -61,25 +45,25 @@ public class IgmEntity {
     @Column(name = "replacingBusinessProcess")
     private String replacingBusinessProcess;
 
-    @Column(name = "boundary")
-    @ElementCollection
-    @CollectionTable(foreignKey = @ForeignKey(name = "igmEntity_boundaries_fk"), indexes = {@Index(name = "igmEntity_boundaries_idx", columnList = "IgmEntity_processUuid, IgmEntity_date, IgmEntity_tso")})
-    private List<UUID> boundaries;
+    @Column(name = "eqBoundary")
+    private String eqBoundary;
+
+    @Column(name = "tpBoundary")
+    private String tpBoundary;
 
     public IgmEntity() {
     }
 
     public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, UUID caseUuid,
                      LocalDateTime replacingDate, String replacingBusinessProcess,
-                     List<UUID> boundaries) {
-        this.processUuid = key.getProcessUuid();
-        this.date = key.getDate();
-        this.tso = key.getTso();
+                     String eqBoundary, String tpBoundary) {
+        this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
         this.caseUuid = caseUuid;
         this.replacingDate = replacingDate;
         this.replacingBusinessProcess = replacingBusinessProcess;
-        this.boundaries = boundaries;
+        this.eqBoundary = eqBoundary;
+        this.tpBoundary = tpBoundary;
     }
 }

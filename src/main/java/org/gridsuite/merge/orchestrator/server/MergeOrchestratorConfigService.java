@@ -91,13 +91,13 @@ public class MergeOrchestratorConfigService {
 
     @Transactional
     public void deleteConfig(UUID processUuid) {
-        igmRepository.findByProcessUuid(processUuid).stream()
+        igmRepository.findByKeyProcessUuid(processUuid).stream()
                 .filter(Objects::nonNull)
                 .map(IgmEntity::getNetworkUuid)
                 .forEach(networkStoreService::deleteNetwork);
-        igmRepository.deleteByProcessUuid(processUuid);
+        igmRepository.deleteByKeyProcessUuid(processUuid);
         mergeRepository.getReportsFor(processUuid).forEach(this::deleteReport);
-        mergeRepository.deleteByProcessUuid(processUuid);
+        mergeRepository.deleteByKeyProcessUuid(processUuid);
         processConfigRepository.deleteById(processUuid);
 
     }
@@ -107,6 +107,11 @@ public class MergeOrchestratorConfigService {
     }
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        return new ProcessConfigEntity(processConfig.getProcessUuid() == null ? UUID.randomUUID() : processConfig.getProcessUuid(), processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
+        boolean isNew = processConfig.getProcessUuid() == null;
+        ProcessConfigEntity entity = new ProcessConfigEntity(isNew ? UUID.randomUUID() : processConfig.getProcessUuid(), processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
+        if (!isNew) {
+            entity.markNotNew();
+        }
+        return entity;
     }
 }

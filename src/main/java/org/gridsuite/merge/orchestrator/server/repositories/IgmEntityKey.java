@@ -8,7 +8,9 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 
+import javax.persistence.Embeddable;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,6 +20,8 @@ import java.util.UUID;
  */
 @Getter
 @EqualsAndHashCode
+@ToString
+@Embeddable
 public class IgmEntityKey implements Serializable {
 
     private UUID processUuid;

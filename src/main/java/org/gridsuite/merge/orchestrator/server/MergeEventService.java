@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -53,7 +52,7 @@ public class MergeEventService {
     }
 
     public void addMergeIgmEvent(UUID processUuid, String businessProcess, ZonedDateTime date, String tso, IgmStatus status, UUID networkUuid, UUID caseUuid,
-                                 ZonedDateTime replacingDate, String replacingBusinessProcess, List<UUID> boundaries) {
+                                 ZonedDateTime replacingDate, String replacingBusinessProcess, String eqBoundary, String tpBoundary) {
         // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         LocalDateTime localReplacingDateTime = replacingDate != null ? LocalDateTime.ofInstant(replacingDate.toInstant(), ZoneOffset.UTC) : null;
@@ -62,7 +61,7 @@ public class MergeEventService {
         mergeEntity.setStatus(null);
         mergeRepository.save(mergeEntity);
         igmRepository.save(new IgmEntity(new IgmEntityKey(processUuid, localDateTime, tso), status.name(), networkUuid, caseUuid,
-                localReplacingDateTime, replacingBusinessProcess, boundaries));
+                localReplacingDateTime, replacingBusinessProcess, eqBoundary, tpBoundary));
         mergeInfosPublisher.onNext(MessageBuilder
                 .withPayload("")
                 .setHeader("processUuid", processUuid)

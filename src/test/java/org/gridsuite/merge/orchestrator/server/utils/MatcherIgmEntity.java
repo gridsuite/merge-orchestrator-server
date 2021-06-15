@@ -23,14 +23,14 @@ public class MatcherIgmEntity extends TypeSafeMatcher<IgmEntity> {
     IgmEntity reference;
 
     public MatcherIgmEntity(UUID processUuid, LocalDateTime date, String tso, IgmStatus status, UUID networkUuid) {
-        this.reference = new IgmEntity(new IgmEntityKey(processUuid, date, tso), status.name(), networkUuid, networkUuid, null, null, null);
+        this.reference = new IgmEntity(new IgmEntityKey(processUuid, date, tso), status.name(), networkUuid, networkUuid, null, null, null, null);
     }
 
     @Override
     public boolean matchesSafely(IgmEntity m) {
-        return reference.getProcessUuid().equals(m.getProcessUuid()) &&
-                reference.getDate().equals(m.getDate()) &&
-                reference.getTso().equals(m.getTso()) &&
+        return reference.getKey().getProcessUuid().equals(m.getKey().getProcessUuid()) &&
+                reference.getKey().getDate().equals(m.getKey().getDate()) &&
+                reference.getKey().getTso().equals(m.getKey().getTso()) &&
                 reference.getStatus().equals(m.getStatus()) &&
                 reference.getNetworkUuid().equals(m.getNetworkUuid());
     }

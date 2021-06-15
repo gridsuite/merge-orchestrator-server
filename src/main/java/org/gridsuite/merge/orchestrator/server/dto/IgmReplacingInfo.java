@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,5 +34,7 @@ public class IgmReplacingInfo {
 
     private UUID oldNetworkUuid;
 
-    private List<UUID> boundaries;
+    private String eqBoundary;
+
+    private String tpBoundary;
 }
