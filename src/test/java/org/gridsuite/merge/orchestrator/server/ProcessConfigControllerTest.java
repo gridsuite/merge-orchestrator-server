@@ -51,6 +51,27 @@ public class ProcessConfigControllerTest {
     @Autowired
     IgmRepository igmRepository;
 
+    @MockBean
+    private IgmQualityCheckService igmQualityCheckService;
+
+    @MockBean
+    private CaseFetcherService caseFetcherService;
+
+    @MockBean
+    private BalancesAdjustmentService balancesAdjustmentService;
+
+    @MockBean
+    private CgmesBoundaryService cgmesBoundaryService;
+
+    @MockBean
+    private LoadFlowService loadFlowService;
+
+    @MockBean
+    private NetworkConversionService networkConversionService;
+
+    @MockBean
+    private MergeEventService mergeEventService;
+
     private List<String> tsos = new ArrayList<>();
 
     private static final UUID SWE_1D_UUID = UUID.fromString("11111111-f60e-4766-bc5c-8f312c1984e4");

@@ -11,20 +11,14 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
-import java.util.concurrent.locks.LockSupport;
-import java.util.function.Supplier;
-import java.util.logging.Level;
 
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.springframework.context.annotation.Bean;
-import org.springframework.messaging.Message;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -33,19 +27,12 @@ import reactor.core.publisher.Sinks;
 @Service
 public class MergeEventService {
 
-    private static final String CATEGORY_BROKER_OUTPUT = MergeEventService.class.getName()
-            + ".output-broker-messages";
-
     private MergeRepository mergeRepository;
 
     private IgmRepository igmRepository;
 
-    private final Sinks.Many<Message<String>> mergeInfosPublisher = Sinks.many().multicast().onBackpressureBuffer();
-
-    @Bean
-    public Supplier<Flux<Message<String>>> publishMerge() {
-        return () -> mergeInfosPublisher.asFlux().log(CATEGORY_BROKER_OUTPUT, Level.FINE);
-    }
+    @Autowired
+    private StreamBridge mergeInfosPublisher;
 
     public MergeEventService(MergeRepository mergeRepository, IgmRepository igmRepository) {
         this.mergeRepository = mergeRepository;
@@ -68,23 +55,19 @@ public class MergeEventService {
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("tso", tso)
                 .setHeader("status", status.name())
-                .build()).isFailure()) {
-            LockSupport.parkNanos(10);
-        }
+                .build());
     }
 
     public void addMergeEvent(UUID processUuid, String businessProcess, ZonedDateTime date, MergeStatus status) {
         // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
-        while (mergeInfosPublisher.tryEmitNext(MessageBuilder
+        mergeInfosPublisher.send("publishMerge-out-0", MessageBuilder
                 .withPayload("")
                 .setHeader("processUuid", processUuid)
                 .setHeader("businessProcess", businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("status", status.name())
-                .build()).isFailure()) {
-            LockSupport.parkNanos(10);
-        }
+                .build());
     }
 }
