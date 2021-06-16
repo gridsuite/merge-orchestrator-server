@@ -169,17 +169,17 @@ public class MergeOrchestratorIT {
         Mockito.when(networkStoreService.getNetwork(UUID_CASE_ID_ES_VALIDATION_FAILED, PreloadingStrategy.COLLECTION))
             .thenReturn(networkFactory.createNetwork("es", "iidm"));
 
-        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR, REPORT_ID))
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR, UUID_NETWORK_ID_FR))
             .thenReturn(true);
-        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_ES, REPORT_ID))
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_ES, UUID_NETWORK_ID_ES))
             .thenReturn(true);
-        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT, REPORT_ID))
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT, UUID_NETWORK_ID_PT))
             .thenReturn(true);
-        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT_1, REPORT_ID))
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_PT_1, UUID_NETWORK_ID_PT_1))
             .thenReturn(true);
-        Mockito.when(igmQualityCheckService.check(UUID_CASE_ID_ES_VALIDATION_FAILED, REPORT_ID))
+        Mockito.when(igmQualityCheckService.check(UUID_CASE_ID_ES_VALIDATION_FAILED, UUID_CASE_ID_ES_VALIDATION_FAILED))
             .thenReturn(false);
-        Mockito.when(igmQualityCheckService.check(UUID_CASE_ID_ES_IMPORT_ERROR, REPORT_ID))
+        Mockito.when(igmQualityCheckService.check(UUID_CASE_ID_ES_IMPORT_ERROR, UUID_CASE_ID_ES_IMPORT_ERROR))
             .thenReturn(false);
 
         Mockito.when(loadFlowService.run(any(), any()))
@@ -636,7 +636,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_FR.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         // send tso ES with import network error
@@ -646,7 +645,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_ES_VALIDATION_FAILED.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         testImportIgmMessages(1, false);

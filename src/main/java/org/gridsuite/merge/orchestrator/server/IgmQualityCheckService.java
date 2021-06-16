@@ -46,11 +46,12 @@ public class IgmQualityCheckService {
     public boolean check(UUID networkUuid, UUID reportId) {
         boolean res = false;
         try {
-            ResponseEntity<String> response = caseValidationServerRest.exchange(CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate?reportId={reportId}",
-                    HttpMethod.PUT,
-                    null,
-                    String.class,
-                    networkUuid.toString(), reportId.toString());
+            // FIXME when individual check is merged, pass reportId in url
+            ResponseEntity<String> response = caseValidationServerRest.exchange(CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate?overwerite=true",
+                HttpMethod.PUT,
+                null,
+                String.class,
+                networkUuid.toString());
             JsonNode node = new ObjectMapper().readTree(response.getBody()).path(VALIDATION_OK);
             if (!node.isMissingNode()) {
                 res = node.asBoolean();

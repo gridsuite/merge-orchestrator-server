@@ -133,7 +133,6 @@ public class MergeOrchestratorService {
             UUID caseUuid = UUID.fromString((String) Objects.requireNonNull(mh.get(UUID_HEADER_KEY)));
             String format = (String) mh.get(FORMAT_HEADER_KEY);
             String businessProcess = (String) mh.get(BUSINESS_PROCESS_HEADER_KEY);
-            UUID reportID = UUID.fromString((String) Objects.requireNonNull(mh.get(REPORT_ID_HEADER_KEY)));
             ZonedDateTime dateTime = ZonedDateTime.parse(Objects.requireNonNull(date));
 
             // Get all matching process configs
@@ -163,7 +162,7 @@ public class MergeOrchestratorService {
                     LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
 
                     // check IGM quality
-                    boolean valid = igmQualityCheckService.check(networkUuid, reportID);
+                    boolean valid = igmQualityCheckService.check(networkUuid, networkUuid);
 
                     merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
 
