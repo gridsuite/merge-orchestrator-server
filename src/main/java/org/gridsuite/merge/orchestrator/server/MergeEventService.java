@@ -68,6 +68,7 @@ public class MergeEventService {
                 .setHeader("businessProcess", businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("tso", tso)
+                .setHeader("reportId", mergeEntity.getReportUUID())
                 .setHeader("status", status.name())
                 .build());
     }

@@ -43,14 +43,14 @@ public class IgmQualityCheckService {
         this.caseValidationServerRest = restTemplate;
     }
 
-    public boolean check(UUID networkUuid) {
+    public boolean check(UUID networkUuid, UUID reportId) {
         boolean res = false;
         try {
-            ResponseEntity<String> response = caseValidationServerRest.exchange(CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate",
+            ResponseEntity<String> response = caseValidationServerRest.exchange(CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate?reportId={reportId}",
                     HttpMethod.PUT,
                     null,
                     String.class,
-                    networkUuid.toString());
+                    networkUuid.toString(), reportId.toString());
             JsonNode node = new ObjectMapper().readTree(response.getBody()).path(VALIDATION_OK);
             if (!node.isMissingNode()) {
                 res = node.asBoolean();
