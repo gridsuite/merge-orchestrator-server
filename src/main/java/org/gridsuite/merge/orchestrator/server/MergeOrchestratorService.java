@@ -274,9 +274,9 @@ public class MergeOrchestratorService {
         List<IgmEntity> igmEntities = findValidatedIgms(processDate, processUuid);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
-        String businessProcess = mergeConfigService.getConfig(processUuid).orElseThrow(() -> new PowsyblException("Business process " + processUuid + "does not exist")).getBusinessProcess();
+        ProcessConfig processConfig = mergeConfigService.getConfig(processUuid).orElseThrow(() -> new PowsyblException("Business process " + processUuid + "does not exist"));
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmm'Z'");
-        String baseFileName = processDate.toLocalDateTime().format(formatter) + UNDERSCORE + businessProcess + UNDERSCORE + CGM + UNDERSCORE + processUuid;
+        String baseFileName = processDate.toLocalDateTime().format(formatter) + UNDERSCORE + processConfig.getBusinessProcess() + UNDERSCORE + CGM + UNDERSCORE + processConfig.getProcess();
         return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
     }
 
