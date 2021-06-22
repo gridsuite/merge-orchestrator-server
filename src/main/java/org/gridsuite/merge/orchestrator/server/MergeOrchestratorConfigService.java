@@ -10,6 +10,7 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,25 +43,36 @@ public class MergeOrchestratorConfigService {
         this.networkStoreService = networkStoreService;
     }
 
-    List<ProcessConfig> getConfigs() {
-        return processConfigRepository.findAll().stream().map(this::toProcessConfig).collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public List<ProcessConfig> getConfigs() {
+        return processConfigRepository.findAll().stream().map(entity -> {
+            @SuppressWarnings("unused")
+            int ignoreSize = entity.getTsos().size();
+            return entity;
+        }).map(this::toProcessConfig).collect(Collectors.toList());
     }
 
-    Optional<ProcessConfig> getConfig(UUID processUuid) {
-        return processConfigRepository.findById(processUuid).map(this::toProcessConfig);
+    @Transactional(readOnly = true)
+    public Optional<ProcessConfig> getConfig(UUID processUuid) {
+        return processConfigRepository.findById(processUuid).map(entity -> {
+            @SuppressWarnings("unused")
+            int ignoreSize = entity.getTsos().size();
+            return entity;
+        }).map(this::toProcessConfig);
     }
 
     void addConfig(ProcessConfig processConfig) {
         processConfigRepository.save(toProcessConfigEntity(processConfig));
     }
 
+    @Transactional
     public void deleteConfig(UUID processUuid) {
-        igmRepository.findByProcessUuid(processUuid).stream()
+        igmRepository.findByKeyProcessUuid(processUuid).stream()
                 .filter(Objects::nonNull)
                 .map(IgmEntity::getNetworkUuid)
                 .forEach(networkStoreService::deleteNetwork);
-        igmRepository.deleteByProcessUuid(processUuid);
-        mergeRepository.deleteByProcessUuid(processUuid);
+        igmRepository.deleteByKeyProcessUuid(processUuid);
+        mergeRepository.deleteByKeyProcessUuid(processUuid);
         processConfigRepository.deleteById(processUuid);
     }
 
@@ -69,6 +81,11 @@ public class MergeOrchestratorConfigService {
     }
 
     private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        return new ProcessConfigEntity(processConfig.getProcessUuid() == null ? UUID.randomUUID() : processConfig.getProcessUuid(), processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
+        boolean isNew = processConfig.getProcessUuid() == null;
+        ProcessConfigEntity entity = new ProcessConfigEntity(isNew ? UUID.randomUUID() : processConfig.getProcessUuid(), processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
+        if (!isNew) {
+            entity.markNotNew();
+        }
+        return entity;
     }
 }

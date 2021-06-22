@@ -6,9 +6,9 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
-import org.springframework.data.cassandra.repository.CassandraRepository;
-import org.springframework.data.cassandra.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,25 +19,14 @@ import java.util.UUID;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Repository
-public interface IgmRepository extends CassandraRepository<IgmEntity, IgmEntityKey> {
+public interface IgmRepository extends JpaRepository<IgmEntity, IgmEntityKey> {
 
-    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid")
-    List<IgmEntity> findByProcessUuid(UUID processUuid);
+    List<IgmEntity> findByKeyProcessUuid(UUID processUuid);
 
-    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid AND date = :date")
-    List<IgmEntity> findByProcessUuidAndDate(UUID processUuid, LocalDateTime date);
+    List<IgmEntity> findByKeyProcessUuidAndKeyDate(UUID processUuid, LocalDateTime date);
 
-    @Query("DELETE FROM merge_igm WHERE processUuid = :processUuid")
-    void deleteByProcessUuid(UUID processUuid);
+    @Transactional
+    void deleteByKeyProcessUuid(UUID processUuid);
 
-    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid AND date >= :minDate AND date <= :maxDate")
-    List<IgmEntity> findByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
-
-    @Query("SELECT * FROM merge_igm WHERE processUuid = :processUuid AND date = :date AND tso = :tso")
-    Optional<IgmEntity> findByProcessUuidAndDateAndTso(UUID processUuid, LocalDateTime date, String tso);
-
-    @Query("UPDATE merge_igm SET status = :status, networkUuid = :networkUuid, replacingDate = :replacingDate, replacingBusinessProcess = :replacingBusinessProcess, boundaries = :boundaries WHERE processUuid = :processUuid AND date = :date AND tso = :tso")
-    void updateReplacingIgm(UUID processUuid, LocalDateTime date, String tso,
-                            String status, UUID networkUuid, LocalDateTime replacingDate, String replacingBusinessProcess,
-                            List<UUID> boundaries);
+    Optional<IgmEntity> findByKeyProcessUuidAndKeyDateAndKeyTso(UUID processUuid, LocalDateTime date, String tso);
 }

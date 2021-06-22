@@ -17,7 +17,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -44,9 +45,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @RunWith(SpringRunner.class)
-@WebMvcTest(MergeOrchestratorController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 @ContextConfiguration(classes = {MergeOrchestratorApplication.class})
-public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSetup {
+public class MergeOrchestratorControllerTest {
 
     private static final UUID UUID_NETWORK = UUID.fromString("db9b8260-0e8d-4e0c-aad4-56994c151925");
     private static final UUID UUID_NETWORK_MERGE_1 = UUID.fromString("a7a38a4c-a733-4d5e-a38d-8c6ab121c497");
@@ -93,16 +95,23 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
     @Autowired
     private MergeOrchestratorService mergeOrchestratorService;
 
+    private void cleanDB() {
+        igmRepository.deleteAll();
+        mergeRepository.deleteAll();
+    }
+
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+
+        cleanDB();
     }
 
     @Test
     public void test() throws Exception {
         ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 10, 0, 0, 0, ZoneId.of("UTC"));
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null));
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null, null));
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
         String resExpected = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
@@ -133,8 +142,8 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
                 .andExpect(content().json(resExpected));
 
         ZonedDateTime dateTime2 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime2.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime2.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null));
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime2.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime2.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null, null));
         String resExpected2 = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/merges?minDate=" + date + "&maxDate=" + date)
                 .contentType(APPLICATION_JSON))
@@ -155,10 +164,10 @@ public class MergeOrchestratorControllerTest extends AbstractEmbeddedCassandraSe
                 .andExpect(content().json(resExpected3));
 
         ZonedDateTime dateTime3 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
-        mergeRepository.insert(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1, UUID_CASE_MERGE_1, null, null, null));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2, UUID_CASE_MERGE_2, null, null, null));
-        igmRepository.insert(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3, UUID_CASE_MERGE_3, null, null, null));
+        mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1, UUID_CASE_MERGE_1, null, null, null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2, UUID_CASE_MERGE_2, null, null, null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3, UUID_CASE_MERGE_3, null, null, null, null));
         String processDate = URLEncoder.encode(formatter.format(dateTime3), StandardCharsets.UTF_8);
         given(networkConversionService.exportMerge(any(List.class), any(List.class), any(String.class), any(String.class)))
                 .willReturn(new FileInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));

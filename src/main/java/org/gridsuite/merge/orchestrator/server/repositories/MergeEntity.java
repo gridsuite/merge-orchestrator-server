@@ -8,22 +8,30 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.Getter;
 import lombok.ToString;
-import org.springframework.data.cassandra.core.mapping.PrimaryKey;
-import org.springframework.data.cassandra.core.mapping.Table;
+
+import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 
 /**
  * @author Jon harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
+@Entity
 @Getter
 @ToString
-@Table("merge")
+@Table(name = "merge")
 public class MergeEntity {
 
-    @PrimaryKey
+    @EmbeddedId
     private MergeEntityKey key;
 
+    @Column(name = "status")
     private String status;
+
+    public MergeEntity() {
+    }
 
     public MergeEntity(MergeEntityKey key, String status) {
         this.key = key;

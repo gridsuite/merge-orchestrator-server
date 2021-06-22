@@ -26,8 +26,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
-import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.utils.CgmesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +35,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import static org.gridsuite.merge.orchestrator.server.dto.ProcessConfig.ACCEPTED_FORMAT;
@@ -143,10 +144,10 @@ public class MergeOrchestratorService {
                 LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", date, processConfig.getProcess(), processConfig.getBusinessProcess(), format, tso);
 
                 // if already received delete old network
-                Optional<IgmEntity> igmEntityOptional = igmRepository.findByProcessUuidAndDateAndTso(processConfig.getProcessUuid(), LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC), tso);
+                Optional<IgmEntity> igmEntityOptional = igmRepository.findByKeyProcessUuidAndKeyDateAndKeyTso(processConfig.getProcessUuid(), LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC), tso);
                 igmEntityOptional.map(IgmEntity::getNetworkUuid).filter(Objects::nonNull).ifPresent(networkStoreService::deleteNetwork);
 
-                mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null, null);
+                mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null, null, null);
             });
 
             if (!matchingProcessConfigList.isEmpty()) {
@@ -154,23 +155,24 @@ public class MergeOrchestratorService {
                     // import IGM into the network store
                     List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
                     UUID networkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
-                    List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
+                    String eqBoundary = getEqBoundary(lastBoundaries);
+                    String tpBoundary = getTpBoundary(lastBoundaries);
 
-                    LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
+                    LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
 
                     // check IGM quality
                     boolean valid = igmQualityCheckService.check(networkUuid);
 
-                    merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null, lastBoundariesUuid);
+                    merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
 
                     for (ProcessConfig processConfig : matchingProcessConfigList.subList(1, matchingProcessConfigList.size())) {
                         // import IGM into the network store
                         UUID processConfigNetworkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
-                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, null, null, lastBoundariesUuid);
+                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
                     }
                 } catch (Exception e) {
                     ProcessConfig processConfig = matchingProcessConfigList.get(0);
-                    mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.VALIDATION_FAILED, null, null, null, null, null);
+                    mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.VALIDATION_FAILED, null, null, null, null, null, null);
                     throw e;
                 }
             }
@@ -182,12 +184,12 @@ public class MergeOrchestratorService {
     private void merge(ProcessConfig processConfig, ZonedDateTime dateTime, String date, String tso,
                        boolean valid, UUID networkUuid, UUID caseUuid,
                        ZonedDateTime replacingDate, String replacingBusinessProcess,
-                       List<UUID> boundaries) {
+                       String eqBoundary, String tpBoundary) {
         LOGGER.info("Merge {} of process {} {} : IGM from TSO {} is {}valid", date, processConfig.getProcess(), processConfig.getBusinessProcess(), tso, valid ? "" : "not ");
 
         mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso,
                 valid ? IgmStatus.VALIDATION_SUCCEED : IgmStatus.VALIDATION_FAILED, networkUuid, caseUuid,
-                replacingDate, replacingBusinessProcess, boundaries);
+                replacingDate, replacingBusinessProcess, eqBoundary, tpBoundary);
 
         // get list of network UUID for validated IGMs
         List<IgmEntity> igmEntities = findValidatedIgms(dateTime, processConfig.getProcessUuid());
@@ -196,21 +198,7 @@ public class MergeOrchestratorService {
             // all IGMs are available and valid for the merging process
             LOGGER.info("Merge {} of process {} {} : all IGMs have been received and are valid", date, processConfig.getProcess(), processConfig.getBusinessProcess());
 
-            // Add log if boundaries uuid used for each igm during import are different, or if they differ from last boundaries now available
-            Set<UUID> boundariesIgms = new TreeSet<>();
-            igmEntities.stream().findFirst().ifPresent(e -> {
-                if (e.getBoundaries() != null) {
-                    boundariesIgms.addAll(e.getBoundaries());
-                }
-            });
-            if (!igmEntities.stream().skip(1).allMatch(e -> e.getBoundaries() != null && boundariesIgms.equals(new TreeSet<>(e.getBoundaries())))) {
-                LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different last boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
-            } else {
-                List<UUID> lastBoundariesUuid = toUuidBoundaries(cgmesBoundaryService.getLastBoundaries());
-                if (!lastBoundariesUuid.stream().allMatch(boundariesIgms::contains)) {
-                    LOGGER.warn("IGMs have been imported with different last boundaries than the current last boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
-                }
-            }
+            checkUsedBoundaries(processConfig, igmEntities, cgmesBoundaryService, date);
 
             if (processConfig.isRunBalancesAdjustment()) {
                 // balances adjustment on the merge network
@@ -231,24 +219,29 @@ public class MergeOrchestratorService {
         }
     }
 
-    private List<IgmEntity> findValidatedIgms(ZonedDateTime dateTime, UUID processUuid) {
-        // Use of UTC Zone to store in cassandra database
-        LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
+    public List<IgmEntity> findIgmsByProcessUuidAndDate(UUID processUuid, LocalDateTime localDateTime) {
+        return igmRepository.findByKeyProcessUuidAndKeyDate(processUuid, localDateTime);
+    }
 
-        return igmRepository.findByProcessUuidAndDate(processUuid, localDateTime).stream()
-                .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
-                .collect(Collectors.toList());
+    public List<IgmEntity> findValidatedIgms(ZonedDateTime dateTime, UUID processUuid) {
+        // Use of UTC Zone to store in database
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
+        return findIgmsByProcessUuidAndDate(processUuid, localDateTime).stream()
+            .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
+            .collect(Collectors.toList());
+    }
+
+    public List<IgmEntity> findAllIgms() {
+        return igmRepository.findAll();
     }
 
     List<Merge> getMerges(UUID processUuid) {
-        Map<ZonedDateTime, Merge> mergesByDate = mergeRepository.findByProcessUuid(processUuid).stream()
-                .map(MergeOrchestratorService::toMerge)
-                .collect(Collectors.toMap(Merge::getDate, merge -> merge, (v1, v2) -> {
-                    throw new IllegalStateException();
-                }, TreeMap::new));
-        for (IgmEntity entity : igmRepository.findByProcessUuid(processUuid)) {
-            ZonedDateTime date = ZonedDateTime.ofInstant(entity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-            mergesByDate.get(date).getIgms().add(toIgm(entity));
+        Map<ZonedDateTime, Merge> mergesByDate = new HashMap<>();
+        List<MergeRepository.MergeIgm> mergeIgms = mergeRepository.findMergeWithIgmsByProcessUuid(processUuid);
+        for (MergeRepository.MergeIgm mergeIgm : mergeIgms) {
+            var date = ZonedDateTime.ofInstant(mergeIgm.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+            mergesByDate.computeIfAbsent(date, k -> toMerge(mergeIgm));
+            mergesByDate.get(date).getIgms().add(toIgm(mergeIgm));
         }
         return new ArrayList<>(mergesByDate.values());
     }
@@ -256,18 +249,15 @@ public class MergeOrchestratorService {
     List<Merge> getMerges(UUID processUuid, ZonedDateTime minDateTime, ZonedDateTime maxDateTime) {
         LocalDateTime minLocalDateTime = LocalDateTime.ofInstant(minDateTime.toInstant(), ZoneOffset.UTC);
         LocalDateTime maxLocalDateTime = LocalDateTime.ofInstant(maxDateTime.toInstant(), ZoneOffset.UTC);
-        return mergeRepository.findByProcessUuidAndInterval(processUuid, minLocalDateTime, maxLocalDateTime)
-                .stream()
-                .map(MergeOrchestratorService::toMerge)
-                .peek(merge -> {
-                    for (IgmEntity entity : igmRepository.findByProcessUuidAndInterval(processUuid, minLocalDateTime, maxLocalDateTime)) {
-                        ZonedDateTime date = ZonedDateTime.ofInstant(entity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-                        if (merge.getDate().equals(date)) {
-                            merge.getIgms().add(toIgm(entity));
-                        }
-                    }
-                })
-                .collect(Collectors.toList());
+
+        Map<ZonedDateTime, Merge> mergesByDate = new HashMap<>();
+        List<MergeRepository.MergeIgm> mergeIgms = mergeRepository.findMergeWithIgmsByProcessUuidAndInterval(processUuid, minLocalDateTime, maxLocalDateTime);
+        for (MergeRepository.MergeIgm mergeIgm : mergeIgms) {
+            var date = ZonedDateTime.ofInstant(mergeIgm.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+            mergesByDate.computeIfAbsent(date, k -> toMerge(mergeIgm));
+            mergesByDate.get(date).getIgms().add(toIgm(mergeIgm));
+        }
+        return new ArrayList<>(mergesByDate.values());
     }
 
     FileInfos exportMerge(UUID processUuid, ZonedDateTime processDate, String format) {
@@ -280,15 +270,15 @@ public class MergeOrchestratorService {
         return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
     }
 
-    private static Igm toIgm(IgmEntity entity) {
-        ZonedDateTime replacingDate = entity.getReplacingDate() != null ? ZonedDateTime.ofInstant(entity.getReplacingDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")) : null;
-        return new Igm(entity.getKey().getTso(), IgmStatus.valueOf(entity.getStatus()),
-                replacingDate, entity.getReplacingBusinessProcess());
+    private static Igm toIgm(MergeRepository.MergeIgm mergeIgm) {
+        ZonedDateTime replacingDate = mergeIgm.getReplacingDate() != null ? ZonedDateTime.ofInstant(mergeIgm.getReplacingDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")) : null;
+        return new Igm(mergeIgm.getTso(), IgmStatus.valueOf(mergeIgm.getIgmStatus()),
+            replacingDate, mergeIgm.getReplacingBusinessProcess());
     }
 
-    private static Merge toMerge(MergeEntity mergeEntity) {
-        ZonedDateTime date = ZonedDateTime.ofInstant(mergeEntity.getKey().getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
-        return new Merge(mergeEntity.getKey().getProcessUuid(), date, mergeEntity.getStatus() != null ? MergeStatus.valueOf(mergeEntity.getStatus()) : null, new ArrayList<>());
+    private static Merge toMerge(MergeRepository.MergeIgm merge) {
+        var date = ZonedDateTime.ofInstant(merge.getDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC"));
+        return new Merge(merge.getProcessUuid(), date, merge.getStatus() != null ? MergeStatus.valueOf(merge.getStatus()) : null, new ArrayList<>());
     }
 
     public Map<String, IgmReplacingInfo> replaceIGMs(UUID processUuid, ZonedDateTime processDate) {
@@ -299,7 +289,7 @@ public class MergeOrchestratorService {
         ProcessConfig config = mergeConfigService.getConfig(processUuid).orElse(null);
         if (config != null) {
             for (String tso : config.getTsos()) {
-                Optional<IgmEntity> entity = igmRepository.findByProcessUuidAndDateAndTso(processUuid, ldt, tso);
+                Optional<IgmEntity> entity = igmRepository.findByKeyProcessUuidAndKeyDateAndKeyTso(processUuid, ldt, tso);
                 if (!entity.isPresent() || !entity.get().getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name())) {
                     missingOrInvalidTsos.add(tso);
                 }
@@ -364,22 +354,23 @@ public class MergeOrchestratorService {
                     LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", formattedDate,
                             config.getProcess(), config.getBusinessProcess(), ACCEPTED_FORMAT, tso);
 
-                    Optional<IgmEntity> previousEntity = igmRepository.findByProcessUuidAndDateAndTso(config.getProcessUuid(), localDateTime, tso);
+                    Optional<IgmEntity> previousEntity = igmRepository.findByKeyProcessUuidAndKeyDateAndKeyTso(config.getProcessUuid(), localDateTime, tso);
                     UUID currentNetworkUuid = previousEntity.isPresent() ? previousEntity.get().getNetworkUuid() : null;
 
                     // import case in the network store
                     List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
                     UUID networkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
-                    List<UUID> lastBoundariesUuid = toUuidBoundaries(lastBoundaries);
+                    String eqBoundary = getEqBoundary(lastBoundaries);
+                    String tpBoundary = getTpBoundary(lastBoundaries);
 
-                    LOGGER.info("Import case {} using last boundaries uuids {}", caseUuid, lastBoundariesUuid);
+                    LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
 
                     mergeEventService.addMergeIgmEvent(config.getProcessUuid(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE,
-                        currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess, lastBoundariesUuid);
+                        currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess, eqBoundary, tpBoundary);
 
                     // info for the replacing igm : replacing date, replacing business process, status, networkUuid,
                     replacingIGMs.put(tso, new IgmReplacingInfo(tso, replacingDate, IgmStatus.VALIDATION_SUCCEED,
-                            caseUuid, networkUuid, replacingBusinessProcess, currentNetworkUuid, lastBoundariesUuid));
+                            caseUuid, networkUuid, replacingBusinessProcess, currentNetworkUuid, eqBoundary, tpBoundary));
 
                     // A good candidate has been found for replacement
                     break;
@@ -395,12 +386,12 @@ public class MergeOrchestratorService {
             LocalDateTime ldt = LocalDateTime.ofInstant(igmReplace.getDate().toInstant(), ZoneOffset.UTC);
             LocalDateTime processDt = LocalDateTime.ofInstant(processDate.toInstant(), ZoneOffset.UTC);
 
-            // replace in merge_igm table : status, networkUuid for this igm at the initial date
-            // with the status, networkUuid for this igm at the replacement date
-            // and set also replacing date and replacing business process
-            igmRepository.updateReplacingIgm(config.getProcessUuid(), processDt, tso,
+            // replace old status, old networkUuid for this igm at the initial date
+            // with new status, networkUuid for this igm at the replacement date
+            // and set also replacing date, replacing business process and replacing boundaries
+            updateReplacingIgm(config.getProcessUuid(), processDt, tso,
                     igmReplace.getStatus().name(), igmReplace.getNetworkUuid(), ldt,
-                    igmReplace.getBusinessProcess(), igmReplace.getBoundaries());
+                    igmReplace.getBusinessProcess(), igmReplace.getEqBoundary(), igmReplace.getTpBoundary());
 
             if (igmReplace.getOldNetworkUuid() != null) {
                 // delete previous invalid imported network from network store
@@ -413,13 +404,56 @@ public class MergeOrchestratorService {
                     config.getProcess(), config.getBusinessProcess(), tso, formattedReplacingDate);
 
             merge(config, processDate, formattedDate, tso, true, igmReplace.getNetworkUuid(), igmReplace.getCaseUuid(),
-                    igmReplace.getDate(), igmReplace.getBusinessProcess(), igmReplace.getBoundaries());
+                    igmReplace.getDate(), igmReplace.getBusinessProcess(), igmReplace.getEqBoundary(), igmReplace.getTpBoundary());
         }
 
         return replacingIGMs;
     }
 
-    private static List<UUID> toUuidBoundaries(List<BoundaryInfos> boundaries) {
-        return boundaries.stream().map(b -> UUID.fromString(StringUtils.removeStart(b.getId(), "urn:uuid:"))).collect(Collectors.toList());
+    @Transactional
+    public void updateReplacingIgm(UUID processUuid, LocalDateTime date, String tso,
+                                    String status, UUID networkUuid, LocalDateTime replacingDate, String replacingBusinessProcess,
+                                    String replacingEqBoundary, String replacingTpBoundary) {
+        Optional<IgmEntity> igmEntity = igmRepository.findByKeyProcessUuidAndKeyDateAndKeyTso(processUuid, date, tso);
+        igmEntity.ifPresent(e -> {
+            e.setStatus(status);
+            e.setNetworkUuid(networkUuid);
+            e.setReplacingDate(replacingDate);
+            e.setReplacingBusinessProcess(replacingBusinessProcess);
+            e.setEqBoundary(replacingEqBoundary);
+            e.setTpBoundary(replacingTpBoundary);
+        });
+    }
+
+    private static String getEqBoundary(List<BoundaryInfos> boundaries) {
+        return boundaries.stream().filter(b -> b.getFilename().matches(CgmesUtils.EQBD_FILE_REGEX)).findFirst().map(BoundaryInfos::getId).orElse(null);
+    }
+
+    private static String getTpBoundary(List<BoundaryInfos> boundaries) {
+        return boundaries.stream().filter(b -> b.getFilename().matches(CgmesUtils.TPBD_FILE_REGEX)).findFirst().map(BoundaryInfos::getId).orElse(null);
+    }
+
+    private void checkUsedBoundaries(ProcessConfig processConfig, List<IgmEntity> igmEntities, CgmesBoundaryService cgmesBoundaryService, String date) {
+        // Add log if boundaries id used for each igm during import are different, or if they differ from last boundaries now available
+        String eqBoundary = igmEntities.stream().findFirst().map(IgmEntity::getEqBoundary).orElse(null);
+        String tpBoundary = igmEntities.stream().findFirst().map(IgmEntity::getTpBoundary).orElse(null);
+
+        String finalEqBoundary = eqBoundary;
+        String finalTpBoundary = tpBoundary;
+        // check if boundaries id used for each igm during import are different
+        if (!igmEntities.stream().skip(1).allMatch(e -> e.getEqBoundary() != null && finalEqBoundary != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary) && e.getTpBoundary() != null && finalTpBoundary != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary))) {
+            LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different last boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
+        } else {
+            // check if boundaries id used for each igm differ from last boundaries now available
+            List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
+            eqBoundary = getEqBoundary(lastBoundaries);
+            tpBoundary = getTpBoundary(lastBoundaries);
+
+            String finalTpBoundary2 = tpBoundary;
+            String finalEqBoundary2 = eqBoundary;
+            if (!igmEntities.stream().allMatch(e -> e.getEqBoundary() != null && finalEqBoundary2 != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary2) && e.getTpBoundary() != null && finalTpBoundary2 != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary2))) {
+                LOGGER.warn("IGMs have been imported with different last boundaries than the current last boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
+            }
+        }
     }
 }

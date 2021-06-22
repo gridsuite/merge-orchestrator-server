@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @WebMvcTest(MergeOrchestratorController.class)
 @ContextConfiguration(classes = {MergeOrchestratorApplication.class})
-public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedCassandraSetup {
+public class MergeOrchestratorControllerReplaceIGMTest {
     @Autowired
     private MockMvc mvc;
 
@@ -67,6 +67,12 @@ public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedC
     private NetworkConversionService networkConversionService;
 
     @MockBean
+    private MergeOrchestratorConfigService mergeOrchestratorConfigService;
+
+    @MockBean
+    private MergeEventService mergeEventService;
+
+    @MockBean
     private MergeOrchestratorService mergeOrchestratorService;
 
     @Before
@@ -86,8 +92,8 @@ public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedC
         String processDate = URLEncoder.encode(formatter.format(dateTime), StandardCharsets.UTF_8);
 
         Map<String, IgmReplacingInfo> expectedInfos = new HashMap<>();
-        expectedInfos.put("FR", new IgmReplacingInfo("FR", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdFr, uuidNetworkIdFr, "2D", null, null));
-        expectedInfos.put("ES", new IgmReplacingInfo("ES", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdEs, uuidNetworkIdEs, "2D", null, null));
+        expectedInfos.put("FR", new IgmReplacingInfo("FR", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdFr, uuidNetworkIdFr, "2D", null, null, null));
+        expectedInfos.put("ES", new IgmReplacingInfo("ES", dateTime, IgmStatus.VALIDATION_SUCCEED, uuidCaseIdEs, uuidNetworkIdEs, "2D", null, null, null));
 
         given(mergeOrchestratorService.replaceIGMs(any(UUID.class), any(ZonedDateTime.class)))
                 .willReturn(new HashMap<>(expectedInfos));
@@ -98,7 +104,7 @@ public class MergeOrchestratorControllerReplaceIGMTest extends AbstractEmbeddedC
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andReturn();
 
-        assertEquals("{\"FR\":{\"tso\":\"FR\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e4\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e4\",\"businessProcess\":\"2D\",\"oldNetworkUuid\":null,\"boundaries\":null},\"ES\":{\"tso\":\"ES\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e5\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e5\",\"businessProcess\":\"2D\",\"oldNetworkUuid\":null,\"boundaries\":null}}",
+        assertEquals("{\"FR\":{\"tso\":\"FR\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e4\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e4\",\"businessProcess\":\"2D\",\"oldNetworkUuid\":null,\"eqBoundary\":null,\"tpBoundary\":null},\"ES\":{\"tso\":\"ES\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"VALIDATION_SUCCEED\",\"caseUuid\":\"7928181c-7977-4592-ba19-88027e4254e5\",\"networkUuid\":\"8928181c-7977-4592-ba19-88027e4254e5\",\"businessProcess\":\"2D\",\"oldNetworkUuid\":null,\"eqBoundary\":null,\"tpBoundary\":null}}",
                 result.getResponse().getContentAsString());
     }
 }

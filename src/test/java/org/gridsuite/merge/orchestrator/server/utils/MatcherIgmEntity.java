@@ -23,7 +23,7 @@ public class MatcherIgmEntity extends TypeSafeMatcher<IgmEntity> {
     IgmEntity reference;
 
     public MatcherIgmEntity(UUID processUuid, LocalDateTime date, String tso, IgmStatus status, UUID networkUuid) {
-        this.reference = new IgmEntity(new IgmEntityKey(processUuid, date, tso), status.name(), networkUuid, networkUuid, null, null, null);
+        this.reference = new IgmEntity(new IgmEntityKey(processUuid, date, tso), status.name(), networkUuid, networkUuid, null, null, null, null);
     }
 
     @Override

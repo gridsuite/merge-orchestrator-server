@@ -6,10 +6,10 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
-import org.springframework.data.cassandra.repository.CassandraRepository;
-import org.springframework.data.cassandra.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,14 +20,30 @@ import java.util.UUID;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Repository
-public interface MergeRepository extends CassandraRepository<MergeEntity, MergeEntityKey> {
+public interface MergeRepository extends JpaRepository<MergeEntity, MergeEntityKey> {
 
-    @Query("SELECT * FROM merge WHERE processUuid = :processUuid")
-    List<MergeEntity> findByProcessUuid(@Param("processUuid") UUID processUuid);
+    @Transactional
+    void deleteByKeyProcessUuid(UUID processUuid);
 
-    @Query("DELETE FROM merge WHERE processUuid = :processUuid")
-    void deleteByProcessUuid(@Param("processUuid") UUID processUuid);
+    interface MergeIgm {
+        UUID getProcessUuid();
 
-    @Query("SELECT * FROM merge WHERE processUuid = :processUuid AND date >= :minDate AND date <= :maxDate")
-    List<MergeEntity> findByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
+        LocalDateTime getDate();
+
+        String getStatus();
+
+        String getTso();
+
+        String getIgmStatus();
+
+        LocalDateTime getReplacingDate();
+
+        String getReplacingBusinessProcess();
+    }
+
+    @Query(value = "SELECT m.key.processUuid AS processUuid, m.key.date AS date, m.status AS status, igm.key.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.key.processUuid = igm.key.processUuid AND m.key.date = igm.key.date WHERE m.key.processUuid = :processUuid")
+    List<MergeIgm> findMergeWithIgmsByProcessUuid(UUID processUuid);
+
+    @Query(value = "SELECT m.key.processUuid AS processUuid, m.key.date AS date, m.status AS status, igm.key.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.key.processUuid = igm.key.processUuid AND m.key.date = igm.key.date WHERE m.key.processUuid = :processUuid and m.key.date >= :minDate and m.key.date <= :maxDate")
+    List<MergeIgm> findMergeWithIgmsByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
 }

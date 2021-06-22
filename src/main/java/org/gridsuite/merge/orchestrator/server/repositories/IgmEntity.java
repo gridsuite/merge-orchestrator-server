@@ -7,46 +7,63 @@
 package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
-import org.springframework.data.cassandra.core.mapping.PrimaryKey;
-import org.springframework.data.cassandra.core.mapping.Table;
 
+import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
+@Entity
 @Getter
+@Setter
 @ToString
-@Table("merge_igm")
+@Table(name = "merge_igm")
 public class IgmEntity {
 
-    @PrimaryKey
+    @EmbeddedId
     private IgmEntityKey key;
 
+    @Column(name = "status")
     private String status;
 
+    @Column(name = "networkUuid")
     private UUID networkUuid;
 
+    @Column(name = "caseUuid")
     private UUID caseUuid;
 
+    @Column(name = "replacingDate")
     private LocalDateTime replacingDate;
 
+    @Column(name = "replacingBusinessProcess")
     private String replacingBusinessProcess;
 
-    private List<UUID> boundaries;
+    @Column(name = "eqBoundary")
+    private String eqBoundary;
+
+    @Column(name = "tpBoundary")
+    private String tpBoundary;
+
+    public IgmEntity() {
+    }
 
     public IgmEntity(IgmEntityKey key, String status, UUID networkUuid, UUID caseUuid,
                      LocalDateTime replacingDate, String replacingBusinessProcess,
-                     List<UUID> boundaries) {
+                     String eqBoundary, String tpBoundary) {
         this.key = key;
         this.status = status;
         this.networkUuid = networkUuid;
         this.caseUuid = caseUuid;
         this.replacingDate = replacingDate;
         this.replacingBusinessProcess = replacingBusinessProcess;
-        this.boundaries = boundaries;
+        this.eqBoundary = eqBoundary;
+        this.tpBoundary = tpBoundary;
     }
 }
