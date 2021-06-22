@@ -55,7 +55,7 @@ public class MergeEventService {
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(processUuid, localDateTime, tso), status.name(), networkUuid, caseUuid,
                 localReplacingDateTime, replacingBusinessProcess, eqBoundary, tpBoundary));
-        mergeInfosPublisher.onNext(MessageBuilder
+        Message<String> message = MessageBuilder
                 .withPayload("")
                 .setHeader("processUuid", processUuid)
                 .setHeader("businessProcess", businessProcess)
