@@ -88,7 +88,7 @@ public class MergeEventService {
 
     MergeEntity getOrCreateMergeEntity(UUID processUuid, ZonedDateTime date) {
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
-        var key = new MergeEntityKey(processUuid, localDateTime);
-        return mergeRepository.findById(key).orElseGet(() -> new MergeEntity(key, null));
+        return mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, localDateTime)
+            .orElseGet(() -> new MergeEntity(new MergeEntityKey(processUuid, localDateTime), null));
     }
 }

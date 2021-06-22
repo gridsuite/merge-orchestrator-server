@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -43,6 +44,8 @@ public interface MergeRepository extends JpaRepository<MergeEntity, MergeEntityK
 
         String getReplacingBusinessProcess();
     }
+
+    Optional<MergeEntity> findByKeyProcessUuidAndKeyDate(UUID processUuid, LocalDateTime date);
 
     @Query(value = "SELECT m.key.processUuid AS processUuid, m.key.date AS date, m.status AS status, igm.key.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.key.processUuid = igm.key.processUuid AND m.key.date = igm.key.date WHERE m.key.processUuid = :processUuid")
     List<MergeIgm> findMergeWithIgmsByProcessUuid(UUID processUuid);
