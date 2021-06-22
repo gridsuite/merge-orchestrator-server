@@ -10,7 +10,6 @@
     create table merge (
        date timestamp not null,
         processUuid uuid not null,
-        report uuid,
         status varchar(255),
         primary key (date, processUuid)
     );
