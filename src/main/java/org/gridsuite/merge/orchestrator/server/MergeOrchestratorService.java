@@ -59,7 +59,6 @@ public class MergeOrchestratorService {
     private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
     private static final String UNDERSCORE = "_";
     private static final String CGM = "CGM";
-    private static final String REPORT_ID_HEADER_KEY = "reportId";
 
     private static final String GROOVY_TIMESTAMP_PARAMETER = "timestamp";
     private static final String GROOVY_PROCESS_NAME_PARAMETER = "processName";
