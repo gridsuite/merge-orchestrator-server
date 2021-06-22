@@ -162,6 +162,7 @@ public class MergeOrchestratorService {
                     LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
 
                     // check IGM quality
+                    // FIXME use merge id when check is 1 per merge
                     boolean valid = igmQualityCheckService.check(networkUuid, networkUuid);
 
                     merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
