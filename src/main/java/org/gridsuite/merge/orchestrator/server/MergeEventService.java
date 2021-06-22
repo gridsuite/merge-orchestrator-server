@@ -15,8 +15,11 @@ import java.util.UUID;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +33,10 @@ public class MergeEventService {
     private MergeRepository mergeRepository;
 
     private IgmRepository igmRepository;
+
+    private static final String CATEGORY_BROKER_OUTPUT = MergeEventService.class.getName() + ".output-broker-messages";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CATEGORY_BROKER_OUTPUT);
 
     @Autowired
     private StreamBridge mergeInfosPublisher;
@@ -55,19 +62,26 @@ public class MergeEventService {
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("tso", tso)
                 .setHeader("status", status.name())
-                .build());
+                .build();
+        sendMergeMessage(message);
     }
 
     public void addMergeEvent(UUID processUuid, String businessProcess, ZonedDateTime date, MergeStatus status) {
         // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
-        mergeInfosPublisher.send("publishMerge-out-0", MessageBuilder
+        Message<String> message = MessageBuilder
                 .withPayload("")
                 .setHeader("processUuid", processUuid)
                 .setHeader("businessProcess", businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("status", status.name())
-                .build());
+                .build();
+        sendMergeMessage(message);
+    }
+
+    private void sendMergeMessage(Message<String> message) {
+        LOGGER.debug("Sending message : {}", message);
+        mergeInfosPublisher.send("publishMerge-out-0", message);
     }
 }
