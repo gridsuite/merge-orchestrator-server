@@ -92,6 +92,9 @@ public class MergeOrchestratorControllerTest {
     @MockBean
     private MergeOrchestratorConfigService mergeConfigService;
 
+    @MockBean
+    private MergeEventService mergeEventService;
+
     @Autowired
     private MergeOrchestratorService mergeOrchestratorService;
 
