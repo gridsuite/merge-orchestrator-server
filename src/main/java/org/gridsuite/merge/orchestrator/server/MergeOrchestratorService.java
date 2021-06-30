@@ -6,18 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import java.io.InputStreamReader;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.network.store.client.NetworkStoreService;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -26,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeEntity;
 import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
 import org.gridsuite.merge.orchestrator.server.utils.CgmesUtils;
 import org.slf4j.Logger;
@@ -38,6 +29,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
+import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_NOT_FOUND;
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_REPORT_NOT_FOUND;
 import static org.gridsuite.merge.orchestrator.server.dto.ProcessConfig.ACCEPTED_FORMAT;
 
 /**
@@ -229,8 +233,8 @@ public class MergeOrchestratorService {
         // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC);
         return findIgmsByProcessUuidAndDate(processUuid, localDateTime).stream()
-            .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
-            .collect(Collectors.toList());
+                .filter(mergeEntity -> mergeEntity.getStatus().equals(IgmStatus.VALIDATION_SUCCEED.name()))
+                .collect(Collectors.toList());
     }
 
     public List<IgmEntity> findAllIgms() {
@@ -272,10 +276,28 @@ public class MergeOrchestratorService {
         return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
     }
 
+    ReporterModel getReport(UUID processUuid, LocalDateTime processDate) {
+        MergeEntity mergeEntity = mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, processDate).orElseThrow(() -> new MergeOrchestratorException(MERGE_NOT_FOUND, "<" + processUuid + ", " + processDate + ">"));
+        if (mergeEntity.getReportUUID() == null) {
+            throw new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, mergeEntity.toString());
+        }
+        return mergeConfigService.getReport(mergeEntity.getReportUUID());
+    }
+
+    void deleteReport(UUID processUuid, LocalDateTime processDate) {
+        MergeEntity mergeEntity = mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, processDate).orElseThrow(() -> new MergeOrchestratorException(MERGE_NOT_FOUND, "<" + processUuid + ", " + processDate + ">"));
+        if (mergeEntity.getReportUUID() == null) {
+            throw new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, mergeEntity.toString());
+        }
+        mergeConfigService.deleteReport(mergeEntity.getReportUUID());
+        mergeEntity.setReportUUID(null);
+        mergeRepository.save(mergeEntity);
+    }
+
     private static Igm toIgm(MergeRepository.MergeIgm mergeIgm) {
         ZonedDateTime replacingDate = mergeIgm.getReplacingDate() != null ? ZonedDateTime.ofInstant(mergeIgm.getReplacingDate().toInstant(ZoneOffset.UTC), ZoneId.of("UTC")) : null;
         return new Igm(mergeIgm.getTso(), IgmStatus.valueOf(mergeIgm.getIgmStatus()),
-            replacingDate, mergeIgm.getReplacingBusinessProcess());
+                replacingDate, mergeIgm.getReplacingBusinessProcess());
     }
 
     private static Merge toMerge(MergeRepository.MergeIgm merge) {
@@ -368,7 +390,7 @@ public class MergeOrchestratorService {
                     LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
 
                     mergeEventService.addMergeIgmEvent(config.getProcessUuid(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE,
-                        currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess, eqBoundary, tpBoundary);
+                            currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess, eqBoundary, tpBoundary);
 
                     // info for the replacing igm : replacing date, replacing business process, status, networkUuid,
                     replacingIGMs.put(tso, new IgmReplacingInfo(tso, replacingDate, IgmStatus.VALIDATION_SUCCEED,

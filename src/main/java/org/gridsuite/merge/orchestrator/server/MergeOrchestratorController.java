@@ -6,6 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.reporter.ReporterModel;
 import io.swagger.annotations.*;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmReplacingInfo;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +73,7 @@ public class MergeOrchestratorController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The export merge for process")})
     public ResponseEntity<byte[]> exportNetwork(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
                                                 @ApiParam(value = "Process date") @PathVariable("date") String date,
-                                                @ApiParam(value = "Export format")@PathVariable("format") String format) {
+                                                @ApiParam(value = "Export format") @PathVariable("format") String format) {
         LOGGER.debug("Exporting merge for process {} : {}", processUuid, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
@@ -86,14 +89,39 @@ public class MergeOrchestratorController {
     @ApiOperation(value = "Replace missing or invalid igms")
     @ApiResponses(value = {@ApiResponse(code = 200, message = "IGMs replaced")})
     public ResponseEntity<Map<String, IgmReplacingInfo>> replaceIGMs(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
-                                            @ApiParam(value = "Process date") @PathVariable("date") String date) {
+                                                                     @ApiParam(value = "Process date") @PathVariable("date") String date) {
         LOGGER.debug("Replacing igms for merge process {} : {}", processUuid, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
 
         Map<String, IgmReplacingInfo> res = mergeOrchestratorService.replaceIGMs(processUuid, dateTime);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(res);
+    }
 
+    @GetMapping(value = "{processUuid}/{date}/report", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "Get merge report")
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "The report for process"), @ApiResponse(code = 404, message = "The process not found")})
+    public ResponseEntity<ReporterModel> getReport(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
+                                                   @ApiParam(value = "Process date") @PathVariable("date") String date) {
+        LOGGER.debug("Get report for merge process {} : {}", processUuid, date);
+        String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
+        LocalDateTime dateTime = LocalDateTime.ofInstant(ZonedDateTime.parse(decodedDate).toInstant(), ZoneOffset.UTC);
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(mergeOrchestratorService.getReport(processUuid, dateTime));
+    }
+
+    @DeleteMapping(value = "{processUuid}/{date}/report")
+    @ApiOperation(value = "Delete merge report")
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "The report for process deleted"), @ApiResponse(code = 404, message = "The process not found")})
+    public ResponseEntity<Void> deleteReport(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
+                                             @ApiParam(value = "Process date") @PathVariable("date") String date) {
+        LOGGER.debug("Get report for merge process {} : {}", processUuid, date);
+
+        String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
+        LocalDateTime dateTime = LocalDateTime.ofInstant(ZonedDateTime.parse(decodedDate).toInstant(), ZoneOffset.UTC);
+        mergeOrchestratorService.deleteReport(processUuid, dateTime);
+
+        return ResponseEntity.ok().build();
     }
 }
 

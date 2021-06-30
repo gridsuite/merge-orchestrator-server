@@ -6,11 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.*;
-import java.util.stream.IntStream;
-
 import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.iidm.network.ValidationException;
 import com.powsybl.network.store.client.NetworkStoreService;
@@ -24,6 +19,7 @@ import org.gridsuite.merge.orchestrator.server.utils.MatcherMergeEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +35,12 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
@@ -81,9 +83,6 @@ public class MergeOrchestratorIT {
     private CaseFetcherService caseFetcherService;
 
     @MockBean
-    private BalancesAdjustmentService balancesAdjustmentService;
-
-    @MockBean
     private LoadFlowService loadFlowService;
 
     @MockBean
@@ -94,6 +93,9 @@ public class MergeOrchestratorIT {
 
     @Autowired
     private MergeOrchestratorService mergeOrchestratorService;
+
+    @Mock
+    private RestTemplate reportServerRest;
 
     @Autowired
     MergeOrchestratorConfigService mergeOrchestratorConfigService;
@@ -145,6 +147,8 @@ public class MergeOrchestratorIT {
 
     @Before
     public void setUp() {
+        mergeOrchestratorConfigService.setReportServerRest(reportServerRest);
+
         MockitoAnnotations.initMocks(this);
 
         Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_FR), any()))
@@ -183,7 +187,7 @@ public class MergeOrchestratorIT {
             .thenReturn(false);
 
         Mockito.when(loadFlowService.run(any(), any()))
-            .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
+                .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
 
         cleanDB();
     }
@@ -486,16 +490,16 @@ public class MergeOrchestratorIT {
         // test delete config
         assertEquals(3, processConfigRepository.findAll().size());
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid="
-                + SWE_2D_UUID
-                + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED, reportUUID="
-                + reportSwe2Duuid
-                + "), MergeEntity(key=MergeEntityKey(processUuid="
-                + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED, reportUUID="
-                + reportFres2Duuid
-                + ")]",
+                        + SWE_2D_UUID
+                        + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED, reportUUID="
+                        + reportSwe2Duuid
+                        + "), MergeEntity(key=MergeEntityKey(processUuid="
+                        + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED, reportUUID="
+                        + reportFres2Duuid
+                        + ")]",
             mergeRepository.findAll().toString());
         assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + ")]",
-            mergeOrchestratorService.findAllIgms().toString());
+                mergeOrchestratorService.findAllIgms().toString());
 
         mergeOrchestratorConfigService.deleteConfig(SWE_2D_UUID);
 
