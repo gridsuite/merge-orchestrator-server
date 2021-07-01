@@ -54,11 +54,13 @@ public class MergeOrchestratorConfigService {
 
     private final NetworkStoreService networkStoreService;
 
-    private RestTemplate reportServerRest;
+    private String reportServerURI;
+
+    private RestTemplate reportRestClient;
 
     @Autowired
     public MergeOrchestratorConfigService(RestTemplateBuilder builder,
-                                          @Value("${backing-services.report-server.base-uri:https://report-server}") String reportServerURI,
+                                          @Value("${backing-services.report-server.base-uri:https://report-server}") String reportServerBaseURI,
                                           ProcessConfigRepository processConfigRepository,
                                           IgmRepository igmRepository,
                                           MergeRepository mergeRepository,
@@ -67,13 +69,18 @@ public class MergeOrchestratorConfigService {
         this.mergeRepository = mergeRepository;
         this.igmRepository = igmRepository;
         this.networkStoreService = networkStoreService;
-        this.reportServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER))
+        this.reportServerURI = reportServerBaseURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER;
+        this.reportRestClient = builder.uriTemplateHandler(new DefaultUriBuilderFactory(this.reportServerURI))
                 .messageConverters(getJackson2HttpMessageConverter())
                 .build();
     }
 
-    public void setReportServerRest(RestTemplate reportServerRest) {
-        this.reportServerRest = reportServerRest;
+    public String getReportServerURI() {
+        return this.reportServerURI;
+    }
+
+    public RestTemplate getReportRestClient() {
+        return this.reportRestClient;
     }
 
     private MappingJackson2HttpMessageConverter getJackson2HttpMessageConverter() {
@@ -110,9 +117,9 @@ public class MergeOrchestratorConfigService {
     public ReporterModel getReport(UUID report) {
         Objects.requireNonNull(report);
         try {
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/reports/{reportId}");
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
-            return reportServerRest.exchange(uri, HttpMethod.GET, null, ReporterModel.class, report.toString()).getBody();
+            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReporterModel.class, report.toString()).getBody();
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
             throw new MergeOrchestratorException(MERGE_CONFIG_ERROR, e);
@@ -122,9 +129,9 @@ public class MergeOrchestratorConfigService {
     public void deleteReport(UUID report) {
         Objects.requireNonNull(report);
         try {
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/reports/{reportId}");
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
-            reportServerRest.exchange(uri, HttpMethod.DELETE, null, ReporterModel.class, report.toString());
+            reportRestClient.exchange(uri, HttpMethod.DELETE, null, ReporterModel.class, report.toString());
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
             throw new MergeOrchestratorException(MERGE_CONFIG_ERROR, e);
