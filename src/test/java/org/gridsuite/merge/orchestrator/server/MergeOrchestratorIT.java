@@ -6,22 +6,30 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.iidm.network.ValidationException;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import lombok.SneakyThrows;
+import okhttp3.HttpUrl;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.gridsuite.merge.orchestrator.server.utils.MatcherIgm;
-import org.gridsuite.merge.orchestrator.server.utils.MatcherIgmEntity;
-import org.gridsuite.merge.orchestrator.server.utils.MatcherMerge;
-import org.gridsuite.merge.orchestrator.server.utils.MatcherMergeEntity;
+import org.gridsuite.merge.orchestrator.server.utils.*;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,21 +38,18 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.binder.test.InputDestination;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.client.ExpectedCount;
-import org.springframework.test.web.client.MockRestServiceServer;
 
-import java.net.URI;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -52,9 +57,6 @@ import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -65,6 +67,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
         webEnvironment = WebEnvironment.MOCK)
 @ContextHierarchy({@ContextConfiguration(classes = {MergeOrchestratorApplication.class, TestChannelBinderConfiguration.class})})
 public class MergeOrchestratorIT {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorIT.class);
 
     @Autowired
     InputDestination input;
@@ -105,10 +109,13 @@ public class MergeOrchestratorIT {
     @Autowired
     MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
-    private MockRestServiceServer mockReportServer;
-
     @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
+
+    @Autowired
+    private ObjectMapper mapper;
+
+    private MockWebServer mockServer;
 
     private static final UUID UUID_CASE_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
     private static final UUID UUID_NETWORK_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
@@ -135,6 +142,8 @@ public class MergeOrchestratorIT {
     private static final String BOUNDARY_1_ID = "f1582c44-d9e2-4ea0-afdc-dba189ab4358";
     private static final String BOUNDARY_2_ID = "3e3f7738-aab9-4284-a965-71d5cd151f71";
 
+    private static final ReporterModel REPORT_TEST = new ReporterModel("test", "test");
+
     private final NetworkFactory networkFactory = NetworkFactory.find("Default");
     private final ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 0, 0, 0, ZoneId.of("UTC"));
 
@@ -150,15 +159,8 @@ public class MergeOrchestratorIT {
         mergeRepository.deleteAll();
     }
 
-    @SneakyThrows
-    private URI getReportServerURI(String uri) {
-        return new URI(mergeOrchestratorConfigService.getReportServerURI() + uri);
-    }
-
     @Before
     public void setUp() {
-        mockReportServer = MockRestServiceServer.createServer(mergeOrchestratorConfigService.getReportRestClient());
-
         MockitoAnnotations.initMocks(this);
 
         Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_FR), any()))
@@ -199,7 +201,75 @@ public class MergeOrchestratorIT {
         Mockito.when(loadFlowService.run(any(), any()))
                 .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
 
+        initMockServer();
+
         cleanDB();
+    }
+
+    @After
+    public void tearDown() {
+        Set<String> httpRequest = null;
+        try {
+            httpRequest = getRequestsDone(1);
+        } catch (NullPointerException e) {
+            // Ignoring
+        }
+
+        // Shut down the server. Instances cannot be reused.
+        try {
+            mockServer.shutdown();
+        } catch (Exception e) {
+            // Ignoring
+        }
+
+        assertNull("Should not be any messages", output.receive(1000));
+        assertNull("Should not be any http requests", httpRequest);
+    }
+
+    @SneakyThrows
+    private void initMockServer() {
+        mockServer = new MockWebServer();
+        mapper.registerModule(new ReporterModelJsonModule());
+
+        // Start the server.
+        mockServer.start();
+
+        // Ask the server for its URL. You'll need this to make HTTP requests.
+        HttpUrl baseHttpUrl = mockServer.url("");
+        String baseUrl = baseHttpUrl.toString().substring(0, baseHttpUrl.toString().length() - 1);
+        mergeOrchestratorConfigService.setReportServerBaseURI(baseUrl);
+
+        final Dispatcher dispatcher = new Dispatcher() {
+            @SneakyThrows
+            @Override
+            public MockResponse dispatch(RecordedRequest request) {
+                String path = Objects.requireNonNull(request.getPath());
+                //Buffer body = request.getBody();
+                if (path.matches("/v1/reports/.*") && "GET".equals(request.getMethod())) {
+                    return new MockResponse().setResponseCode(200).setBody(mapper.writeValueAsString(REPORT_TEST))
+                            .addHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+                } else if (path.matches("/v1/reports/.*") && "DELETE".equals(request.getMethod())) {
+                    return new MockResponse().setResponseCode(200);
+
+                } else {
+                    LOGGER.error("Path not supported: " + request.getPath());
+                    return new MockResponse().setResponseCode(404);
+
+                }
+            }
+        };
+        mockServer.setDispatcher(dispatcher);
+    }
+
+    private Set<String> getRequestsDone(int n) {
+        return IntStream.range(0, n).mapToObj(i -> {
+            try {
+                return mockServer.takeRequest(0, TimeUnit.SECONDS).getPath();
+            } catch (InterruptedException e) {
+                LOGGER.error("Error while attempting to get the request done : ", e);
+            }
+            return null;
+        }).collect(Collectors.toSet());
     }
 
     @Test
@@ -492,6 +562,7 @@ public class MergeOrchestratorIT {
 
         assertNull(output.receive(1000));
         // test delete config
+        List<MergeEntity> merges = mergeRepository.findAll();
         assertEquals(3, processConfigRepository.findAll().size());
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid="
                         + SWE_2D_UUID
@@ -501,16 +572,13 @@ public class MergeOrchestratorIT {
                         + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED, reportUUID="
                         + reportFres2Duuid
                         + ")]",
-                mergeRepository.findAll().toString());
+                merges.toString());
         assertEquals("[IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=FR), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_FR + ", caseUuid=" + UUID_CASE_ID_FR + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00, tso=ES), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_ES + ", caseUuid=" + UUID_CASE_ID_ES + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + "), IgmEntity(key=IgmEntityKey(processUuid=" + SWE_2D_UUID + ", date=2019-05-01T09:00, tso=PT), status=VALIDATION_SUCCEED, networkUuid=" + UUID_NETWORK_ID_PT + ", caseUuid=" + UUID_CASE_ID_PT + ", replacingDate=null, replacingBusinessProcess=null, eqBoundary=" + BOUNDARY_1_ID + ", tpBoundary=" + BOUNDARY_2_ID + ")]",
                 mergeOrchestratorService.findAllIgms().toString());
 
-        mockReportServer.expect(ExpectedCount.once(),
-                requestTo(getReportServerURI(mergeRepository.findAll().get(0).getReportUUID().toString())))
-                .andExpect(method(HttpMethod.DELETE))
-                .andRespond(withStatus(HttpStatus.OK));
-
         mergeOrchestratorConfigService.deleteConfig(SWE_2D_UUID);
+
+        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", merges.get(0).getReportUUID())));
 
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED, reportUUID=" + reportFres2Duuid + ")]",
                 mergeRepository.findAll().toString());
@@ -588,36 +656,21 @@ public class MergeOrchestratorIT {
         assertEquals(2, merges.size());
         assertEquals(4, igmRepository.findAll().size());
 
-        mockReportServer.expect(ExpectedCount.once(),
-                requestTo(getReportServerURI(merges.get(0).getReportUUID().toString())))
-                .andExpect(method(HttpMethod.DELETE))
-                .andRespond(withStatus(HttpStatus.OK));
+        assertThat(mergeOrchestratorConfigService.getReport(merges.get(0).getReportUUID()), new MatcherReport(REPORT_TEST));
+        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", merges.get(0).getReportUUID())));
 
-        mockReportServer.expect(ExpectedCount.once(),
-                requestTo(getReportServerURI(merges.get(1).getReportUUID().toString())))
-                .andExpect(method(HttpMethod.DELETE))
-                .andRespond(withStatus(HttpStatus.OK));
-
-        mockReportServer.expect(ExpectedCount.once(),
-                requestTo(getReportServerURI(merges.get(0).getReportUUID().toString())))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON));
-
-        mockReportServer.expect(ExpectedCount.once(),
-                requestTo(getReportServerURI(merges.get(1).getReportUUID().toString())))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON));
+        assertThat(mergeOrchestratorConfigService.getReport(merges.get(1).getReportUUID()), new MatcherReport(REPORT_TEST));
+        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", merges.get(1).getReportUUID())));
 
         mergeOrchestratorConfigService.deleteConfig(FRES_2D_UUID);
         assertEquals(1, mergeRepository.findAll().size());
         assertEquals(2, igmRepository.findAll().size());
+        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", merges.get(0).getReportUUID())));
 
         mergeOrchestratorConfigService.deleteConfig(FRPT_2D_UUID);
         assertEquals(0, mergeRepository.findAll().size());
         assertEquals(0, igmRepository.findAll().size());
-
-        assertNull(mergeOrchestratorConfigService.getReport(merges.get(0).getReportUUID()));
-        assertNull(mergeOrchestratorConfigService.getReport(merges.get(1).getReportUUID()));
+        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", merges.get(1).getReportUUID())));
 
         assertNull(output.receive(1000));
     }
@@ -651,14 +704,11 @@ public class MergeOrchestratorIT {
         assertEquals(1, merges.size());
         assertEquals(2, igmRepository.findAll().size());
 
-        mockReportServer.expect(ExpectedCount.once(),
-                requestTo(getReportServerURI(merges.get(0).getReportUUID().toString())))
-                .andExpect(method(HttpMethod.DELETE))
-                .andRespond(withStatus(HttpStatus.OK));
-
         mergeOrchestratorConfigService.deleteConfig(FRES_2D_UUID);
         assertEquals(0, mergeRepository.findAll().size());
         assertEquals(0, igmRepository.findAll().size());
+
+        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", merges.get(0).getReportUUID())));
 
         assertNull(output.receive(1000));
     }
@@ -692,14 +742,11 @@ public class MergeOrchestratorIT {
         assertEquals(1, mergeRepository.findAll().size());
         assertEquals(2, igmRepository.findAll().size());
 
-        mockReportServer.expect(ExpectedCount.once(),
-                requestTo(getReportServerURI(merges.get(0).getReportUUID().toString())))
-                .andExpect(method(HttpMethod.DELETE))
-                .andRespond(withStatus(HttpStatus.OK));
-
         mergeOrchestratorConfigService.deleteConfig(FRES_2D_UUID);
         assertEquals(0, mergeRepository.findAll().size());
         assertEquals(0, igmRepository.findAll().size());
+
+        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", merges.get(0).getReportUUID())));
 
         assertNull(output.receive(1000));
     }
