@@ -11,19 +11,17 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
-import java.util.function.Supplier;
-import java.util.logging.Level;
 
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.springframework.context.annotation.Bean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -32,22 +30,19 @@ import reactor.core.publisher.Flux;
 @Service
 public class MergeEventService {
 
-    private static final String CATEGORY_BROKER_OUTPUT = MergeEventService.class.getName()
-            + ".output-broker-messages";
-
     private MergeRepository mergeRepository;
 
     private IgmRepository igmRepository;
 
-    private final EmitterProcessor<Message<String>> mergeInfosPublisher = EmitterProcessor.create();
+    private static final String CATEGORY_BROKER_OUTPUT = MergeEventService.class.getName() + ".output-broker-messages";
 
     private static final String PROCESS_UUID = "processUuid";
     private static final String BUSINESS_PROCESS = "businessProcess";
 
-    @Bean
-    public Supplier<Flux<Message<String>>> publishMerge() {
-        return () -> mergeInfosPublisher.log(CATEGORY_BROKER_OUTPUT, Level.FINE);
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(CATEGORY_BROKER_OUTPUT);
+
+    @Autowired
+    private StreamBridge mergeInfosPublisher;
 
     public MergeEventService(MergeRepository mergeRepository, IgmRepository igmRepository) {
         this.mergeRepository = mergeRepository;
@@ -63,35 +58,44 @@ public class MergeEventService {
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(processUuid, localDateTime, tso), status.name(), networkUuid, caseUuid,
                 localReplacingDateTime, replacingBusinessProcess, eqBoundary, tpBoundary));
-        mergeInfosPublisher.onNext(MessageBuilder
+
+        Message<String> message = MessageBuilder
                 .withPayload("")
                 .setHeader(PROCESS_UUID, processUuid)
                 .setHeader(BUSINESS_PROCESS, businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("tso", tso)
                 .setHeader("status", status.name())
-                .build());
+                .build();
+        sendMergeMessage(message);
     }
 
     public void addMergeEvent(UUID processUuid, String businessProcess, ZonedDateTime date, MergeStatus status) {
         // Use of UTC Zone to store in database
         LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneOffset.UTC);
         mergeRepository.save(new MergeEntity(new MergeEntityKey(processUuid, localDateTime), status.name()));
-        mergeInfosPublisher.onNext(MessageBuilder
+        Message<String> message = MessageBuilder
                 .withPayload("")
                 .setHeader(PROCESS_UUID, processUuid)
                 .setHeader(BUSINESS_PROCESS, businessProcess)
                 .setHeader("date", date.format(DateTimeFormatter.ISO_DATE_TIME))
                 .setHeader("status", status.name())
-                .build());
+                .build();
+        sendMergeMessage(message);
+    }
+
+    private void sendMergeMessage(Message<String> message) {
+        LOGGER.debug("Sending message : {}", message);
+        mergeInfosPublisher.send("publishMerge-out-0", message);
     }
 
     public void addErrorEvent(UUID processUuid, String businessProcess, String errorMessage) {
-        mergeInfosPublisher.onNext(MessageBuilder
+        Message<String> message = MessageBuilder
             .withPayload("")
             .setHeader(PROCESS_UUID, processUuid)
             .setHeader(BUSINESS_PROCESS, businessProcess)
             .setHeader("error", errorMessage)
-            .build());
+            .build();
+        sendMergeMessage(message);
     }
 }

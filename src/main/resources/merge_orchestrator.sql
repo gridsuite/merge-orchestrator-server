@@ -44,7 +44,7 @@
     );
 create index processConfigEntity_tsos_idx on ProcessConfigEntity_tsos (ProcessConfigEntity_processUuid);
 
-    alter table if exists configs 
+    alter table if exists configs
        add constraint eqBoundary_id_fk_constraint 
        foreign key (eqBoundary_id) 
        references boundary;

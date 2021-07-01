@@ -285,17 +285,13 @@ public class MergeOrchestratorService {
         List<IgmEntity> igmEntities = findValidatedIgms(processDate, processUuid);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
-        Optional<ProcessConfig> config = mergeConfigService.getConfig(processUuid);
-        if (!config.isPresent()) {
-            throw new PowsyblException(PROCESS + " " + processUuid + "does not exist");
-        }
-        String businessProcess = config.get().getBusinessProcess();
-        List<BoundaryContent> boundaries = getProcessConfigBoundaries(config.get());
+        ProcessConfig processConfig = mergeConfigService.getConfig(processUuid).orElseThrow(() -> new PowsyblException(PROCESS + " " + processUuid + "does not exist"));
+        List<BoundaryContent> boundaries = getProcessConfigBoundaries(processConfig);
         if (boundaries.isEmpty()) {
             throw new PowsyblException("Boundaries for process " + processUuid + " unavailable");
         }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmm'Z'");
-        String baseFileName = processDate.toLocalDateTime().format(formatter) + UNDERSCORE + businessProcess + UNDERSCORE + CGM + UNDERSCORE + processUuid;
+        String baseFileName = processDate.toLocalDateTime().format(formatter) + UNDERSCORE + processConfig.getBusinessProcess() + UNDERSCORE + CGM + UNDERSCORE + processConfig.getProcess();
         return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName, boundaries);
     }
 
