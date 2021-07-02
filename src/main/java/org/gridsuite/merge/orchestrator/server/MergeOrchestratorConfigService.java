@@ -14,8 +14,6 @@ import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -43,8 +41,6 @@ import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException
  */
 @Service
 public class MergeOrchestratorConfigService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorConfigService.class);
 
     private final ProcessConfigRepository processConfigRepository;
 

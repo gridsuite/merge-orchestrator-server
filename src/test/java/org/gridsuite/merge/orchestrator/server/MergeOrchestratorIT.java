@@ -142,8 +142,6 @@ public class MergeOrchestratorIT {
     private static final String BOUNDARY_1_ID = "f1582c44-d9e2-4ea0-afdc-dba189ab4358";
     private static final String BOUNDARY_2_ID = "3e3f7738-aab9-4284-a965-71d5cd151f71";
 
-    private static final UUID REPORT_ID = UUID.fromString("12345691-5478-7412-2589-71d5cd151f71");
-
     private static final ReporterModel REPORT_TEST = new ReporterModel("test", "test");
 
     private final NetworkFactory networkFactory = NetworkFactory.find("Default");
@@ -290,7 +288,6 @@ public class MergeOrchestratorIT {
             .setHeader("date", "2019-05-01T10:00:00.000+01:00")
             .setHeader("uuid", UUID_CASE_ID_FR.toString())
             .setHeader("format", "CGMES")
-            .setHeader("reportId", REPORT_ID.toString())
             .setHeader("businessProcess", "1D")
             .build());
         Message<byte[]> messageFrIGM = output.receive(1000);
@@ -322,7 +319,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_ES.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "1D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
         Message<byte[]> messageEsIGM = output.receive(1000);
         assertEquals("AVAILABLE", messageEsIGM.getHeaders().get("status"));
@@ -370,7 +366,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_PT.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "1D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
         Message<byte[]> messagePtIGM = output.receive(1000);
         assertEquals("AVAILABLE", messagePtIGM.getHeaders().get("status"));
@@ -422,7 +417,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_FR.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
         Message<byte[]> messageFrIGMProcess1 = output.receive(1000);
         assertEquals("AVAILABLE", messageFrIGMProcess1.getHeaders().get("status"));
@@ -470,7 +464,6 @@ public class MergeOrchestratorIT {
             .setHeader("date", "2019-05-01T10:00:00.000+01:00")
             .setHeader("uuid", UUID_CASE_ID_ES.toString())
             .setHeader("format", "CGMES")
-            .setHeader("reportId", REPORT_ID.toString())
             .setHeader("businessProcess", "2D")
             .build());
         Message<byte[]> messageEsIGMProcess1 = output.receive(1000);
@@ -529,7 +522,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_PT.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
         Message<byte[]> messagePtIGM = output.receive(1000);
         assertEquals("AVAILABLE", messagePtIGM.getHeaders().get("status"));
@@ -637,7 +629,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_FR.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
         input.send(MessageBuilder.withPayload("")
             .setHeader("tso", "ES")
@@ -645,7 +636,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_ES.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
         input.send(MessageBuilder.withPayload("")
             .setHeader("tso", "PT")
@@ -653,7 +643,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_PT.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         testImportIgmMessages(2, false);
@@ -697,7 +686,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_FR.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         // send tso ES with import network error
@@ -707,7 +695,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_ES_IMPORT_ERROR.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         testImportIgmMessages(1, false);
@@ -778,7 +765,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_FR.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         // Imported twice
@@ -809,7 +795,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_ES.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         // Imported once
@@ -836,7 +821,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_PT.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         // Imported once
@@ -871,7 +855,6 @@ public class MergeOrchestratorIT {
             .setHeader("uuid", UUID_CASE_ID_PT_1.toString())
             .setHeader("format", "CGMES")
             .setHeader("businessProcess", "2D")
-            .setHeader("reportId", REPORT_ID.toString())
             .build());
 
         // Imported once
