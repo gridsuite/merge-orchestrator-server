@@ -6,11 +6,17 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Objects;
@@ -18,12 +24,20 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants.DELIMITER;
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants.REPORT_API_VERSION;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Service
 public class MergeOrchestratorConfigService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorConfigService.class);
+
+    @Value("${backing-services.report-server.base-uri:https://report-server}")
+    String reportServerURI;
 
     private final ProcessConfigRepository processConfigRepository;
 
@@ -65,6 +79,16 @@ public class MergeOrchestratorConfigService {
         processConfigRepository.save(toProcessConfigEntity(processConfig));
     }
 
+    void deleteReport(UUID report) {
+        try {
+            var restTemplate = new RestTemplate();
+            var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER + report.toString();
+            restTemplate.exchange(resourceUrl, HttpMethod.DELETE, null, ReporterModel.class);
+        } catch (Exception exception) {
+            LOGGER.error(exception.getMessage());
+        }
+    }
+
     @Transactional
     public void deleteConfig(UUID processUuid) {
         igmRepository.findByKeyProcessUuid(processUuid).stream()
@@ -72,8 +96,10 @@ public class MergeOrchestratorConfigService {
                 .map(IgmEntity::getNetworkUuid)
                 .forEach(networkStoreService::deleteNetwork);
         igmRepository.deleteByKeyProcessUuid(processUuid);
+        mergeRepository.getReportsFor(processUuid).forEach(this::deleteReport);
         mergeRepository.deleteByKeyProcessUuid(processUuid);
         processConfigRepository.deleteById(processUuid);
+
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {

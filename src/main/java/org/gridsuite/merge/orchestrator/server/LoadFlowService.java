@@ -102,11 +102,13 @@ public class LoadFlowService {
         return isLoadFlowOk;
     }
 
-    public MergeStatus run(List<UUID> networksIds) {
+    public MergeStatus run(List<UUID> networksIds, UUID report) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run");
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
         }
+        uriBuilder = uriBuilder.queryParam(MergeOrchestratorConstants.REPORT_ID, report.toString());
+        uriBuilder = uriBuilder.queryParam(MergeOrchestratorConstants.REPORT_NAME, Step.FIRST.value + "Loadflow");
         String uri = uriBuilder.build().toUriString();
 
         // first run with initial settings
@@ -121,12 +123,18 @@ public class LoadFlowService {
             return MergeStatus.FIRST_LOADFLOW_SUCCEED;
         }
 
+        uriBuilder = uriBuilder.replaceQueryParam(MergeOrchestratorConstants.REPORT_NAME, Step.SECOND.value + "Loadflow");
+        uri = uriBuilder.build().toUriString();
+
         // second run : disabling transformer tap and switched shunt adjustment
         params.setTransformerVoltageControlOn(false);
         params.setSimulShunt(false);
         if (stepRun(Step.SECOND, params, uri, networksIds)) {
             return MergeStatus.SECOND_LOADFLOW_SUCCEED;
         }
+
+        uriBuilder = uriBuilder.replaceQueryParam(MergeOrchestratorConstants.REPORT_NAME, Step.THIRD.value + "Loadflow");
+        uri = uriBuilder.build().toUriString();
 
         // third run : relaxing reactive power limits
         params.setNoGeneratorReactiveLimits(true);

@@ -75,6 +75,7 @@ public class LoadFlowServiceTest {
         List<LoadFlowResult.ComponentResult> componentResultsNok = Collections.singletonList(new LoadFlowResultImpl.ComponentResultImpl(0, 0, LoadFlowResult.ComponentResult.Status.FAILED, 20, "slackBusId", 0));
         List<LoadFlowResult.ComponentResult> componentResultsEmpty = Collections.emptyList();
 
+        UUID reportId = UUID.randomUUID();
         // first loadflow succeeds
         LoadFlowParameters params1 = new LoadFlowParameters()
             .setTransformerVoltageControlOn(true)
@@ -85,7 +86,7 @@ public class LoadFlowServiceTest {
             .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params1);
 
-        MergeStatus status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        MergeStatus status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), reportId);
         assertEquals(MergeStatus.FIRST_LOADFLOW_SUCCEED, status);
 
         // first loadflow fails, but second loadflow succeeds
@@ -100,7 +101,7 @@ public class LoadFlowServiceTest {
             .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params2);
 
-        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), reportId);
         assertEquals(MergeStatus.SECOND_LOADFLOW_SUCCEED, status);
 
         // first loadflow fails, second loadflow fails, but third loadflow succeeds
@@ -117,7 +118,7 @@ public class LoadFlowServiceTest {
             .setNoGeneratorReactiveLimits(true);
         addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params3);
 
-        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), reportId);
         assertEquals(MergeStatus.THIRD_LOADFLOW_SUCCEED, status);
 
         // neither loadflow succeeds
@@ -125,20 +126,20 @@ public class LoadFlowServiceTest {
         addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params2);
         addLoadFlowResultExpectation(networkUuid1, componentResultsNok, params3);
 
-        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), reportId);
         assertEquals(MergeStatus.LOADFLOW_FAILED, status);
 
         // test with empty componentResults and null LoadFlowResult
         addLoadFlowResultExpectation(networkUuid1, componentResultsEmpty, params1);
         addLoadFlowResultExpectation(networkUuid1, componentResultsEmpty, params2);
         addLoadFlowResultExpectation(networkUuid1, componentResultsEmpty, params3);
-        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), reportId);
         assertEquals(MergeStatus.LOADFLOW_FAILED, status);
 
         addLoadFlowResultExpectation(networkUuid1, null, params1);
         addLoadFlowResultExpectation(networkUuid1, null, params2);
         addLoadFlowResultExpectation(networkUuid1, null, params3);
-        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3));
+        status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), reportId);
         assertEquals(MergeStatus.LOADFLOW_FAILED, status);
     }
 }
