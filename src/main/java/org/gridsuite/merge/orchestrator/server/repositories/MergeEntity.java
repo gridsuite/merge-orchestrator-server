@@ -7,12 +7,14 @@
 package org.gridsuite.merge.orchestrator.server.repositories;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import java.util.UUID;
 
 /**
  * @author Jon harper <jon.harper at rte-france.com>
@@ -20,6 +22,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Getter
+@Setter
 @ToString
 @Table(name = "merge")
 public class MergeEntity {
@@ -30,11 +33,15 @@ public class MergeEntity {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "report")
+    private UUID reportUUID;
+
     public MergeEntity() {
     }
 
     public MergeEntity(MergeEntityKey key, String status) {
         this.key = key;
         this.status = status;
+        this.reportUUID = UUID.randomUUID();
     }
 }
