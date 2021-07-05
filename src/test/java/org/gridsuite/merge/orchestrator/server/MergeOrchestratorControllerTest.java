@@ -7,6 +7,10 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.fasterxml.jackson.core.util.ByteArrayBuilder;
+import com.powsybl.iidm.network.NetworkFactory;
+import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
+import lombok.SneakyThrows;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
@@ -15,31 +19,46 @@ import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cloud.stream.binder.test.InputDestination;
+import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.client.ExpectedCount;
+import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants.DELIMITER;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -47,7 +66,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ContextConfiguration(classes = {MergeOrchestratorApplication.class})
+@ContextConfiguration(classes = {MergeOrchestratorApplication.class, TestChannelBinderConfiguration.class})
 public class MergeOrchestratorControllerTest {
 
     private static final UUID UUID_NETWORK = UUID.fromString("db9b8260-0e8d-4e0c-aad4-56994c151925");
@@ -62,6 +81,14 @@ public class MergeOrchestratorControllerTest {
     private static final UUID SWE_1D_UUID = UUID.fromString("11111111-f60e-4766-bc5c-8f312c1984e4");
     private static final UUID SWE_2D_UUID = UUID.fromString("21111111-f60e-4766-bc5c-8f312c1984e4");
 
+    private static final UUID FRES_2D_UUID = UUID.fromString("21111111-f60e-4766-bc5c-8f312c1984e4");
+    private static final UUID UUID_CASE_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    private static final UUID UUID_CASE_ID_ES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
+    private static final UUID UUID_NETWORK_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    private static final UUID UUID_NETWORK_ID_ES = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+
     @Autowired
     private MockMvc mvc;
 
@@ -71,17 +98,14 @@ public class MergeOrchestratorControllerTest {
     @Autowired
     IgmRepository igmRepository;
 
+    @Autowired
+    ProcessConfigRepository processConfigRepository;
+
+    @MockBean
+    private NetworkStoreService networkStoreService;
+
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
-
-    @MockBean
-    private CaseFetcherService caseFetcherService;
-
-    @MockBean
-    private CgmesBoundaryService cgmesBoundaryService;
-
-    @MockBean
-    private BalancesAdjustmentService balancesAdjustmentService;
 
     @MockBean
     private LoadFlowService loadFlowService;
@@ -89,23 +113,45 @@ public class MergeOrchestratorControllerTest {
     @MockBean
     private NetworkConversionService networkConversionService;
 
-    @MockBean
+    @Autowired
     private MergeOrchestratorConfigService mergeConfigService;
 
-    @MockBean
-    private MergeEventService mergeEventService;
+    private final NetworkFactory networkFactory = NetworkFactory.find("Default");
+
+    private MockRestServiceServer mockReportServer;
 
     @Autowired
-    private MergeOrchestratorService mergeOrchestratorService;
+    InputDestination input;
 
     private void cleanDB() {
         igmRepository.deleteAll();
         mergeRepository.deleteAll();
+        processConfigRepository.deleteAll();
     }
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+
+        mockReportServer = MockRestServiceServer.createServer(mergeConfigService.getReportRestClient());
+
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_FR), any()))
+                .thenReturn(UUID_NETWORK_ID_FR);
+        Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_ES), any()))
+                .thenReturn(UUID_NETWORK_ID_ES);
+
+        Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_FR, PreloadingStrategy.COLLECTION))
+                .thenReturn(networkFactory.createNetwork("fr", "iidm"));
+        Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_ES, PreloadingStrategy.COLLECTION))
+                .thenReturn(networkFactory.createNetwork("es", "iidm"));
+
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_FR, UUID_NETWORK_ID_FR))
+                .thenReturn(true);
+        Mockito.when(igmQualityCheckService.check(UUID_NETWORK_ID_ES, UUID_NETWORK_ID_ES))
+                .thenReturn(true);
+
+        Mockito.when(loadFlowService.run(any(), any()))
+                .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
 
         cleanDB();
     }
@@ -116,8 +162,7 @@ public class MergeOrchestratorControllerTest {
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null, null));
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
-        String resExpected = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"" + formatter.format(dateTime) + "\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
+        String resExpected = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"" + DATE_FORMATTER.format(dateTime) + "\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
 
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/merges")
                 .contentType(APPLICATION_JSON))
@@ -137,7 +182,7 @@ public class MergeOrchestratorControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json("[]"));
 
-        String date = URLEncoder.encode(formatter.format(dateTime), StandardCharsets.UTF_8);
+        String date = URLEncoder.encode(DATE_FORMATTER.format(dateTime), StandardCharsets.UTF_8);
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/merges?minDate=" + date + "&maxDate=" + date)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -156,8 +201,8 @@ public class MergeOrchestratorControllerTest {
 
         ZonedDateTime minDateTime = ZonedDateTime.of(2020, 7, 20, 9, 0, 0, 0, ZoneId.of("UTC"));
         ZonedDateTime maxDateTime = ZonedDateTime.of(2020, 7, 20, 12, 0, 0, 0, ZoneId.of("UTC"));
-        String minDate = URLEncoder.encode(formatter.format(minDateTime), StandardCharsets.UTF_8);
-        String maxDate = URLEncoder.encode(formatter.format(maxDateTime), StandardCharsets.UTF_8);
+        String minDate = URLEncoder.encode(DATE_FORMATTER.format(minDateTime), StandardCharsets.UTF_8);
+        String maxDate = URLEncoder.encode(DATE_FORMATTER.format(maxDateTime), StandardCharsets.UTF_8);
         String resExpected3 = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}," +
                 "{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"2020-07-20T10:30:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"ES\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/merges?minDate=" + minDate + "&maxDate=" + maxDate)
@@ -166,24 +211,71 @@ public class MergeOrchestratorControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json(resExpected3));
 
+        mergeConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "FRESPT_2D", "2D", List.of("FR", "ES", "PT"), false));
         ZonedDateTime dateTime3 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1, UUID_CASE_MERGE_1, null, null, null, null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2, UUID_CASE_MERGE_2, null, null, null, null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3, UUID_CASE_MERGE_3, null, null, null, null));
-        String processDate = URLEncoder.encode(formatter.format(dateTime3), StandardCharsets.UTF_8);
+        String processDate = URLEncoder.encode(DATE_FORMATTER.format(dateTime3), StandardCharsets.UTF_8);
         given(networkConversionService.exportMerge(any(List.class), any(List.class), any(String.class), any(String.class)))
                 .willReturn(new FileInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));
-        given(mergeConfigService.getConfig(any(UUID.class)))
-                .willReturn(Optional.of(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", null, false)));
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/" + processDate + "/export/XIIDM")
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));
 
-        mvc.perform(get("/" + VERSION + "/" + UUID.randomUUID() + "/"  + processDate + "/export/CGMES")
+        UUID randomUuid = UUID.randomUUID();
+        mergeConfigService.addConfig(new ProcessConfig(randomUuid, "FRESPT_2D", "2D", List.of("FR", "ES", "PT"), false));
+        mvc.perform(get("/" + VERSION + "/" + randomUuid + "/" + processDate + "/export/CGMES")
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));
+    }
+
+    @SneakyThrows
+    private URI getReportServerURI(String uri) {
+        return new URI(mergeConfigService.getReportServerURI() + uri);
+    }
+
+    @SneakyThrows
+    @Test
+    public void testReport() {
+        mergeConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false));
+        ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 10, 0, 0, 0, ZoneId.of("UTC"));
+        String mergeDate = DATE_FORMATTER.format(dateTime);
+
+        // send tsos FR and ES with business process = 2D
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "FR")
+                .setHeader("date", mergeDate)
+                .setHeader("uuid", UUID_CASE_ID_FR.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+        input.send(MessageBuilder.withPayload("")
+                .setHeader("tso", "ES")
+                .setHeader("date", mergeDate)
+                .setHeader("uuid", UUID_CASE_ID_ES.toString())
+                .setHeader("format", "CGMES")
+                .setHeader("businessProcess", "2D")
+                .build());
+
+        mockReportServer.expect(ExpectedCount.once(),
+                requestTo(getReportServerURI(mergeRepository.findAll().get(0).getReportUUID().toString())))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK));
+
+        mockReportServer.expect(ExpectedCount.once(),
+                requestTo(getReportServerURI(mergeRepository.findAll().get(0).getReportUUID().toString())))
+                .andExpect(method(HttpMethod.DELETE))
+                .andRespond(withStatus(HttpStatus.OK));
+
+        mvc.perform(get(DELIMITER + VERSION + DELIMITER + FRES_2D_UUID + DELIMITER + URLEncoder.encode(mergeDate, StandardCharsets.UTF_8) + "/report"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON));
+
+        mvc.perform(delete(DELIMITER + VERSION + DELIMITER + FRES_2D_UUID + DELIMITER + URLEncoder.encode(mergeDate, StandardCharsets.UTF_8) + "/report"))
+                .andExpect(status().isOk());
     }
 }

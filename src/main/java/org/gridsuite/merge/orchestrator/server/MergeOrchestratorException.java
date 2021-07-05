@@ -19,6 +19,7 @@ public class MergeOrchestratorException extends RuntimeException {
         MERGE_CONFIG_ERROR(HttpStatus.INTERNAL_SERVER_ERROR),
         MERGE_NOT_FOUND(HttpStatus.NOT_FOUND),
         MERGE_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND),
+        MERGE_REPORT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR),
         MERGE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 
         public final HttpStatus status;

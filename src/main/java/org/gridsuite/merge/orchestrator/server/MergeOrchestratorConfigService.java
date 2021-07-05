@@ -18,9 +18,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -33,7 +36,8 @@ import java.util.stream.Collectors;
 
 import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants.DELIMITER;
 import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants.REPORT_API_VERSION;
-import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_CONFIG_ERROR;
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_REPORT_ERROR;
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_REPORT_NOT_FOUND;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -67,14 +71,18 @@ public class MergeOrchestratorConfigService {
         setReportServerBaseURI(reportServerBaseURI);
     }
 
-    public void setReportServerBaseURI(String reportServerBaseURI) {
+    RestTemplate getReportRestClient() {
+        return reportRestClient;
+    }
+
+    void setReportServerBaseURI(String reportServerBaseURI) {
         this.reportServerBaseURI = reportServerBaseURI;
         this.reportRestClient = new RestTemplateBuilder().uriTemplateHandler(new DefaultUriBuilderFactory(getReportServerURI()))
                 .messageConverters(getJackson2HttpMessageConverter())
                 .build();
     }
 
-    public String getReportServerURI() {
+    String getReportServerURI() {
         return this.reportServerBaseURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER;
     }
 
@@ -115,8 +123,10 @@ public class MergeOrchestratorConfigService {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
             return reportRestClient.exchange(uri, HttpMethod.GET, null, ReporterModel.class, report.toString()).getBody();
-        } catch (Exception e) {
-            throw new MergeOrchestratorException(MERGE_CONFIG_ERROR, e);
+        } catch (HttpClientErrorException e) {
+            throw (e.getStatusCode() == HttpStatus.NOT_FOUND) ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e) : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
+        } catch (RestClientException e) {
+            throw new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
         }
     }
 
@@ -126,8 +136,10 @@ public class MergeOrchestratorConfigService {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
             reportRestClient.exchange(uri, HttpMethod.DELETE, null, ReporterModel.class, report.toString());
-        } catch (Exception e) {
-            throw new MergeOrchestratorException(MERGE_CONFIG_ERROR, e);
+        } catch (HttpClientErrorException e) {
+            throw (e.getStatusCode() == HttpStatus.NOT_FOUND) ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e) : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
+        } catch (RestClientException e) {
+            throw new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
         }
     }
 
@@ -138,7 +150,7 @@ public class MergeOrchestratorConfigService {
                 .map(IgmEntity::getNetworkUuid)
                 .forEach(networkStoreService::deleteNetwork);
         igmRepository.deleteByKeyProcessUuid(processUuid);
-        mergeRepository.getReportsFor(processUuid).forEach(this::deleteReport);
+        mergeRepository.getReportsFor(processUuid).stream().filter(Objects::nonNull).forEach(this::deleteReport);
         mergeRepository.deleteByKeyProcessUuid(processUuid);
         processConfigRepository.deleteById(processUuid);
     }
