@@ -113,8 +113,23 @@ public class MergeOrchestratorConfigService {
         igmRepository.deleteByKeyProcessUuid(processUuid);
         mergeRepository.getReportsFor(processUuid).forEach(this::deleteReport);
         mergeRepository.deleteByKeyProcessUuid(processUuid);
+
+        Optional<String> eqBoundary = processConfigRepository.findById(processUuid).map(entity -> entity.getEqBoundary() != null ? entity.getEqBoundary().getId() : null);
+        Optional<String> tpBoundary = processConfigRepository.findById(processUuid).map(entity -> entity.getTpBoundary() != null ? entity.getTpBoundary().getId() : null);
+
         processConfigRepository.deleteById(processUuid);
 
+        // delete the boundaries if they were the last one used by the deleted process config
+        eqBoundary.ifPresent(boundary -> {
+            if (processConfigRepository.findAll().stream().filter(entity -> entity.getEqBoundary() != null && entity.getEqBoundary().getId().equals(boundary)).count() == 0) {
+                boundaryRepository.deleteById(boundary);
+            }
+        });
+        tpBoundary.ifPresent(boundary -> {
+            if (processConfigRepository.findAll().stream().filter(entity -> entity.getTpBoundary() != null && entity.getTpBoundary().getId().equals(boundary)).count() == 0) {
+                boundaryRepository.deleteById(boundary);
+            }
+        });
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {

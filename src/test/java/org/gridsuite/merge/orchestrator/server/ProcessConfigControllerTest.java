@@ -64,6 +64,8 @@ public class ProcessConfigControllerTest {
 
     private static final UUID SWE_1D_UUID = UUID.fromString("11111111-f60e-4766-bc5c-8f312c1984e4");
     private static final UUID SWE_2D_UUID = UUID.fromString("22222222-f60e-4766-bc5c-8f312c1984e4");
+    private static final UUID SWE_RT_UUID = UUID.fromString("33333333-f60e-4766-bc5c-8f312c1984e4");
+    private static final UUID SWE_WK_UUID = UUID.fromString("44444444-f60e-4766-bc5c-8f312c1984e4");
 
     @Before
     public void setUp() {
@@ -74,17 +76,26 @@ public class ProcessConfigControllerTest {
         tsos.add("PT");
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", tsos, false, true, null, null));
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_2D_UUID, "SWE_2D", "2D", tsos, false, false,
-            new BoundaryInfo("idEQ", "filename_EQ.xml", LocalDateTime.of(2021, 05, 10, 10, 30, 0)),
-            new BoundaryInfo("idTP", "filename_TP.xml", LocalDateTime.of(2021, 04, 06, 07, 30, 0))));
+            new BoundaryInfo("id1EQ", "filename_EQ.xml", LocalDateTime.of(2021, 05, 10, 10, 30, 0)),
+            new BoundaryInfo("id1TP", "filename_TP.xml", LocalDateTime.of(2021, 04, 06, 07, 30, 0))));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_RT_UUID, "SWE_RT", "RT", tsos, false, false,
+            new BoundaryInfo("id2EQ", "filename_EQ.xml", LocalDateTime.of(2021, 05, 10, 10, 30, 0)),
+            new BoundaryInfo("id2TP", "filename_TP.xml", LocalDateTime.of(2021, 04, 06, 07, 30, 0))));
+        mergeOrchestratorConfigService.addConfig(new ProcessConfig(SWE_WK_UUID, "SWE_WK", "WK", tsos, false, false,
+            new BoundaryInfo("id1EQ", "filename_EQ.xml", LocalDateTime.of(2021, 05, 10, 10, 30, 0)),
+            new BoundaryInfo("id1TP", "filename_TP.xml", LocalDateTime.of(2021, 04, 06, 07, 30, 0))));
     }
 
     @Test
     public void configTest() throws Exception {
+        assertEquals(4, processConfigRepository.findAll().size());
+        assertEquals(4, boundaryRepository.findAll().size());
+
         mvc.perform(get("/" + VERSION + "/configs")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":true,\"eqBoundary\":null,\"tpBoundary\":null},{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"idEQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"idTP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
+                .andExpect(content().json("[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":true,\"eqBoundary\":null,\"tpBoundary\":null},{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_RT_UUID + "\",\"process\":\"SWE_RT\",\"businessProcess\":\"RT\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id2EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id2TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_WK_UUID + "\",\"process\":\"SWE_WK\",\"businessProcess\":\"WK\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
 
         mvc.perform(get("/" + VERSION + "/configs/" + SWE_1D_UUID)
                 .contentType(APPLICATION_JSON))
@@ -96,19 +107,22 @@ public class ProcessConfigControllerTest {
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk());
 
+        assertEquals(3, processConfigRepository.findAll().size());
+        assertEquals(4, boundaryRepository.findAll().size());
+
         mvc.perform(get("/" + VERSION + "/configs")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"idEQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"idTP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
+                .andExpect(content().json("[{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_RT_UUID + "\",\"process\":\"SWE_RT\",\"businessProcess\":\"RT\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id2EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id2TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_WK_UUID + "\",\"process\":\"SWE_WK\",\"businessProcess\":\"WK\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
 
         mvc.perform(post("/" + VERSION + "/configs")
                 .contentType(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(new ProcessConfig(SWE_1D_UUID, "SWE_1D", "1D", tsos, false, true, null, null))))
                 .andExpect(status().isOk());
 
-        List<ProcessConfigEntity> configs = processConfigRepository.findAll();
-        assertEquals(2, configs.size());
+        assertEquals(4, processConfigRepository.findAll().size());
+        assertEquals(4, boundaryRepository.findAll().size());
 
         mvc.perform(get("/" + VERSION + "/configs/" + SWE_1D_UUID)
             .contentType(APPLICATION_JSON))
@@ -120,14 +134,34 @@ public class ProcessConfigControllerTest {
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-            .andExpect(content().json("{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"idEQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"idTP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}"));
+            .andExpect(content().json("{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}"));
 
         mvc.perform(delete("/" + VERSION + "/configs/" + SWE_1D_UUID)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk());
 
+        assertEquals(3, processConfigRepository.findAll().size());
+        assertEquals(4, boundaryRepository.findAll().size());
+
         mvc.perform(delete("/" + VERSION + "/configs/" + SWE_2D_UUID)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk());
+
+        assertEquals(2, processConfigRepository.findAll().size());
+        assertEquals(4, boundaryRepository.findAll().size());
+
+        mvc.perform(delete("/" + VERSION + "/configs/" + SWE_RT_UUID)
+            .contentType(APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+        assertEquals(1, processConfigRepository.findAll().size());
+        assertEquals(2, boundaryRepository.findAll().size());
+
+        mvc.perform(delete("/" + VERSION + "/configs/" + SWE_WK_UUID)
+            .contentType(APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+        assertEquals(0, processConfigRepository.findAll().size());
+        assertEquals(0, boundaryRepository.findAll().size());
     }
 }
