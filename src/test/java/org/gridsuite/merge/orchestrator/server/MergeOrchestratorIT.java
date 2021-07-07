@@ -239,6 +239,9 @@ public class MergeOrchestratorIT {
     @SneakyThrows
     private void initMockServer() {
         mockServer = new MockWebServer();
+
+        // FIXME: remove lines when dicos will be used on the front side
+        mapper = new ObjectMapper();
         mapper.registerModule(new ReporterModelJsonModule());
 
         // Start the server.
@@ -671,7 +674,8 @@ public class MergeOrchestratorIT {
         assertEquals(4, igmRepository.findAll().size());
 
         UUID randomUuid = UUID.randomUUID();
-        assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorService.getReport(randomUuid, LocalDateTime.now()))
+        LocalDateTime dateNow = LocalDateTime.now();
+        assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorService.getReport(randomUuid, dateNow))
                 .getMessage().contains(MERGE_NOT_FOUND.name()));
 
         assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorConfigService.getReport(randomUuid))
@@ -691,7 +695,7 @@ public class MergeOrchestratorIT {
         assertThat(mergeOrchestratorConfigService.getReport(reportUuid), new MatcherReport(REPORT_TEST));
         assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
 
-        assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorService.deleteReport(randomUuid, LocalDateTime.now()))
+        assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorService.deleteReport(randomUuid, dateNow))
                 .getMessage().contains(MERGE_NOT_FOUND.name()));
 
         assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorConfigService.deleteReport(randomUuid))

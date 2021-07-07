@@ -115,7 +115,7 @@ public class MergeOrchestratorController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The report for process deleted"), @ApiResponse(code = 404, message = "The process not found")})
     public ResponseEntity<Void> deleteReport(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
                                              @ApiParam(value = "Process date") @PathVariable("date") String date) {
-        LOGGER.debug("Get report for merge process {} : {}", processUuid, date);
+        LOGGER.debug("Delete report for merge process {} : {}", processUuid, date);
 
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         LocalDateTime dateTime = LocalDateTime.ofInstant(ZonedDateTime.parse(decodedDate).toInstant(), ZoneOffset.UTC);
