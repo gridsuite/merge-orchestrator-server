@@ -83,14 +83,15 @@ public class MergeOrchestratorConfigService {
     @Transactional
     public void addConfig(ProcessConfig processConfig) {
         // saving boundaries if needed
-        if (processConfig.getEqBoundary() != null) {
-            boundaryRepository.findById(processConfig.getEqBoundary().getId()).ifPresentOrElse(b -> { }, () -> boundaryRepository.save(toBoundaryEntity(processConfig.getEqBoundary())));
-        }
-        if (processConfig.getTpBoundary() != null) {
-            boundaryRepository.findById(processConfig.getTpBoundary().getId()).ifPresentOrElse(b -> { }, () -> boundaryRepository.save(toBoundaryEntity(processConfig.getTpBoundary())));
-        }
+        BoundaryEntity boundaryEqEntity = processConfig.getEqBoundary() != null ? boundaryRepository
+            .findById(processConfig.getEqBoundary().getId())
+            .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getEqBoundary()))) : null;
+        BoundaryEntity boundaryTpEntity = processConfig.getTpBoundary() != null ? boundaryRepository
+            .findById(processConfig.getTpBoundary().getId())
+            .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getTpBoundary()))) : null;
 
-        var entity = toProcessConfigEntity(processConfig);
+        // saving config
+        var entity = toProcessConfigEntity(processConfig, boundaryEqEntity, boundaryTpEntity);
         processConfigRepository.save(entity);
     }
 
@@ -141,14 +142,15 @@ public class MergeOrchestratorConfigService {
             toBoundaryInfo(processConfigEntity.getTpBoundary()));
     }
 
-    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
+    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig, BoundaryEntity boundaryEq, BoundaryEntity boundaryTp) {
         boolean isNewProcessConfig = processConfig.getProcessUuid() == null;
+
         var entity = new ProcessConfigEntity(isNewProcessConfig ? UUID.randomUUID() : processConfig.getProcessUuid(),
             processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(),
             processConfig.isRunBalancesAdjustment(),
             processConfig.isUseLastBoundarySet(),
-            toBoundaryEntity(processConfig.getEqBoundary()),
-            toBoundaryEntity(processConfig.getTpBoundary()));
+            boundaryEq,
+            boundaryTp);
         if (!isNewProcessConfig) {
             entity.markNotNew();
         }
