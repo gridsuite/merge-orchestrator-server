@@ -13,7 +13,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
- * @author Franck Lecuyer <etienne.homer at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 
 @AllArgsConstructor

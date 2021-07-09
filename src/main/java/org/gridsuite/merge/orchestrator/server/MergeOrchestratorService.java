@@ -363,15 +363,15 @@ public class MergeOrchestratorService {
         // Execute groovy script to get the ordered proposed list of date, businessProcess for replacing the missing or invalid date, businessProcess
         List<ReplacingDate> resScript = execReplaceGroovyScript(replacingIGMScript, formattedDate, config.getProcess(), config.getBusinessProcess());
 
+        List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(config);
+        if (configBoundaries.isEmpty()) {
+            var errorMessage = PROCESS + " " + config.getProcess() + " (" + config.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
+            mergeEventService.addErrorEvent(config.getProcessUuid(), config.getBusinessProcess(), errorMessage);
+            return replacingIGMs;
+        }
+
         // handle each missing or invalid igms
         for (String tso : missingOrInvalidTsos) {
-            List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(config);
-            if (configBoundaries.isEmpty()) {
-                var errorMessage = PROCESS + " " + config.getProcess() + " (" + config.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
-                mergeEventService.addErrorEvent(config.getProcessUuid(), config.getBusinessProcess(), errorMessage);
-                return replacingIGMs;
-            }
-
             for (ReplacingDate elt : resScript) {
                 ZonedDateTime replacingDate = ZonedDateTime.parse(elt.getDate(), DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.of("UTC")));
 
