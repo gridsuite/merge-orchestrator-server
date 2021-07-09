@@ -8,7 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.commons.PowsyblException;
 import org.apache.commons.io.FilenameUtils;
-import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryContent;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.NetworkInfos;
 import org.junit.Before;
@@ -66,7 +66,7 @@ public class NetworkConversionServiceTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        networkConversionService = new NetworkConversionService(networkConversionServerRest, caseFetcherService, cgmesBoundaryService);
+        networkConversionService = new NetworkConversionService(networkConversionServerRest, caseFetcherService);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class NetworkConversionServiceTest {
                 eq(networkUuid1.toString()),
                 eq("XIIDM")))
                 .thenReturn(new ResponseEntity(response, header, HttpStatus.OK));
-        FileInfos res = networkConversionService.exportMerge(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), null, "XIIDM", "merge_name");
+        FileInfos res = networkConversionService.exportMerge(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), null, "XIIDM", "merge_name", Collections.emptyList());
         assertEquals(response, res.getData());
         assertEquals("merge_name.xiidm", res.getName());
     }
@@ -105,12 +105,9 @@ public class NetworkConversionServiceTest {
                 eq("CGMES")))
                 .thenReturn(new ResponseEntity("SV content".getBytes(), header, HttpStatus.OK));
 
-        when(cgmesBoundaryService.getLastBoundaries()).thenReturn(List.of(
-                new BoundaryInfos("idTPBD", "TPBD", "TP content"),
-                new BoundaryInfos("idEQBD", "EQBD", "EQ content")
-        ));
+        List<BoundaryContent> boundaries = List.of(new BoundaryContent("idEQBD", "EQBD", "EQ content"), new BoundaryContent("idTPBD", "TPBD", "TP content"));
 
-        FileInfos res = networkConversionService.exportMerge(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), new ArrayList<>(), "CGMES", "merge_name");
+        FileInfos res = networkConversionService.exportMerge(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), new ArrayList<>(), "CGMES", "merge_name", boundaries);
 
         Map<String, byte[]> files = new HashMap<>();
         byte[] buffer = new byte[1024];
@@ -156,22 +153,22 @@ public class NetworkConversionServiceTest {
 
     @Test
     public void importCaseTest() {
-        List<BoundaryInfos> boundaries = new ArrayList<>();
+        List<BoundaryContent> boundaries = new ArrayList<>();
         String boundary1Id = "idBoundary1";
         String boundary1Filename = "boundary1.xml";
         String boundary1Content = "fake content of boundary1";
         String boundary2Id = "idBoundary2";
         String boundary2Filename = "boundary2.xml";
         String boundary2Content = "fake content of boundary2";
-        boundaries.add(new BoundaryInfos(boundary1Id, boundary1Filename, boundary1Content));
-        boundaries.add(new BoundaryInfos(boundary2Id, boundary2Filename, boundary2Content));
+        boundaries.add(new BoundaryContent(boundary1Id, boundary1Filename, boundary1Content));
+        boundaries.add(new BoundaryContent(boundary2Id, boundary2Filename, boundary2Content));
 
         UUID caseUuid = UUID.fromString("b3a4bbc6-567d-48d4-a05d-5a109213c524");
         UUID networkUuid = UUID.fromString("44a1954e-96b5-4be1-81c4-2a5b48e6a558");
         String networkId = "networkId";
 
-        ArgumentMatcher<HttpEntity<List<BoundaryInfos>>> matcher = r -> {
-            List<BoundaryInfos> requestBoundaries = r.getBody();
+        ArgumentMatcher<HttpEntity<List<BoundaryContent>>> matcher = r -> {
+            List<BoundaryContent> requestBoundaries = r.getBody();
             return requestBoundaries.get(0).getId().equals(boundary1Id) &&
                 requestBoundaries.get(0).getFilename().equals(boundary1Filename) &&
                 requestBoundaries.get(0).getBoundary().equals(boundary1Content) &&

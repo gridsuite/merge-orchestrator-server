@@ -8,7 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.commons.PowsyblException;
 import org.apache.commons.io.FilenameUtils;
-import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfos;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryContent;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.NetworkInfos;
 import org.gridsuite.merge.orchestrator.server.utils.CgmesUtils;
@@ -54,25 +54,21 @@ public class NetworkConversionService {
 
     private CaseFetcherService caseFetcherService;
 
-    private CgmesBoundaryService cgmesBoundaryService;
-
     @Autowired
-    public NetworkConversionService(CaseFetcherService caseFetcherService, CgmesBoundaryService cgmesBoundaryService, RestTemplateBuilder builder,
+    public NetworkConversionService(CaseFetcherService caseFetcherService, RestTemplateBuilder builder,
                                     @Value("${backing-services.network-conversion.base-uri:http://network-conversion-server/}") String networkConversionBaseUri) {
         this.caseFetcherService = caseFetcherService;
-        this.cgmesBoundaryService = cgmesBoundaryService;
         this.networkConversionServerRest = builder.uriTemplateHandler(
                 new DefaultUriBuilderFactory(networkConversionBaseUri)
         ).build();
     }
 
-    public NetworkConversionService(RestTemplate networkConversionServerRest, CaseFetcherService caseFetcherService, CgmesBoundaryService cgmesBoundaryService) {
+    public NetworkConversionService(RestTemplate networkConversionServerRest, CaseFetcherService caseFetcherService) {
         this.networkConversionServerRest = networkConversionServerRest;
         this.caseFetcherService = caseFetcherService;
-        this.cgmesBoundaryService = cgmesBoundaryService;
     }
 
-    public FileInfos exportMerge(List<UUID> networkUuids, List<UUID> caseUuids, String format, String baseFileName) {
+    public FileInfos exportMerge(List<UUID> networkUuids, List<UUID> caseUuids, String format, String baseFileName, List<BoundaryContent> boundaries) {
         if (format.equals(CGMES_FORMAT)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -87,7 +83,7 @@ public class NetworkConversionService {
                 CgmesUtils.addFilesToZip(repackagedZip, Collections.singletonList(getSvProfile(networkUuids, baseFileName)));
 
                 //Add boundary files
-                CgmesUtils.addFilesToZip(repackagedZip, CgmesBoundaryService.getFileInfosBoundaries(cgmesBoundaryService.getLastBoundaries()));
+                CgmesUtils.addFilesToZip(repackagedZip, CgmesBoundaryService.getFileInfosBoundaries(boundaries));
 
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -146,13 +142,13 @@ public class NetworkConversionService {
         return new FileInfos(baseFileName.concat(UNDERSCORE + SV_PROFILE + UNDERSCORE + FILE_VERSION + XML_EXTENSION), responseEntity.getBody());
     }
 
-    public UUID importCase(UUID caseUuid, List<BoundaryInfos> boundaries) {
+    public UUID importCase(UUID caseUuid, List<BoundaryContent> boundaries) {
         var uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/cgmes");
         var uri = uriBuilder.queryParam("caseUuid", caseUuid.toString()).build().toUriString();
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<List<BoundaryInfos>> requestEntity = new HttpEntity<>(boundaries, headers);
+        HttpEntity<List<BoundaryContent>> requestEntity = new HttpEntity<>(boundaries, headers);
 
         try {
             ResponseEntity<NetworkInfos> responseEntity = networkConversionServerRest.exchange(uri,

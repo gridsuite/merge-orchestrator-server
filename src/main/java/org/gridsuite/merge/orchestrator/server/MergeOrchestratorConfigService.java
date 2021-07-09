@@ -8,6 +8,7 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.network.store.client.NetworkStoreService;
+import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.slf4j.Logger;
@@ -41,6 +42,8 @@ public class MergeOrchestratorConfigService {
 
     private final ProcessConfigRepository processConfigRepository;
 
+    private final BoundaryRepository boundaryRepository;
+
     private final MergeRepository mergeRepository;
 
     private final IgmRepository igmRepository;
@@ -48,10 +51,12 @@ public class MergeOrchestratorConfigService {
     private final NetworkStoreService networkStoreService;
 
     public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository,
+                                          BoundaryRepository boundaryRepository,
                                           IgmRepository igmRepository,
                                           MergeRepository mergeRepository,
                                           NetworkStoreService networkStoreService) {
         this.processConfigRepository = processConfigRepository;
+        this.boundaryRepository = boundaryRepository;
         this.mergeRepository = mergeRepository;
         this.igmRepository = igmRepository;
         this.networkStoreService = networkStoreService;
@@ -75,8 +80,19 @@ public class MergeOrchestratorConfigService {
         }).map(this::toProcessConfig);
     }
 
-    void addConfig(ProcessConfig processConfig) {
-        processConfigRepository.save(toProcessConfigEntity(processConfig));
+    @Transactional
+    public void addConfig(ProcessConfig processConfig) {
+        // saving boundaries if needed
+        BoundaryEntity boundaryEqEntity = processConfig.getEqBoundary() != null ? boundaryRepository
+            .findById(processConfig.getEqBoundary().getId())
+            .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getEqBoundary()))) : null;
+        BoundaryEntity boundaryTpEntity = processConfig.getTpBoundary() != null ? boundaryRepository
+            .findById(processConfig.getTpBoundary().getId())
+            .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getTpBoundary()))) : null;
+
+        // saving config
+        var entity = toProcessConfigEntity(processConfig, boundaryEqEntity, boundaryTpEntity);
+        processConfigRepository.save(entity);
     }
 
     void deleteReport(UUID report) {
@@ -98,20 +114,54 @@ public class MergeOrchestratorConfigService {
         igmRepository.deleteByKeyProcessUuid(processUuid);
         mergeRepository.getReportsFor(processUuid).forEach(this::deleteReport);
         mergeRepository.deleteByKeyProcessUuid(processUuid);
+
+        Optional<String> eqBoundary = processConfigRepository.findById(processUuid).map(entity -> entity.getEqBoundary() != null ? entity.getEqBoundary().getId() : null);
+        Optional<String> tpBoundary = processConfigRepository.findById(processUuid).map(entity -> entity.getTpBoundary() != null ? entity.getTpBoundary().getId() : null);
+
         processConfigRepository.deleteById(processUuid);
 
+        // delete the boundaries if they were the last one used by the deleted process config
+        eqBoundary.ifPresent(boundary -> {
+            if (processConfigRepository.findAll().stream().filter(entity -> entity.getEqBoundary() != null && entity.getEqBoundary().getId().equals(boundary)).count() == 0) {
+                boundaryRepository.deleteById(boundary);
+            }
+        });
+        tpBoundary.ifPresent(boundary -> {
+            if (processConfigRepository.findAll().stream().filter(entity -> entity.getTpBoundary() != null && entity.getTpBoundary().getId().equals(boundary)).count() == 0) {
+                boundaryRepository.deleteById(boundary);
+            }
+        });
     }
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
-        return new ProcessConfig(processConfigEntity.getProcessUuid(), processConfigEntity.getProcess(), processConfigEntity.getBusinessProcess(), processConfigEntity.getTsos(), processConfigEntity.isRunBalancesAdjustment());
+        return new ProcessConfig(processConfigEntity.getProcessUuid(), processConfigEntity.getProcess(),
+            processConfigEntity.getBusinessProcess(), processConfigEntity.getTsos(),
+            processConfigEntity.isRunBalancesAdjustment(),
+            processConfigEntity.isUseLastBoundarySet(),
+            toBoundaryInfo(processConfigEntity.getEqBoundary()),
+            toBoundaryInfo(processConfigEntity.getTpBoundary()));
     }
 
-    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig) {
-        boolean isNew = processConfig.getProcessUuid() == null;
-        ProcessConfigEntity entity = new ProcessConfigEntity(isNew ? UUID.randomUUID() : processConfig.getProcessUuid(), processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(), processConfig.isRunBalancesAdjustment());
-        if (!isNew) {
+    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig, BoundaryEntity boundaryEq, BoundaryEntity boundaryTp) {
+        boolean isNewProcessConfig = processConfig.getProcessUuid() == null;
+
+        var entity = new ProcessConfigEntity(isNewProcessConfig ? UUID.randomUUID() : processConfig.getProcessUuid(),
+            processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(),
+            processConfig.isRunBalancesAdjustment(),
+            processConfig.isUseLastBoundarySet(),
+            boundaryEq,
+            boundaryTp);
+        if (!isNewProcessConfig) {
             entity.markNotNew();
         }
         return entity;
+    }
+
+    private BoundaryEntity toBoundaryEntity(BoundaryInfo boundary) {
+        return boundary != null ? new BoundaryEntity(boundary.getId(), boundary.getFilename(), boundary.getScenarioTime()) : null;
+    }
+
+    private BoundaryInfo toBoundaryInfo(BoundaryEntity boundary) {
+        return boundary != null ? new BoundaryInfo(boundary.getId(), boundary.getFilename(), boundary.getScenarioTime()) : null;
     }
 }

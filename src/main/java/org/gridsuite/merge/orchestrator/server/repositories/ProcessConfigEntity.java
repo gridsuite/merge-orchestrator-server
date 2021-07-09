@@ -13,9 +13,12 @@ import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import java.util.List;
 import java.util.UUID;
@@ -47,12 +50,27 @@ public class ProcessConfigEntity extends AbstractManuallyAssignedIdentifierEntit
     @Column(name = "runBalancesAdjustment")
     private boolean runBalancesAdjustment;
 
-    public ProcessConfigEntity(UUID processUuid, String process, String businessProcess, List<String> tsos, boolean runBalancesAdjustment) {
+    @Column(name = "useLastBoundarySet")
+    private boolean useLastBoundarySet;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(foreignKey = @ForeignKey(name = "eqBoundary_id_fk_constraint"))
+    BoundaryEntity eqBoundary;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(foreignKey = @ForeignKey(name = "tpBoundary_id_fk_constraint"))
+    BoundaryEntity tpBoundary;
+
+    public ProcessConfigEntity(UUID processUuid, String process, String businessProcess, List<String> tsos, boolean runBalancesAdjustment,
+                               boolean useLastBoundarySet, BoundaryEntity eqBoundary, BoundaryEntity tpBoundary) {
         this.processUuid = processUuid;
         this.process = process;
         this.businessProcess = businessProcess;
         this.tsos = tsos;
         this.runBalancesAdjustment = runBalancesAdjustment;
+        this.useLastBoundarySet = useLastBoundarySet;
+        this.eqBoundary = eqBoundary;
+        this.tpBoundary = tpBoundary;
     }
 
     @Override

@@ -59,6 +59,7 @@ public class MergeOrchestratorService {
     private static final String BUSINESS_PROCESS_HEADER_KEY = "businessProcess";
     private static final String UNDERSCORE = "_";
     private static final String CGM = "CGM";
+    private static final String PROCESS = "Process";
 
     private static final String GROOVY_TIMESTAMP_PARAMETER = "timestamp";
     private static final String GROOVY_PROCESS_NAME_PARAMETER = "processName";
@@ -150,35 +151,55 @@ public class MergeOrchestratorService {
                 mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null, null, null);
             });
 
-            if (!matchingProcessConfigList.isEmpty()) {
+            for (ProcessConfig processConfig : matchingProcessConfigList) {
                 try {
                     // import IGM into the network store
-                    List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
-                    UUID networkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
-                    String eqBoundary = getEqBoundary(lastBoundaries);
-                    String tpBoundary = getTpBoundary(lastBoundaries);
+                    List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(processConfig);
+                    if (configBoundaries.isEmpty()) {
+                        var errorMessage = PROCESS + " " + processConfig.getProcess() + " (" + processConfig.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
+                        mergeEventService.addErrorEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), errorMessage);
+                        throw new PowsyblException(errorMessage);
+                    }
 
-                    LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
+                    String eqBoundary = getEqBoundary(configBoundaries);
+                    String tpBoundary = getTpBoundary(configBoundaries);
+
+                    LOGGER.info("Import case {} using boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
+
+                    var networkUuid = networkConversionService.importCase(caseUuid, configBoundaries);
 
                     // check IGM quality
                     // FIXME use merge id when check is 1 per merge
                     boolean valid = igmQualityCheckService.check(networkUuid, networkUuid);
 
-                    merge(matchingProcessConfigList.get(0), dateTime, date, tso, valid, networkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
-
-                    for (ProcessConfig processConfig : matchingProcessConfigList.subList(1, matchingProcessConfigList.size())) {
-                        // import IGM into the network store
-                        UUID processConfigNetworkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
-                        merge(processConfig, dateTime, date, tso, valid, processConfigNetworkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
-                    }
+                    merge(processConfig, dateTime, date, tso, valid, networkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
                 } catch (Exception e) {
-                    ProcessConfig processConfig = matchingProcessConfigList.get(0);
                     mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.VALIDATION_FAILED, null, null, null, null, null, null);
-                    throw e;
                 }
             }
         } catch (Exception e) {
             LOGGER.error("Merge error : ", e);
+        }
+    }
+
+    public List<BoundaryContent> getProcessConfigBoundaries(ProcessConfig config) {
+        if (config.isUseLastBoundarySet()) {
+            return cgmesBoundaryService.getLastBoundaries();
+        } else {
+            Optional<BoundaryContent> eqBoundary = cgmesBoundaryService.getBoundary(config.getEqBoundary().getId());
+            if (!eqBoundary.isPresent()) {
+                LOGGER.error("EQ boundary with id {} not found !!", config.getEqBoundary().getId());
+            }
+            Optional<BoundaryContent> tpBoundary = cgmesBoundaryService.getBoundary(config.getTpBoundary().getId());
+            if (!tpBoundary.isPresent()) {
+                LOGGER.error("TP boundary with id {} not found !!", config.getTpBoundary().getId());
+            }
+            if (!eqBoundary.isPresent() || !tpBoundary.isPresent()) {
+                return Collections.emptyList();
+            }
+
+            return List.of(new BoundaryContent(eqBoundary.get().getId(), eqBoundary.get().getFilename(), eqBoundary.get().getBoundary()),
+                new BoundaryContent(tpBoundary.get().getId(), tpBoundary.get().getFilename(), tpBoundary.get().getBoundary()));
         }
     }
 
@@ -266,10 +287,14 @@ public class MergeOrchestratorService {
         List<IgmEntity> igmEntities = findValidatedIgms(processDate, processUuid);
         List<UUID> networkUuids = igmEntities.stream().map(IgmEntity::getNetworkUuid).collect(Collectors.toList());
         List<UUID> caseUuid = igmEntities.stream().map(IgmEntity::getCaseUuid).collect(Collectors.toList());
-        ProcessConfig processConfig = mergeConfigService.getConfig(processUuid).orElseThrow(() -> new PowsyblException("Business process " + processUuid + "does not exist"));
+        ProcessConfig processConfig = mergeConfigService.getConfig(processUuid).orElseThrow(() -> new PowsyblException(PROCESS + " " + processUuid + "does not exist"));
+        List<BoundaryContent> boundaries = getProcessConfigBoundaries(processConfig);
+        if (boundaries.isEmpty()) {
+            throw new PowsyblException("Boundaries for process " + processUuid + " unavailable");
+        }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmm'Z'");
         String baseFileName = processDate.toLocalDateTime().format(formatter) + UNDERSCORE + processConfig.getBusinessProcess() + UNDERSCORE + CGM + UNDERSCORE + processConfig.getProcess();
-        return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName);
+        return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName, boundaries);
     }
 
     private static Igm toIgm(MergeRepository.MergeIgm mergeIgm) {
@@ -338,6 +363,13 @@ public class MergeOrchestratorService {
         // Execute groovy script to get the ordered proposed list of date, businessProcess for replacing the missing or invalid date, businessProcess
         List<ReplacingDate> resScript = execReplaceGroovyScript(replacingIGMScript, formattedDate, config.getProcess(), config.getBusinessProcess());
 
+        List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(config);
+        if (configBoundaries.isEmpty()) {
+            var errorMessage = PROCESS + " " + config.getProcess() + " (" + config.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
+            mergeEventService.addErrorEvent(config.getProcessUuid(), config.getBusinessProcess(), errorMessage);
+            return replacingIGMs;
+        }
+
         // handle each missing or invalid igms
         for (String tso : missingOrInvalidTsos) {
             for (ReplacingDate elt : resScript) {
@@ -359,23 +391,27 @@ public class MergeOrchestratorService {
                     Optional<IgmEntity> previousEntity = igmRepository.findByKeyProcessUuidAndKeyDateAndKeyTso(config.getProcessUuid(), localDateTime, tso);
                     UUID currentNetworkUuid = previousEntity.isPresent() ? previousEntity.get().getNetworkUuid() : null;
 
-                    // import case in the network store
-                    List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
-                    UUID networkUuid = networkConversionService.importCase(caseUuid, lastBoundaries);
-                    String eqBoundary = getEqBoundary(lastBoundaries);
-                    String tpBoundary = getTpBoundary(lastBoundaries);
+                    try {
+                        // import case in the network store
+                        String eqBoundary = getEqBoundary(configBoundaries);
+                        String tpBoundary = getTpBoundary(configBoundaries);
 
-                    LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
+                        var networkUuid = networkConversionService.importCase(caseUuid, configBoundaries);
 
-                    mergeEventService.addMergeIgmEvent(config.getProcessUuid(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE,
-                        currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess, eqBoundary, tpBoundary);
+                        LOGGER.info("Import case {} using last boundaries ids EQ={}, TP={}", caseUuid, eqBoundary, tpBoundary);
 
-                    // info for the replacing igm : replacing date, replacing business process, status, networkUuid,
-                    replacingIGMs.put(tso, new IgmReplacingInfo(tso, replacingDate, IgmStatus.VALIDATION_SUCCEED,
-                        caseUuid, networkUuid, replacingBusinessProcess, currentNetworkUuid, eqBoundary, tpBoundary));
+                        mergeEventService.addMergeIgmEvent(config.getProcessUuid(), config.getBusinessProcess(), processDate, tso, IgmStatus.AVAILABLE,
+                            currentNetworkUuid, caseUuid, replacingDate, replacingBusinessProcess, eqBoundary, tpBoundary);
 
-                    // A good candidate has been found for replacement
-                    break;
+                        // info for the replacing igm : replacing date, replacing business process, status, networkUuid,
+                        replacingIGMs.put(tso, new IgmReplacingInfo(tso, replacingDate, IgmStatus.VALIDATION_SUCCEED,
+                            caseUuid, networkUuid, replacingBusinessProcess, currentNetworkUuid, eqBoundary, tpBoundary));
+
+                        // A good candidate has been found for replacement
+                        break;
+                    } catch (Exception e) {
+                        LOGGER.error(e.getMessage());
+                    }
                 }
             }
         }
@@ -429,12 +465,12 @@ public class MergeOrchestratorService {
         });
     }
 
-    private static String getEqBoundary(List<BoundaryInfos> boundaries) {
-        return boundaries.stream().filter(b -> b.getFilename().matches(CgmesUtils.EQBD_FILE_REGEX)).findFirst().map(BoundaryInfos::getId).orElse(null);
+    private static String getEqBoundary(List<BoundaryContent> boundaries) {
+        return boundaries.stream().filter(b -> b.getFilename().matches(CgmesUtils.EQBD_FILE_REGEX)).findFirst().map(BoundaryContent::getId).orElse(null);
     }
 
-    private static String getTpBoundary(List<BoundaryInfos> boundaries) {
-        return boundaries.stream().filter(b -> b.getFilename().matches(CgmesUtils.TPBD_FILE_REGEX)).findFirst().map(BoundaryInfos::getId).orElse(null);
+    private static String getTpBoundary(List<BoundaryContent> boundaries) {
+        return boundaries.stream().filter(b -> b.getFilename().matches(CgmesUtils.TPBD_FILE_REGEX)).findFirst().map(BoundaryContent::getId).orElse(null);
     }
 
     private void checkUsedBoundaries(ProcessConfig processConfig, List<IgmEntity> igmEntities, CgmesBoundaryService cgmesBoundaryService, String date) {
@@ -446,17 +482,22 @@ public class MergeOrchestratorService {
         String finalTpBoundary = tpBoundary;
         // check if boundaries id used for each igm during import are different
         if (!igmEntities.stream().skip(1).allMatch(e -> e.getEqBoundary() != null && finalEqBoundary != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary) && e.getTpBoundary() != null && finalTpBoundary != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary))) {
-            LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different last boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
+            LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
         } else {
-            // check if boundaries id used for each igm differ from last boundaries now available
-            List<BoundaryInfos> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
-            eqBoundary = getEqBoundary(lastBoundaries);
-            tpBoundary = getTpBoundary(lastBoundaries);
+            // check if boundaries id used for each igm differ from boundaries now available
+            if (processConfig.isUseLastBoundarySet()) {
+                List<BoundaryContent> lastBoundaries = cgmesBoundaryService.getLastBoundaries();
+                eqBoundary = getEqBoundary(lastBoundaries);
+                tpBoundary = getTpBoundary(lastBoundaries);
+            } else {
+                eqBoundary = cgmesBoundaryService.getBoundary(processConfig.getEqBoundary().getId()).map(BoundaryContent::getId).orElse(null);
+                tpBoundary = cgmesBoundaryService.getBoundary(processConfig.getTpBoundary().getId()).map(BoundaryContent::getId).orElse(null);
+            }
 
             String finalTpBoundary2 = tpBoundary;
             String finalEqBoundary2 = eqBoundary;
             if (!igmEntities.stream().allMatch(e -> e.getEqBoundary() != null && finalEqBoundary2 != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary2) && e.getTpBoundary() != null && finalTpBoundary2 != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary2))) {
-                LOGGER.warn("IGMs have been imported with different last boundaries than the current last boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
+                LOGGER.warn("IGMs have been imported with different boundaries than the current boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
             }
         }
     }
