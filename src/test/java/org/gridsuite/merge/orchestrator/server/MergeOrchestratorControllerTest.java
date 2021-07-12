@@ -11,10 +11,7 @@ import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import lombok.SneakyThrows;
-import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
-import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
-import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
-import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
+import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -106,6 +103,9 @@ public class MergeOrchestratorControllerTest {
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
+
+    @MockBean
+    private CgmesBoundaryService cgmesBoundaryService;
 
     @MockBean
     private LoadFlowService loadFlowService;
@@ -211,14 +211,16 @@ public class MergeOrchestratorControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().json(resExpected3));
 
-        mergeConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "FRESPT_2D", "2D", List.of("FR", "ES", "PT"), false));
+        mergeConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "FRESPT_2D", "2D", List.of("FR", "ES", "PT"), false, true, null, null));
         ZonedDateTime dateTime3 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1, UUID_CASE_MERGE_1, null, null, null, null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2, UUID_CASE_MERGE_2, null, null, null, null));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3, UUID_CASE_MERGE_3, null, null, null, null));
         String processDate = URLEncoder.encode(DATE_FORMATTER.format(dateTime3), StandardCharsets.UTF_8);
-        given(networkConversionService.exportMerge(any(List.class), any(List.class), any(String.class), any(String.class)))
+        given(cgmesBoundaryService.getLastBoundaries())
+                .willReturn(List.of(new BoundaryContent("idEQ", "EQ_boundary.xml", "fake eq boundary"), new BoundaryContent("idTP", "TP_boundary.xml", "fake tp boundary")));
+        given(networkConversionService.exportMerge(any(List.class), any(List.class), any(String.class), any(String.class), any(List.class)))
                 .willReturn(new FileInfos("testFile.xiidm", ByteArrayBuilder.NO_BYTES));
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/" + processDate + "/export/XIIDM")
                 .contentType(APPLICATION_OCTET_STREAM))
@@ -226,7 +228,7 @@ public class MergeOrchestratorControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));
 
         UUID randomUuid = UUID.randomUUID();
-        mergeConfigService.addConfig(new ProcessConfig(randomUuid, "FRESPT_2D", "2D", List.of("FR", "ES", "PT"), false));
+        mergeConfigService.addConfig(new ProcessConfig(randomUuid, "FRESPT_2D", "2D", List.of("FR", "ES", "PT"), false, true, null, null));
         mvc.perform(get("/" + VERSION + "/" + randomUuid + "/" + processDate + "/export/CGMES")
                 .contentType(APPLICATION_OCTET_STREAM))
                 .andExpect(status().isOk())
@@ -241,7 +243,7 @@ public class MergeOrchestratorControllerTest {
     @SneakyThrows
     @Test
     public void testReport() {
-        mergeConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false));
+        mergeConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
         ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 10, 0, 0, 0, ZoneId.of("UTC"));
         String mergeDate = DATE_FORMATTER.format(dateTime);
 

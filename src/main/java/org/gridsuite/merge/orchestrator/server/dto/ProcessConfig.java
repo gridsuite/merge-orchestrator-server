@@ -37,6 +37,12 @@ public class ProcessConfig {
 
     private boolean runBalancesAdjustment;
 
+    private boolean useLastBoundarySet;
+
+    private BoundaryInfo eqBoundary;
+
+    private BoundaryInfo tpBoundary;
+
     private boolean isMatching(String tso) {
         return this.getTsos().stream().anyMatch(ts -> ts.equals(tso));
     }
