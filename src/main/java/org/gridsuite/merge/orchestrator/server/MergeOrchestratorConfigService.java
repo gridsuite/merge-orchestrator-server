@@ -6,18 +6,28 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.fasterxml.jackson.databind.InjectableValues;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.reporter.ReporterModelDeserializer;
+import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +37,8 @@ import java.util.stream.Collectors;
 
 import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants.DELIMITER;
 import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants.REPORT_API_VERSION;
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_REPORT_ERROR;
+import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_REPORT_NOT_FOUND;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -34,11 +46,6 @@ import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorConstants
  */
 @Service
 public class MergeOrchestratorConfigService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorConfigService.class);
-
-    @Value("${backing-services.report-server.base-uri:https://report-server}")
-    String reportServerURI;
 
     private final ProcessConfigRepository processConfigRepository;
 
@@ -50,7 +57,13 @@ public class MergeOrchestratorConfigService {
 
     private final NetworkStoreService networkStoreService;
 
-    public MergeOrchestratorConfigService(ProcessConfigRepository processConfigRepository,
+    private String reportServerBaseURI;
+
+    private RestTemplate reportRestClient;
+
+    @Autowired
+    public MergeOrchestratorConfigService(@Value("${backing-services.report-server.base-uri:https://report-server}") String reportServerBaseURI,
+                                          ProcessConfigRepository processConfigRepository,
                                           BoundaryRepository boundaryRepository,
                                           IgmRepository igmRepository,
                                           MergeRepository mergeRepository,
@@ -60,6 +73,31 @@ public class MergeOrchestratorConfigService {
         this.mergeRepository = mergeRepository;
         this.igmRepository = igmRepository;
         this.networkStoreService = networkStoreService;
+        setReportServerBaseURI(reportServerBaseURI);
+    }
+
+    RestTemplate getReportRestClient() {
+        return reportRestClient;
+    }
+
+    void setReportServerBaseURI(String reportServerBaseURI) {
+        this.reportServerBaseURI = reportServerBaseURI;
+        this.reportRestClient = new RestTemplateBuilder().uriTemplateHandler(new DefaultUriBuilderFactory(getReportServerURI()))
+                .messageConverters(getJackson2HttpMessageConverter())
+                .build();
+    }
+
+    String getReportServerURI() {
+        return this.reportServerBaseURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER;
+    }
+
+    private MappingJackson2HttpMessageConverter getJackson2HttpMessageConverter() {
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new ReporterModelJsonModule());
+        objectMapper.setInjectableValues(new InjectableValues.Std().addValue(ReporterModelDeserializer.DICTIONARY_VALUE_ID, null));
+        converter.setObjectMapper(objectMapper);
+        return converter;
     }
 
     @Transactional(readOnly = true)
@@ -95,13 +133,29 @@ public class MergeOrchestratorConfigService {
         processConfigRepository.save(entity);
     }
 
-    void deleteReport(UUID report) {
+    public ReporterModel getReport(UUID report) {
+        Objects.requireNonNull(report);
         try {
-            var restTemplate = new RestTemplate();
-            var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER + report.toString();
-            restTemplate.exchange(resourceUrl, HttpMethod.DELETE, null, ReporterModel.class);
-        } catch (Exception exception) {
-            LOGGER.error(exception.getMessage());
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
+            String uri = uriBuilder.build().toUriString();
+            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReporterModel.class, report.toString()).getBody();
+        } catch (HttpClientErrorException e) {
+            throw (e.getStatusCode() == HttpStatus.NOT_FOUND) ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e) : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
+        } catch (RestClientException e) {
+            throw new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
+        }
+    }
+
+    public void deleteReport(UUID report) {
+        Objects.requireNonNull(report);
+        try {
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
+            String uri = uriBuilder.build().toUriString();
+            reportRestClient.exchange(uri, HttpMethod.DELETE, null, ReporterModel.class, report.toString());
+        } catch (HttpClientErrorException e) {
+            throw (e.getStatusCode() == HttpStatus.NOT_FOUND) ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e) : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
+        } catch (RestClientException e) {
+            throw new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
         }
     }
 
@@ -112,7 +166,7 @@ public class MergeOrchestratorConfigService {
                 .map(IgmEntity::getNetworkUuid)
                 .forEach(networkStoreService::deleteNetwork);
         igmRepository.deleteByKeyProcessUuid(processUuid);
-        mergeRepository.getReportsFor(processUuid).forEach(this::deleteReport);
+        mergeRepository.getReportsFor(processUuid).stream().filter(Objects::nonNull).forEach(this::deleteReport);
         mergeRepository.deleteByKeyProcessUuid(processUuid);
 
         Optional<String> eqBoundary = processConfigRepository.findById(processUuid).map(entity -> entity.getEqBoundary() != null ? entity.getEqBoundary().getId() : null);

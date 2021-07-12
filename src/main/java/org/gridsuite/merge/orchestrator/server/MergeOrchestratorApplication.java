@@ -7,6 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.fasterxml.jackson.databind.Module;
+import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.loadflow.json.LoadFlowResultJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.springframework.boot.SpringApplication;
@@ -30,5 +31,12 @@ public class MergeOrchestratorApplication {
     @Bean
     public Module createLoadFlowResultModule() {
         return new LoadFlowResultJsonModule();
+    }
+
+    @Bean
+    public Module createReporterModelModule() {
+        ReporterModelJsonModule reporterModelJsonModule = new ReporterModelJsonModule();
+        reporterModelJsonModule.setSerializers(null); // FIXME: remove when dicos will be used on the front side
+        return reporterModelJsonModule;
     }
 }

@@ -7,7 +7,6 @@
 package org.gridsuite.merge.orchestrator.server.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -23,7 +22,6 @@ import java.util.UUID;
 @Repository
 public interface MergeRepository extends JpaRepository<MergeEntity, MergeEntityKey> {
 
-    @Modifying
     void deleteByKeyProcessUuid(UUID processUuid);
 
     @Query(value = "SELECT m.reportUUID from MergeEntity m WHERE m.key.processUuid = :processUuid")
