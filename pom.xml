@@ -45,8 +45,9 @@
 
     <properties>
         <java.version>11</java.version>
-        <gridsuite-dependencies.version>9</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>10</gridsuite-dependencies.version>
         <equalsverifier.version>3.5</equalsverifier.version>
+        <commons-lang3.version>3.9</commons-lang3.version>
     </properties>
 
     <build>
@@ -84,6 +85,11 @@
             </dependency>
 
             <!-- project specific dependencies -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -110,10 +116,6 @@
             <artifactId>powsybl-triple-store-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-swagger2</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -134,6 +136,10 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-open-loadflow</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+        </dependency>
 
         <!-- Runtime dependencies -->
         <dependency>
@@ -149,11 +155,6 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-triple-store-impl-rdf4j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-swagger-ui</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>

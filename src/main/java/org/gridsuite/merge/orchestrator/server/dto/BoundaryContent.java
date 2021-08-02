@@ -6,7 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server.dto;
 
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -16,7 +16,7 @@ import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-@ApiModel("Boundary content")
+@Schema(description = "Boundary content")
 public class BoundaryContent {
 
     private String id;

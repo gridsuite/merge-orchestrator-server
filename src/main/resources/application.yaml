@@ -42,8 +42,13 @@ spring:
               create-target: src/main/resources/merge_orchestrator.sql
               create-source: metadata
 
+springdoc:
+  swagger-ui:
+    path: swagger-ui.html
+
 server:
   port: 5020
+  forward-headers-strategy: framework
 
 backing-services:
   case-server:

@@ -6,7 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server.dto;
 
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,7 +24,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 @ToString
-@ApiModel("Merge attributes")
+@Schema(description = "Merge attributes")
 public class Merge {
 
     UUID processUuid;

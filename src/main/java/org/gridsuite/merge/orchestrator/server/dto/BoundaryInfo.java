@@ -6,7 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server.dto;
 
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @Getter
-@ApiModel("Boundary info")
+@Schema(description = "Boundary info")
 public class BoundaryInfo {
 
     private String id;

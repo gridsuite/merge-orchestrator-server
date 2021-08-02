@@ -6,7 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server.dto;
 
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +22,7 @@ import java.util.UUID;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@ApiModel("Process config")
+@Schema(description = "Process config")
 public class ProcessConfig {
 
     public static final String ACCEPTED_FORMAT = "CGMES";
