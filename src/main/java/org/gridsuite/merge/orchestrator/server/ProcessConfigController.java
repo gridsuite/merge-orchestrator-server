@@ -6,10 +6,10 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
@@ -27,7 +27,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping(value = "/" + MergeOrchestratorApi.API_VERSION)
 @Transactional
-@Api(value = "Merge orchestrator configs")
+@Tag(name = "Merge orchestrator configs")
 @ComponentScan(basePackageClasses = MergeOrchestratorService.class)
 public class ProcessConfigController {
 
@@ -38,32 +38,32 @@ public class ProcessConfigController {
     }
 
     @GetMapping(value = "/configs", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Get all processes configurations", response = List.class)
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of processes configurations")})
+    @Operation(summary = "Get all processes configurations")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The list of processes configurations")})
     public ResponseEntity<List<ProcessConfig>> getConfigs() {
         List<ProcessConfig> configs = mergeOrchestratorConfigService.getConfigs();
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(configs);
     }
 
     @GetMapping(value = "/configs/{processUuid}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Get merge configuration by process", response = List.class)
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The merge configurations by the process")})
+    @Operation(summary = "Get merge configuration by process")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The merge configurations by the process")})
     public ResponseEntity<ProcessConfig> getConfigs(@PathVariable UUID processUuid) {
         ProcessConfig config = mergeOrchestratorConfigService.getConfig(processUuid).orElse(null);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(config);
     }
 
     @PostMapping(value = "/configs")
-    @ApiOperation(value = "Add a new configuration for a new process")
-    @ApiResponses(value = @ApiResponse(code = 200, message = "The new configuration added"))
+    @Operation(summary = "Add a new configuration for a new process")
+    @ApiResponses(value = @ApiResponse(responseCode = "200", description = "The new configuration added"))
     public ResponseEntity<Void> addConfig(@RequestBody ProcessConfig processConfig) {
         mergeOrchestratorConfigService.addConfig(processConfig);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping(value = "/configs/{processUuid}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Delete merge configuration for a specific process")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "configuration deleted")})
+    @Operation(summary = "Delete merge configuration for a specific process")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "configuration deleted")})
     public ResponseEntity<Void> deleteConfigByProcess(@PathVariable UUID processUuid) {
         mergeOrchestratorConfigService.deleteConfig(processUuid);
         return ResponseEntity.ok().build();

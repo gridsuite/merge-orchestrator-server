@@ -7,7 +7,11 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.commons.reporter.ReporterModel;
-import io.swagger.annotations.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.IgmReplacingInfo;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
@@ -37,7 +41,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping(value = "/" + MergeOrchestratorApi.API_VERSION)
 @Transactional
-@Api(value = "Merge orchestrator server")
+@Tag(name = "Merge orchestrator server")
 @ComponentScan(basePackageClasses = MergeOrchestratorService.class)
 public class MergeOrchestratorController {
 
@@ -50,8 +54,8 @@ public class MergeOrchestratorController {
     }
 
     @GetMapping(value = "{processUuid}/merges", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Get merges for a process", response = List.class)
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The list of all merges for a process")})
+    @Operation(summary = "Get merges for a process")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The list of all merges for a process")})
     public ResponseEntity<List<Merge>> getMerges(@PathVariable("processUuid") UUID processUuid,
                                                  @RequestParam(value = "minDate", required = false) String minDate,
                                                  @RequestParam(value = "maxDate", required = false) String maxDate) {
@@ -69,11 +73,11 @@ public class MergeOrchestratorController {
     }
 
     @GetMapping(value = "{processUuid}/{date}/export/{format}")
-    @ApiOperation(value = "Export a merge from the network-store")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The export merge for process")})
-    public ResponseEntity<byte[]> exportNetwork(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
-                                                @ApiParam(value = "Process date") @PathVariable("date") String date,
-                                                @ApiParam(value = "Export format") @PathVariable("format") String format) {
+    @Operation(summary = "Export a merge from the network-store")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The export merge for process")})
+    public ResponseEntity<byte[]> exportNetwork(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
+                                                @Parameter(description = "Process date") @PathVariable("date") String date,
+                                                @Parameter(description = "Export format") @PathVariable("format") String format) {
         LOGGER.debug("Exporting merge for process {} : {}", processUuid, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
@@ -86,10 +90,10 @@ public class MergeOrchestratorController {
     }
 
     @PutMapping(value = "{processUuid}/{date}/replace-igms")
-    @ApiOperation(value = "Replace missing or invalid igms")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "IGMs replaced")})
-    public ResponseEntity<Map<String, IgmReplacingInfo>> replaceIGMs(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
-                                                                     @ApiParam(value = "Process date") @PathVariable("date") String date) {
+    @Operation(summary = "Replace missing or invalid igms")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "IGMs replaced")})
+    public ResponseEntity<Map<String, IgmReplacingInfo>> replaceIGMs(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
+                                                                     @Parameter(description = "Process date") @PathVariable("date") String date) {
         LOGGER.debug("Replacing igms for merge process {} : {}", processUuid, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
@@ -99,10 +103,10 @@ public class MergeOrchestratorController {
     }
 
     @GetMapping(value = "{processUuid}/{date}/report", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "Get merge report")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The report for process"), @ApiResponse(code = 404, message = "The process not found")})
-    public ResponseEntity<ReporterModel> getReport(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
-                                                   @ApiParam(value = "Process date") @PathVariable("date") String date) {
+    @Operation(summary = "Get merge report")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The report for process"), @ApiResponse(responseCode = "404", description = "The process not found")})
+    public ResponseEntity<ReporterModel> getReport(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
+                                                   @Parameter(description = "Process date") @PathVariable("date") String date) {
         LOGGER.debug("Get report for merge process {} : {}", processUuid, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         LocalDateTime dateTime = LocalDateTime.ofInstant(ZonedDateTime.parse(decodedDate).toInstant(), ZoneOffset.UTC);
@@ -111,10 +115,10 @@ public class MergeOrchestratorController {
     }
 
     @DeleteMapping(value = "{processUuid}/{date}/report")
-    @ApiOperation(value = "Delete merge report")
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The report for process deleted"), @ApiResponse(code = 404, message = "The process not found")})
-    public ResponseEntity<Void> deleteReport(@ApiParam(value = "Process uuid") @PathVariable("processUuid") UUID processUuid,
-                                             @ApiParam(value = "Process date") @PathVariable("date") String date) {
+    @Operation(summary = "Delete merge report")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The report for process deleted"), @ApiResponse(responseCode = "404", description = "The process not found")})
+    public ResponseEntity<Void> deleteReport(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
+                                             @Parameter(description = "Process date") @PathVariable("date") String date) {
         LOGGER.debug("Delete report for merge process {} : {}", processUuid, date);
 
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
