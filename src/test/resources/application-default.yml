@@ -15,5 +15,5 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 dbVendor: h2:mem
-query: ;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+query: ;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=CREATE SCHEMA IF NOT EXISTS merge_orchestrator\;SET SCHEMA merge_orchestrator
 hostPort:

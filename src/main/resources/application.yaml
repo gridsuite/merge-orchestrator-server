@@ -66,7 +66,8 @@ network-store-server:
   preloading-strategy: COLLECTION
   base-uri: http://localhost:8080/
 
-dbName: merge_orchestrator
+dbName: gridsuite
+query: ?currentSchema=merge_orchestrator
 dbApi: jdbc
 
 logging:
