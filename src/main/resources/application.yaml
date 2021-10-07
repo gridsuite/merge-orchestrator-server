@@ -1,6 +1,6 @@
 spring:
   rabbitmq:
-    addresses: localhost
+    addresses: rabbitmq
     port: 5672
 
   cloud:
@@ -43,28 +43,10 @@ spring:
               create-source: metadata
 
 server:
-  port: 5020
   forward-headers-strategy: framework
-
-backing-services:
-  case-server:
-    base-uri: http://localhost:5000
-  balances-adjustment-server:
-    base-uri: http://localhost:5010
-  loadflow-server:
-    base-uri: http://localhost:5008
-  case-validation-server:
-    base-uri: http://localhost:5011
-  cgmes-boundary-server:
-    base-uri: http://localhost:5021
-  network-conversion:
-    base-uri: http://localhost:5003
-  report-server:
-    base-uri: http://localhost:5028
 
 network-store-server:
   preloading-strategy: COLLECTION
-  base-uri: http://localhost:8080/
 
 # this structure is shared among all microservices, if you change it, change it everywhere.
 # customQuery allows a microservice to set query parameters specific to itself.

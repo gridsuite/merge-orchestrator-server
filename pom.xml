@@ -48,6 +48,7 @@
         <gridsuite-dependencies.version>10</gridsuite-dependencies.version>
         <equalsverifier.version>3.5</equalsverifier.version>
         <commons-lang3.version>3.9</commons-lang3.version>
+        <jib.container.environment>SPRING_PROFILES_ACTIVE=default</jib.container.environment>
     </properties>
 
     <build>
