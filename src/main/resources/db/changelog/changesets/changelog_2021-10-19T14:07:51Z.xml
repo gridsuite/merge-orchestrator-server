@@ -1,0 +1,79 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.10.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-1">
+        <createTable tableName="boundary">
+            <column name="id" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="boundaryPK"/>
+            </column>
+            <column name="filename" type="VARCHAR(255)"/>
+            <column name="scenario_time" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-2">
+        <createTable tableName="configs">
+            <column name="process_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="configsPK"/>
+            </column>
+            <column name="business_process" type="VARCHAR(255)"/>
+            <column name="process" type="VARCHAR(255)"/>
+            <column name="run_balances_adjustment" type="BOOLEAN"/>
+            <column name="use_last_boundary_set" type="BOOLEAN"/>
+            <column name="eq_boundary_id" type="VARCHAR(255)"/>
+            <column name="tp_boundary_id" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-3">
+        <createTable tableName="merge">
+            <column name="date" type="TIMESTAMP">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="mergePK"/>
+            </column>
+            <column name="process_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="mergePK"/>
+            </column>
+            <column name="report" type="UUID"/>
+            <column name="status" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-4">
+        <createTable tableName="merge_igm">
+            <column name="date" type="TIMESTAMP">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="merge_igmPK"/>
+            </column>
+            <column name="process_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="merge_igmPK"/>
+            </column>
+            <column name="tso" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="merge_igmPK"/>
+            </column>
+            <column name="case_uuid" type="UUID"/>
+            <column name="eq_boundary" type="VARCHAR(255)"/>
+            <column name="network_uuid" type="UUID"/>
+            <column name="replacing_business_process" type="VARCHAR(255)"/>
+            <column name="replacing_date" type="TIMESTAMP"/>
+            <column name="status" type="VARCHAR(255)"/>
+            <column name="tp_boundary" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-5">
+        <createTable tableName="process_configs_tsos">
+            <column name="process_config_entity_process_uuid" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tso" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-6">
+        <createIndex indexName="processConfigEntity_tsos_idx" tableName="process_configs_tsos">
+            <column name="process_config_entity_process_uuid"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-7">
+        <addForeignKeyConstraint baseColumnNames="eq_boundary_id" baseTableName="configs" constraintName="eqBoundary_id_fk_constraint" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="boundary" validate="true"/>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-8">
+        <addForeignKeyConstraint baseColumnNames="process_config_entity_process_uuid" baseTableName="process_configs_tsos" constraintName="processConfigEntity_tsos_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="process_uuid" referencedTableName="configs" validate="true"/>
+    </changeSet>
+    <changeSet author="borsenbergerjac (generated)" id="1634901651405-9">
+        <addForeignKeyConstraint baseColumnNames="tp_boundary_id" baseTableName="configs" constraintName="tpBoundary_id_fk_constraint" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="boundary" validate="true"/>
+    </changeSet>
+</databaseChangeLog>
