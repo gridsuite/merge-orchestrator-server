@@ -69,6 +69,10 @@ public class ProcessConfigControllerTest {
 
     @Before
     public void setUp() {
+        boundaryRepository.deleteAll();
+        igmRepository.deleteAll();
+        mergeRepository.deleteAll();
+        processConfigRepository.deleteAll();
         MockitoAnnotations.initMocks(this);
         tsos.clear();
         tsos.add("FR");
