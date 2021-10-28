@@ -44,7 +44,7 @@ public class ProcessConfigEntity extends AbstractManuallyAssignedIdentifierEntit
 
     @Column(name = "tso")
     @ElementCollection
-    @CollectionTable(foreignKey = @ForeignKey(name = "processConfigEntity_tsos_fk"), indexes = {@Index(name = "processConfigEntity_tsos_idx", columnList = "ProcessConfigEntity_processUuid")})
+    @CollectionTable(foreignKey = @ForeignKey(name = "processConfigEntity_tsos_fk"), indexes = {@Index(name = "processConfigEntity_tsos_idx", columnList = "process_config_entity_process_uuid")})
     private List<String> tsos;
 
     @Column(name = "runBalancesAdjustment")
