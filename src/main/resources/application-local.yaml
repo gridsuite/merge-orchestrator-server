@@ -1,10 +1,6 @@
 server:
   port: 5020
 
-spring:
-  profiles:
-    active: default,local
-
   rabbitmq:
     addresses: localhost
 
