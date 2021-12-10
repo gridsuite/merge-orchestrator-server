@@ -8,9 +8,9 @@ spring:
     stream:
       bindings:
         consumeNotification-in-0:
-          destination: case.import
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}case.import
         publishMerge-out-0:
-          destination: merge
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}merge
       source: publishMerge
 
 network-store-server:
