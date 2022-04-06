@@ -28,6 +28,7 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
@@ -36,7 +37,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -124,8 +125,8 @@ public class MergeOrchestratorService {
     }
 
     @Bean
-    public Consumer<Flux<Message<String>>> consumeNotification() {
-        return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).subscribe(this::consume);
+    public Function<Flux<Message<String>>, Mono<Void>> consumeNotification() {
+        return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).doOnNext(this::consume).then();
     }
 
     public void consume(Message<String> message) {
