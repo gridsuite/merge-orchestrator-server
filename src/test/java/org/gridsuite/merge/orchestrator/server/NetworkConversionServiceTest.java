@@ -74,7 +74,7 @@ public class NetworkConversionServiceTest {
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename("test_file.xiidm", StandardCharsets.UTF_8).build());
         when(networkConversionServerRest.exchange(anyString(),
-                eq(HttpMethod.GET),
+                eq(HttpMethod.POST),
                 any(),
                 any(ParameterizedTypeReference.class),
                 eq(networkUuid1.toString()),

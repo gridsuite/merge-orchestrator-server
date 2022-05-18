@@ -95,7 +95,7 @@ public class NetworkConversionService {
                 uriBuilder = uriBuilder.queryParam("networkUuid", networkUuids.get(i).toString());
             }
             String uri = uriBuilder.build().toUriString();
-            ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networkUuids.get(0).toString(), format);
+            ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.POST, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networkUuids.get(0).toString(), format);
             String exportedFileExtension;
             try {
                 String exportedFileName = responseEntity.getHeaders().getContentDisposition().getFilename();
