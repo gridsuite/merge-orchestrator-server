@@ -17,13 +17,3 @@ network-store-server:
   preloading-strategy: COLLECTION
 
 dbName: merge_orchestrator
-
-logging:
-  level:
-    ROOT: INFO
-
-parameters:
-  tsos: FR,ES,PT
-  process: SWE
-  run-balances-adjustment: false
-
