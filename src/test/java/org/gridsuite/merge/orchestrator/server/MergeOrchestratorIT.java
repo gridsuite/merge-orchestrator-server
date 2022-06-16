@@ -31,7 +31,6 @@ import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -117,7 +116,6 @@ public class MergeOrchestratorIT {
     @Autowired
     MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
-    @Value("${parameters.run-balances-adjustment}")
     private boolean runBalancesAdjustment;
 
     @Autowired
@@ -379,7 +377,7 @@ public class MergeOrchestratorIT {
         assertNull(output.receive(1000));
 
         // send third tso PT with business process 1D, expect one AVAILABLE, one VALIDATION_SUCCEED
-        // and one BALANCE_ADJUSTMENT_SUCCEED or FIRST_LOADFLOW_SUCCEED message (merge done)
+        // and one FIRST_LOADFLOW_SUCCEED message (merge done)
         Mockito.when(caseFetcherService.getCases(any(), any(), any(), any()))
                 .thenReturn(List.of(
                         new CaseInfos("fr", UUID_CASE_ID_FR, "", "FR", "1D"),
@@ -398,13 +396,13 @@ public class MergeOrchestratorIT {
         messagePtIGM = output.receive(1000);
         assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
         Message<byte[]> messageMergeStarted = output.receive(1000);
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
+        assertEquals("FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
         assertEquals(1, mergeEntities.size());
         assertEquals(SWE_1D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals("FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
 
         assertTrue(mergeOrchestratorService.getMerges(FOO_1D_UUID).isEmpty());
         List<Merge> mergeInfos = mergeOrchestratorService.getMerges(SWE_1D_UUID);
@@ -628,14 +626,14 @@ public class MergeOrchestratorIT {
         messageEsIGMProcess2 = output.receive(1000);
         assertEquals("VALIDATION_SUCCEED", messageEsIGMProcess2.getHeaders().get("status"));
         Message<byte[]> messageMergeStarted = output.receive(1000);
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
+        assertEquals("FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
         mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
         assertEquals(FRES_2D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals("FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
         assertEquals(SWE_2D_UUID, mergeEntities.get(1).getKey().getProcessUuid());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
         assertNull(mergeEntities.get(1).getStatus());
@@ -681,17 +679,17 @@ public class MergeOrchestratorIT {
         messagePtIGM = output.receive(1000);
         assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
         messageMergeStarted = output.receive(1000);
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
+        assertEquals("FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
         mergeEntities.sort(Comparator.comparing(merge -> merge.getKey().getProcessUuid()));
         assertEquals(2, mergeEntities.size());
         assertEquals(FRES_2D_UUID, mergeEntities.get(0).getKey().getProcessUuid());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(0).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
+        assertEquals("FIRST_LOADFLOW_SUCCEED", mergeEntities.get(0).getStatus());
         assertEquals(SWE_2D_UUID, mergeEntities.get(1).getKey().getProcessUuid());
         assertEquals(dateTime.toLocalDateTime(), mergeEntities.get(1).getKey().getDate());
-        assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", mergeEntities.get(1).getStatus());
+        assertEquals("FIRST_LOADFLOW_SUCCEED", mergeEntities.get(1).getStatus());
 
         assertTrue(mergeOrchestratorService.getMerges(FOO_1D_UUID).isEmpty());
         List<Merge> mergeInfos = mergeOrchestratorService.getMerges(SWE_1D_UUID);
@@ -753,7 +751,7 @@ public class MergeOrchestratorIT {
         );
 
         if (withMerge) {
-            assertEquals(runBalancesAdjustment ? "BALANCE_ADJUSTMENT_SUCCEED" : "FIRST_LOADFLOW_SUCCEED", output.receive(1000).getHeaders().get("status"));
+            assertEquals("FIRST_LOADFLOW_SUCCEED", output.receive(1000).getHeaders().get("status"));
         }
     }
 
