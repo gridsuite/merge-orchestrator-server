@@ -1,4 +1,4 @@
-# Merge orchestrator server
+# Merge Orchestrator Server
 
 [![Actions Status](https://github.com/gridsuite/merge-orchestrator-server/workflows/CI/badge.svg)](https://github.com/gridsuite/merge-orchestrator-server/actions)
 [![Coverage Status](https://sonarcloud.io/api/project_badges/measure?project=org.gridsuite%3Amerge-orchestrator-server&metric=coverage)](https://sonarcloud.io/component_measures?id=org.gridsuite%3Amerge-orchestrator-server&metric=coverage)
