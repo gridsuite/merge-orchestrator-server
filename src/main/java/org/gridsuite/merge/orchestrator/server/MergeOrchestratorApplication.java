@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.Module;
 import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.loadflow.json.LoadFlowResultJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.ws.commons.Utils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +26,7 @@ import org.springframework.context.annotation.ComponentScan;
 public class MergeOrchestratorApplication {
 
     public static void main(String[] args) {
+        Utils.initProperties();
         SpringApplication.run(MergeOrchestratorApplication.class, args);
     }
 
