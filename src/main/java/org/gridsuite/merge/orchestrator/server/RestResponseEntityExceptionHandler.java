@@ -6,6 +6,8 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,8 +18,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class RestResponseEntityExceptionHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RestResponseEntityExceptionHandler.class);
+
     @ExceptionHandler(value = {MergeOrchestratorException.class})
     protected ResponseEntity<Object> handleException(RuntimeException exception) {
+        if (LOGGER.isErrorEnabled()) {
+            LOGGER.error(exception.getMessage(), exception);
+        }
         MergeOrchestratorException networkModificationException = (MergeOrchestratorException) exception;
         return ResponseEntity
                 .status(networkModificationException.getType().getStatus())
