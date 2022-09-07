@@ -11,7 +11,7 @@ spring:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}case.import
           group: mergeOrchestratorCaseImportGroup
           consumer:
-            concurrency: 1
+            concurrency: 2
         publishMerge-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}merge
       source: publishMerge
