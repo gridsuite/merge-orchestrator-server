@@ -27,8 +27,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
@@ -37,8 +35,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Function;
-import java.util.logging.Level;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.MERGE_NOT_FOUND;
@@ -55,6 +52,8 @@ public class MergeOrchestratorService {
 
     private static final String CATEGORY_BROKER_INPUT = MergeOrchestratorService.class.getName()
             + ".input-broker-messages";
+
+    private static final Logger LOGGER_BROKER_INPUT = LoggerFactory.getLogger(CATEGORY_BROKER_INPUT);
 
     private static final String DATE_HEADER_KEY = "date";
     private static final String TSO_CODE_HEADER_KEY = "tso";
@@ -125,11 +124,12 @@ public class MergeOrchestratorService {
     }
 
     @Bean
-    public Function<Flux<Message<String>>, Mono<Void>> consumeNotification() {
-        return f -> f.log(CATEGORY_BROKER_INPUT, Level.FINE).doOnNext(this::consume).then();
+    public Consumer<Message<String>> consumeNotification() {
+        return this::consume;
     }
 
     public void consume(Message<String> message) {
+        LOGGER_BROKER_INPUT.debug("consume {}", message);
         try {
             MessageHeaders mh = message.getHeaders();
             String date = (String) mh.get(DATE_HEADER_KEY);

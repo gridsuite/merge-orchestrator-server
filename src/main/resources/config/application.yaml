@@ -9,6 +9,9 @@ spring:
       bindings:
         consumeNotification-in-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}case.import
+          group: mergeOrchestratorCaseImportGroup
+          consumer:
+            concurrency: 2
         publishMerge-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}merge
       source: publishMerge
