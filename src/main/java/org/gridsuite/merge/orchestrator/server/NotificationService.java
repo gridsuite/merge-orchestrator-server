@@ -42,8 +42,8 @@ public class NotificationService {
         mergeInfosPublisher.send("publishMerge-out-0", message);
     }
 
-    // Today we don't send notification inside @Transactional block. If this behavior change, we must make sure
-    // that the notification is sent only when all the work inside @Transactional block is done.
+    // Today we don't send notification inside @Transactional block. If this behavior change, we should use @PostCompletion to
+    // make sure that the notification is sent only when all the work inside @Transactional block is done.
     public void emitMergeIgmEvent(UUID processUuid, String businessProcess, String date, String tso, String status) {
         Message<String> message = MessageBuilder
                 .withPayload("")
@@ -56,8 +56,6 @@ public class NotificationService {
         sendMergeMessage(message);
     }
 
-    // Today we don't send notification inside @Transactional block. If this behavior change, we must make sure
-    // that the notification is sent only when all the work inside @Transactional block is done.
     public void emitMergeEvent(UUID processUuid, String businessProcess, String date, String status) {
         Message<String> message = MessageBuilder
                 .withPayload("")
@@ -69,8 +67,6 @@ public class NotificationService {
         sendMergeMessage(message);
     }
 
-    // Today we don't send notification inside @Transactional block. If this behavior change, we must make sure
-    // that the notification is sent only when all the work inside @Transactional block is done.
     public void emitErrorEvent(UUID processUuid, String businessProcess, String errorMessage) {
         Message<String> message = MessageBuilder
                 .withPayload("")
