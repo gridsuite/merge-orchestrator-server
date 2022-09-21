@@ -20,6 +20,8 @@ import java.util.UUID;
  * @author Seddik Yengui <seddik.yengui at rte-france.com
  */
 
+// Today we don't send notification inside @Transactional block. If this behavior change, we should use @PostCompletion to
+// make sure that the notification is sent only when all the work inside @Transactional block is done.
 @Service
 public class NotificationService {
 
@@ -42,8 +44,6 @@ public class NotificationService {
         mergeInfosPublisher.send("publishMerge-out-0", message);
     }
 
-    // Today we don't send notification inside @Transactional block. If this behavior change, we should use @PostCompletion to
-    // make sure that the notification is sent only when all the work inside @Transactional block is done.
     public void emitMergeIgmEvent(UUID processUuid, String businessProcess, String date, String tso, String status) {
         Message<String> message = MessageBuilder
                 .withPayload("")
