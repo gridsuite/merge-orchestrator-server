@@ -90,6 +90,8 @@ public class MergeOrchestratorService {
 
     private NetworkStoreService networkStoreService;
 
+    private NotificationService notificationService;
+
     private Script replacingIGMScript;
 
     public MergeOrchestratorService(NetworkStoreService networkStoreService,
@@ -102,7 +104,8 @@ public class MergeOrchestratorService {
                                     IgmRepository igmRepository,
                                     NetworkConversionService networkConversionService,
                                     MergeOrchestratorConfigService mergeConfigService,
-                                    CgmesBoundaryService cgmesBoundaryService) {
+                                    CgmesBoundaryService cgmesBoundaryService,
+                                    NotificationService notificationService) {
         this.networkStoreService = networkStoreService;
         this.caseFetcherService = caseFetchService;
         this.balancesAdjustmentService = balancesAdjustmentService;
@@ -114,6 +117,7 @@ public class MergeOrchestratorService {
         this.igmRepository = igmRepository;
         this.networkConversionService = networkConversionService;
         this.cgmesBoundaryService = cgmesBoundaryService;
+        this.notificationService = notificationService;
 
         GroovyShell shell = new GroovyShell();
         try {
@@ -161,7 +165,7 @@ public class MergeOrchestratorService {
                     List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(processConfig);
                     if (configBoundaries.isEmpty()) {
                         var errorMessage = PROCESS + " " + processConfig.getProcess() + " (" + processConfig.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
-                        mergeEventService.addErrorEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), errorMessage);
+                        notificationService.emitErrorEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), errorMessage);
                         throw new PowsyblException(errorMessage);
                     }
 
@@ -380,7 +384,7 @@ public class MergeOrchestratorService {
         List<BoundaryContent> configBoundaries = getProcessConfigBoundaries(config);
         if (configBoundaries.isEmpty()) {
             var errorMessage = PROCESS + " " + config.getProcess() + " (" + config.getBusinessProcess() + ") : EQ and/or TP boundary not available !!";
-            mergeEventService.addErrorEvent(config.getProcessUuid(), config.getBusinessProcess(), errorMessage);
+            notificationService.emitErrorEvent(config.getProcessUuid(), config.getBusinessProcess(), errorMessage);
             return replacingIGMs;
         }
 
