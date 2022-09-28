@@ -75,6 +75,9 @@ public class MergeOrchestratorControllerReplaceIGMTest {
     @MockBean
     private MergeOrchestratorService mergeOrchestratorService;
 
+    @MockBean
+    private NotificationService notificationService;
+
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
