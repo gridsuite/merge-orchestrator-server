@@ -4,6 +4,10 @@ server:
   rabbitmq:
     addresses: localhost
 
+powsybl-ws:
+  database:
+    host: localhost
+
 backing-services:
   case-server:
     base-uri: http://localhost:5000
