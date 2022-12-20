@@ -56,7 +56,7 @@ public class NetworkConversionService {
 
     @Autowired
     public NetworkConversionService(CaseFetcherService caseFetcherService, RestTemplateBuilder builder,
-                                    @Value("${backing-services.network-conversion.base-uri:http://network-conversion-server/}") String networkConversionBaseUri) {
+                                    @Value("${backing-services.network-conversion-server.base-uri:http://network-conversion-server/}") String networkConversionBaseUri) {
         this.caseFetcherService = caseFetcherService;
         this.networkConversionServerRest = builder.uriTemplateHandler(
                 new DefaultUriBuilderFactory(networkConversionBaseUri)
