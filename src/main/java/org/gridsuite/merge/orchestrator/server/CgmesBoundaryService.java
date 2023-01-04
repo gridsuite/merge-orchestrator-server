@@ -50,9 +50,10 @@ public class CgmesBoundaryService {
 
     @Autowired
     public CgmesBoundaryService(RestTemplateBuilder builder,
-                                @Value("${backing-services.cgmes-boundary-server.base-uri:http://cgmes-boundary-server/}") String cgmesBoundaryServerBaseUri) {
-        this.cgmesBoundaryServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(cgmesBoundaryServerBaseUri))
-            .build();
+            @Value("${gridsuite.services.cgmes-boundary-server.base-uri:http://cgmes-boundary-server/}") String cgmesBoundaryServerBaseUri) {
+        this.cgmesBoundaryServerRest = builder
+                .uriTemplateHandler(new DefaultUriBuilderFactory(cgmesBoundaryServerBaseUri))
+                .build();
     }
 
     public CgmesBoundaryService(RestTemplate restTemplate) {
@@ -63,14 +64,15 @@ public class CgmesBoundaryService {
         List<BoundaryContent> lastBoundaries = new ArrayList<>();
         String uri = DELIMITER + CGMES_BOUNDARY_API_VERSION + "/boundaries/last";
         try {
-            ResponseEntity<List<Map<String, String>>> responseEntity = cgmesBoundaryServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() {
-            });
+            ResponseEntity<List<Map<String, String>>> responseEntity = cgmesBoundaryServerRest.exchange(uri,
+                    HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() {
+                    });
             List<Map<String, String>> body = responseEntity.getBody();
             if (body != null) {
                 lastBoundaries = body.stream().map(c -> new BoundaryContent(c.get(ID_KEY),
-                    c.get(FILE_NAME_KEY),
-                    c.get(BOUNDARY_KEY)))
-                    .collect(Collectors.toList());
+                        c.get(FILE_NAME_KEY),
+                        c.get(BOUNDARY_KEY)))
+                        .collect(Collectors.toList());
             } else {
                 LOGGER.error("Error searching boundaries: body is null {}", responseEntity);
             }
@@ -83,11 +85,13 @@ public class CgmesBoundaryService {
     public Optional<BoundaryContent> getBoundary(String boundaryId) {
         String uri = DELIMITER + CGMES_BOUNDARY_API_VERSION + "/boundaries/" + boundaryId;
         try {
-            ResponseEntity<Map<String, String>> responseEntity = cgmesBoundaryServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<>() {
-            });
+            ResponseEntity<Map<String, String>> responseEntity = cgmesBoundaryServerRest.exchange(uri, HttpMethod.GET,
+                    HttpEntity.EMPTY, new ParameterizedTypeReference<>() {
+                    });
             Map<String, String> body = responseEntity.getBody();
             if (body != null) {
-                return Optional.of(new BoundaryContent(body.get(ID_KEY), body.get(FILE_NAME_KEY), body.get(BOUNDARY_KEY)));
+                return Optional
+                        .of(new BoundaryContent(body.get(ID_KEY), body.get(FILE_NAME_KEY), body.get(BOUNDARY_KEY)));
             } else {
                 LOGGER.error("Error searching boundary with id {} : body is null {}", boundaryId, responseEntity);
             }
@@ -100,7 +104,8 @@ public class CgmesBoundaryService {
     public static List<FileInfos> getFileInfosBoundaries(List<BoundaryContent> boundaryInfos) {
         List<FileInfos> boundaries = new ArrayList<>();
         for (BoundaryContent boundary : boundaryInfos) {
-            boundaries.add(new FileInfos(boundary.getFilename(), boundary.getBoundary().getBytes(StandardCharsets.UTF_8)));
+            boundaries.add(
+                    new FileInfos(boundary.getFilename(), boundary.getBoundary().getBytes(StandardCharsets.UTF_8)));
         }
         return boundaries;
     }

@@ -62,12 +62,13 @@ public class MergeOrchestratorConfigService {
     private RestTemplate reportRestClient;
 
     @Autowired
-    public MergeOrchestratorConfigService(@Value("${backing-services.report-server.base-uri:https://report-server}") String reportServerBaseURI,
-                                          ProcessConfigRepository processConfigRepository,
-                                          BoundaryRepository boundaryRepository,
-                                          IgmRepository igmRepository,
-                                          MergeRepository mergeRepository,
-                                          NetworkStoreService networkStoreService) {
+    public MergeOrchestratorConfigService(
+            @Value("${gridsuite.services.report-server.base-uri:https://report-server}") String reportServerBaseURI,
+            ProcessConfigRepository processConfigRepository,
+            BoundaryRepository boundaryRepository,
+            IgmRepository igmRepository,
+            MergeRepository mergeRepository,
+            NetworkStoreService networkStoreService) {
         this.processConfigRepository = processConfigRepository;
         this.boundaryRepository = boundaryRepository;
         this.mergeRepository = mergeRepository;
@@ -82,7 +83,8 @@ public class MergeOrchestratorConfigService {
 
     void setReportServerBaseURI(String reportServerBaseURI) {
         this.reportServerBaseURI = reportServerBaseURI;
-        this.reportRestClient = new RestTemplateBuilder().uriTemplateHandler(new DefaultUriBuilderFactory(getReportServerURI()))
+        this.reportRestClient = new RestTemplateBuilder()
+                .uriTemplateHandler(new DefaultUriBuilderFactory(getReportServerURI()))
                 .messageConverters(getJackson2HttpMessageConverter())
                 .build();
     }
@@ -95,7 +97,8 @@ public class MergeOrchestratorConfigService {
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new ReporterModelJsonModule());
-        objectMapper.setInjectableValues(new InjectableValues.Std().addValue(ReporterModelDeserializer.DICTIONARY_VALUE_ID, null));
+        objectMapper.setInjectableValues(
+                new InjectableValues.Std().addValue(ReporterModelDeserializer.DICTIONARY_VALUE_ID, null));
         converter.setObjectMapper(objectMapper);
         return converter;
     }
@@ -122,11 +125,11 @@ public class MergeOrchestratorConfigService {
     public void addConfig(ProcessConfig processConfig) {
         // saving boundaries if needed
         BoundaryEntity boundaryEqEntity = processConfig.getEqBoundary() != null ? boundaryRepository
-            .findById(processConfig.getEqBoundary().getId())
-            .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getEqBoundary()))) : null;
+                .findById(processConfig.getEqBoundary().getId())
+                .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getEqBoundary()))) : null;
         BoundaryEntity boundaryTpEntity = processConfig.getTpBoundary() != null ? boundaryRepository
-            .findById(processConfig.getTpBoundary().getId())
-            .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getTpBoundary()))) : null;
+                .findById(processConfig.getTpBoundary().getId())
+                .orElseGet(() -> boundaryRepository.save(toBoundaryEntity(processConfig.getTpBoundary()))) : null;
 
         // saving config
         var entity = toProcessConfigEntity(processConfig, boundaryEqEntity, boundaryTpEntity);
@@ -138,9 +141,12 @@ public class MergeOrchestratorConfigService {
         try {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
-            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReporterModel.class, report.toString()).getBody();
+            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReporterModel.class, report.toString())
+                    .getBody();
         } catch (HttpClientErrorException e) {
-            throw (e.getStatusCode() == HttpStatus.NOT_FOUND) ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e) : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
+            throw (e.getStatusCode() == HttpStatus.NOT_FOUND)
+                    ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e)
+                    : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
         } catch (RestClientException e) {
             throw new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
         }
@@ -153,7 +159,9 @@ public class MergeOrchestratorConfigService {
             String uri = uriBuilder.build().toUriString();
             reportRestClient.exchange(uri, HttpMethod.DELETE, null, ReporterModel.class, report.toString());
         } catch (HttpClientErrorException e) {
-            throw (e.getStatusCode() == HttpStatus.NOT_FOUND) ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e) : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
+            throw (e.getStatusCode() == HttpStatus.NOT_FOUND)
+                    ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e)
+                    : new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
         } catch (RestClientException e) {
             throw new MergeOrchestratorException(MERGE_REPORT_ERROR, e);
         }
@@ -169,19 +177,26 @@ public class MergeOrchestratorConfigService {
         mergeRepository.getReportsFor(processUuid).stream().filter(Objects::nonNull).forEach(this::deleteReport);
         mergeRepository.deleteByKeyProcessUuid(processUuid);
 
-        Optional<String> eqBoundary = processConfigRepository.findById(processUuid).map(entity -> entity.getEqBoundary() != null ? entity.getEqBoundary().getId() : null);
-        Optional<String> tpBoundary = processConfigRepository.findById(processUuid).map(entity -> entity.getTpBoundary() != null ? entity.getTpBoundary().getId() : null);
+        Optional<String> eqBoundary = processConfigRepository.findById(processUuid)
+                .map(entity -> entity.getEqBoundary() != null ? entity.getEqBoundary().getId() : null);
+        Optional<String> tpBoundary = processConfigRepository.findById(processUuid)
+                .map(entity -> entity.getTpBoundary() != null ? entity.getTpBoundary().getId() : null);
 
         processConfigRepository.deleteById(processUuid);
 
-        // delete the boundaries if they were the last one used by the deleted process config
+        // delete the boundaries if they were the last one used by the deleted process
+        // config
         eqBoundary.ifPresent(boundary -> {
-            if (processConfigRepository.findAll().stream().filter(entity -> entity.getEqBoundary() != null && entity.getEqBoundary().getId().equals(boundary)).count() == 0) {
+            if (processConfigRepository.findAll().stream()
+                    .filter(entity -> entity.getEqBoundary() != null && entity.getEqBoundary().getId().equals(boundary))
+                    .count() == 0) {
                 boundaryRepository.deleteById(boundary);
             }
         });
         tpBoundary.ifPresent(boundary -> {
-            if (processConfigRepository.findAll().stream().filter(entity -> entity.getTpBoundary() != null && entity.getTpBoundary().getId().equals(boundary)).count() == 0) {
+            if (processConfigRepository.findAll().stream()
+                    .filter(entity -> entity.getTpBoundary() != null && entity.getTpBoundary().getId().equals(boundary))
+                    .count() == 0) {
                 boundaryRepository.deleteById(boundary);
             }
         });
@@ -189,22 +204,23 @@ public class MergeOrchestratorConfigService {
 
     private ProcessConfig toProcessConfig(ProcessConfigEntity processConfigEntity) {
         return new ProcessConfig(processConfigEntity.getProcessUuid(), processConfigEntity.getProcess(),
-            processConfigEntity.getBusinessProcess(), processConfigEntity.getTsos(),
-            processConfigEntity.isRunBalancesAdjustment(),
-            processConfigEntity.isUseLastBoundarySet(),
-            toBoundaryInfo(processConfigEntity.getEqBoundary()),
-            toBoundaryInfo(processConfigEntity.getTpBoundary()));
+                processConfigEntity.getBusinessProcess(), processConfigEntity.getTsos(),
+                processConfigEntity.isRunBalancesAdjustment(),
+                processConfigEntity.isUseLastBoundarySet(),
+                toBoundaryInfo(processConfigEntity.getEqBoundary()),
+                toBoundaryInfo(processConfigEntity.getTpBoundary()));
     }
 
-    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig, BoundaryEntity boundaryEq, BoundaryEntity boundaryTp) {
+    private ProcessConfigEntity toProcessConfigEntity(ProcessConfig processConfig, BoundaryEntity boundaryEq,
+            BoundaryEntity boundaryTp) {
         boolean isNewProcessConfig = processConfig.getProcessUuid() == null;
 
         var entity = new ProcessConfigEntity(isNewProcessConfig ? UUID.randomUUID() : processConfig.getProcessUuid(),
-            processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(),
-            processConfig.isRunBalancesAdjustment(),
-            processConfig.isUseLastBoundarySet(),
-            boundaryEq,
-            boundaryTp);
+                processConfig.getProcess(), processConfig.getBusinessProcess(), processConfig.getTsos(),
+                processConfig.isRunBalancesAdjustment(),
+                processConfig.isUseLastBoundarySet(),
+                boundaryEq,
+                boundaryTp);
         if (!isNewProcessConfig) {
             entity.markNotNew();
         }
@@ -212,10 +228,13 @@ public class MergeOrchestratorConfigService {
     }
 
     private BoundaryEntity toBoundaryEntity(BoundaryInfo boundary) {
-        return boundary != null ? new BoundaryEntity(boundary.getId(), boundary.getFilename(), boundary.getScenarioTime()) : null;
+        return boundary != null
+                ? new BoundaryEntity(boundary.getId(), boundary.getFilename(), boundary.getScenarioTime())
+                : null;
     }
 
     private BoundaryInfo toBoundaryInfo(BoundaryEntity boundary) {
-        return boundary != null ? new BoundaryInfo(boundary.getId(), boundary.getFilename(), boundary.getScenarioTime()) : null;
+        return boundary != null ? new BoundaryInfo(boundary.getId(), boundary.getFilename(), boundary.getScenarioTime())
+                : null;
     }
 }

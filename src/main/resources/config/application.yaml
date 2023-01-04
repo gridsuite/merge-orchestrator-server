@@ -16,9 +16,10 @@ spring:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}merge
       source: publishMerge
 
-backing-services:
-  network-store-server:
-    preloading-strategy: COLLECTION
+powsybl:
+  services:
+    network-store-server:
+      preloading-strategy: COLLECTION
 
 powsybl-ws:
   database:
