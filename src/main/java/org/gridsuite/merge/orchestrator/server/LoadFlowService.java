@@ -59,10 +59,9 @@ public class LoadFlowService {
 
     @Autowired
     public LoadFlowService(RestTemplateBuilder builder,
-                           @Value("${backing-services.loadflow-server.base-uri:http://loadflow-server/}") String loadFlowBaseUri) {
+            @Value("${gridsuite.services.loadflow-server.base-uri:http://loadflow-server/}") String loadFlowBaseUri) {
         this.loadFlowServerRest = builder.uriTemplateHandler(
-                new DefaultUriBuilderFactory(loadFlowBaseUri)
-        ).build();
+                new DefaultUriBuilderFactory(loadFlowBaseUri)).build();
     }
 
     public LoadFlowService(RestTemplate restTemplate) {
@@ -84,10 +83,10 @@ public class LoadFlowService {
         HttpEntity<byte[]> requestEntity = new HttpEntity<>(baos.toByteArray(), headers);
 
         LoadFlowResult result = loadFlowServerRest.exchange(uri,
-            HttpMethod.PUT,
-            requestEntity,
-            LoadFlowResult.class,
-            networksIds.get(0).toString()).getBody();
+                HttpMethod.PUT,
+                requestEntity,
+                LoadFlowResult.class,
+                networksIds.get(0).toString()).getBody();
 
         boolean isLoadFlowOk = hasMainComponentConverged(result);
         if (!isLoadFlowOk) {
@@ -103,7 +102,8 @@ public class LoadFlowService {
     }
 
     public MergeStatus run(List<UUID> networksIds, UUID report) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run");
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromPath(DELIMITER + LOAD_FLOW_API_VERSION + "/networks/{networkUuid}/run");
         for (int i = 1; i < networksIds.size(); ++i) {
             uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
         }
@@ -113,17 +113,18 @@ public class LoadFlowService {
 
         // first run with initial settings
         LoadFlowParameters params = new LoadFlowParameters()
-            .setTransformerVoltageControlOn(true)
-            .setSimulShunt(true)
-            .setDistributedSlack(true)
-            .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
-            .setReadSlackBus(true)
-            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+                .setTransformerVoltageControlOn(true)
+                .setSimulShunt(true)
+                .setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                .setReadSlackBus(true)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         if (stepRun(Step.FIRST, params, uri, networksIds)) {
             return MergeStatus.FIRST_LOADFLOW_SUCCEED;
         }
 
-        uriBuilder = uriBuilder.replaceQueryParam(MergeOrchestratorConstants.REPORT_NAME, Step.SECOND.value + "Loadflow");
+        uriBuilder = uriBuilder.replaceQueryParam(MergeOrchestratorConstants.REPORT_NAME,
+                Step.SECOND.value + "Loadflow");
         uri = uriBuilder.build().toUriString();
 
         // second run : disabling transformer tap and switched shunt adjustment
@@ -133,11 +134,13 @@ public class LoadFlowService {
             return MergeStatus.SECOND_LOADFLOW_SUCCEED;
         }
 
-        uriBuilder = uriBuilder.replaceQueryParam(MergeOrchestratorConstants.REPORT_NAME, Step.THIRD.value + "Loadflow");
+        uriBuilder = uriBuilder.replaceQueryParam(MergeOrchestratorConstants.REPORT_NAME,
+                Step.THIRD.value + "Loadflow");
         uri = uriBuilder.build().toUriString();
 
         // third run : relaxing reactive power limits
         params.setNoGeneratorReactiveLimits(true);
-        return stepRun(Step.THIRD, params, uri, networksIds) ? MergeStatus.THIRD_LOADFLOW_SUCCEED : MergeStatus.LOADFLOW_FAILED;
+        return stepRun(Step.THIRD, params, uri, networksIds) ? MergeStatus.THIRD_LOADFLOW_SUCCEED
+                : MergeStatus.LOADFLOW_FAILED;
     }
 }

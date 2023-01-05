@@ -43,10 +43,9 @@ public class BalancesAdjustmentService {
 
     @Autowired
     public BalancesAdjustmentService(RestTemplateBuilder builder,
-                                     @Value("${backing-services.balances-adjustment-server.base-uri:http://balances-adjustment-server/}") String balanceAdjustementBaseUri) {
+            @Value("${gridsuite.services.balances-adjustment-server.base-uri:http://balances-adjustment-server/}") String balanceAdjustementBaseUri) {
         this.balancesAdjustmentServerRest = builder.uriTemplateHandler(
-                new DefaultUriBuilderFactory(balanceAdjustementBaseUri)
-        ).build();
+                new DefaultUriBuilderFactory(balanceAdjustementBaseUri)).build();
     }
 
     public BalancesAdjustmentService(RestTemplate restTemplate) {
@@ -66,7 +65,8 @@ public class BalancesAdjustmentService {
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(DELIMITER + BALANCE_ADJUSTEMENT_API_VERSION + "/networks/{networkUuid}/run");
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                    .fromPath(DELIMITER + BALANCE_ADJUSTEMENT_API_VERSION + "/networks/{networkUuid}/run");
             for (int i = 1; i < networksIds.size(); ++i) {
                 uriBuilder = uriBuilder.queryParam("networkUuid", networksIds.get(i).toString());
             }

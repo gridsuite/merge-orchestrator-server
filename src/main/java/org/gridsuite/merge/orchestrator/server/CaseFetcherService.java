@@ -45,7 +45,7 @@ public class CaseFetcherService {
 
     @Autowired
     public CaseFetcherService(RestTemplateBuilder builder,
-                              @Value("${backing-services.case-server.base-uri:http://case-server/}") String caseServerBaseUri) {
+            @Value("${powsybl.services.case-server.base-uri:http://case-server/}") String caseServerBaseUri) {
         this.caseServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseServerBaseUri)).build();
     }
 
@@ -69,8 +69,10 @@ public class CaseFetcherService {
     public List<CaseInfos> getCases(List<String> tsos, ZonedDateTime dateTime, String format, String businessProcess) {
         String uri = DELIMITER + CASE_API_VERSION + "/cases/search?q={q}";
         try {
-            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() { },
-                getSearchQuery(tsos, dateTime, format, businessProcess));
+            ResponseEntity<List<Map<String, String>>> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET,
+                    HttpEntity.EMPTY, new ParameterizedTypeReference<List<Map<String, String>>>() {
+                    },
+                    getSearchQuery(tsos, dateTime, format, businessProcess));
             List<Map<String, String>> body = responseEntity.getBody();
             if (body != null) {
                 return body.stream().map(c -> new CaseInfos(c.get("name"),
@@ -92,7 +94,9 @@ public class CaseFetcherService {
         List<FileInfos> cases = new ArrayList<>();
         String uri = DELIMITER + CASE_API_VERSION + "/cases/{caseUuid}?xiidm=false";
         for (UUID caseUuid : caseUuids) {
-            ResponseEntity<byte[]> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, caseUuid.toString());
+            ResponseEntity<byte[]> responseEntity = caseServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY,
+                    new ParameterizedTypeReference<byte[]>() {
+                    }, caseUuid.toString());
             String fileName = caseUuid.toString();
             cases.add(new FileInfos(fileName, responseEntity.getBody()));
         }

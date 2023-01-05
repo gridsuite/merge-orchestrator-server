@@ -35,8 +35,9 @@ public class IgmQualityCheckService {
 
     @Autowired
     public IgmQualityCheckService(RestTemplateBuilder builder,
-                                  @Value("${backing-services.case-validation-server.base-uri:http://case-validation-server/}") String caseValidationBaseUri) {
-        this.caseValidationServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseValidationBaseUri)).build();
+            @Value("${gridsuite.services.case-validation-server.base-uri:http://case-validation-server/}") String caseValidationBaseUri) {
+        this.caseValidationServerRest = builder.uriTemplateHandler(new DefaultUriBuilderFactory(caseValidationBaseUri))
+                .build();
     }
 
     public IgmQualityCheckService(RestTemplate restTemplate) {
@@ -47,11 +48,12 @@ public class IgmQualityCheckService {
         boolean res = false;
         try {
             // FIXME when individual check is merged, pass reportId in url
-            ResponseEntity<String> response = caseValidationServerRest.exchange(CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate?overwerite=true",
-                HttpMethod.PUT,
-                null,
-                String.class,
-                networkUuid.toString());
+            ResponseEntity<String> response = caseValidationServerRest.exchange(
+                    CASE_VALIDATION_API_VERSION + "/networks/{networkUuid}/validate?overwerite=true",
+                    HttpMethod.PUT,
+                    null,
+                    String.class,
+                    networkUuid.toString());
             JsonNode node = new ObjectMapper().readTree(response.getBody()).path(VALIDATION_OK);
             if (!node.isMissingNode()) {
                 res = node.asBoolean();
