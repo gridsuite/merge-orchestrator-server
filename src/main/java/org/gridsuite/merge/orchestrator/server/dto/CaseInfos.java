@@ -21,9 +21,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @Schema(description = "Case infos")
 public class CaseInfos {
-    private String   name;
-    private UUID     uuid;
-    private String   format;
-    private String   tso;
-    private String   businessProcess;
+    private String name;
+    private UUID uuid;
+    private String format;
+    private String tso;
+    private String businessProcess;
 }

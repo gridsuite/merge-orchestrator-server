@@ -39,6 +39,6 @@ public class SecuredZipInputStreamTest {
             readBytes += zis.readAllBytes().length;
             entry = zis.getNextEntry();
         }
-        return  readBytes;
+        return readBytes;
     }
 }
