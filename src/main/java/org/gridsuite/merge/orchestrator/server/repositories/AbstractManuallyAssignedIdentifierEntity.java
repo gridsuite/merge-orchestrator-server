@@ -8,10 +8,10 @@ package org.gridsuite.merge.orchestrator.server.repositories;
 
 import org.springframework.data.domain.Persistable;
 
-import javax.persistence.MappedSuperclass;
-import javax.persistence.PostLoad;
-import javax.persistence.PrePersist;
-import javax.persistence.Transient;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Transient;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>

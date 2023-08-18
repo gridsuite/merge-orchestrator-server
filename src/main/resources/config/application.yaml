@@ -14,7 +14,7 @@ spring:
             concurrency: 2
         publishMerge-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}merge
-      source: publishMerge
+      output-bindings: publishMerge
 
 powsybl:
   services:

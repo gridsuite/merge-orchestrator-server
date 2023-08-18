@@ -243,7 +243,7 @@ public class MergeOrchestratorIT {
             // Ignoring
         }
 
-        assertNull("Should not be any messages", output.receive(1000));
+        assertNull("Should not be any messages", output.receive(1000, "merge.destination"));
         assertNull("Should not be any http requests", httpRequest);
     }
 
@@ -314,9 +314,9 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "1D")
                 .build());
-        Message<byte[]> messageFrIGM = output.receive(1000);
+        Message<byte[]> messageFrIGM = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messageFrIGM.getHeaders().get("status"));
-        messageFrIGM = output.receive(1000);
+        messageFrIGM = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messageFrIGM.getHeaders().get("status"));
 
         List<MergeEntity> mergeEntities = mergeRepository.findAll();
@@ -344,9 +344,9 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "1D")
                 .build());
-        Message<byte[]> messageEsIGM = output.receive(1000);
+        Message<byte[]> messageEsIGM = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messageEsIGM.getHeaders().get("status"));
-        messageEsIGM = output.receive(1000);
+        messageEsIGM = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messageEsIGM.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
@@ -374,7 +374,7 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "1D")
                 .build());
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
 
         // send third tso PT with business process 1D, expect one AVAILABLE, one VALIDATION_SUCCEED
         // and one FIRST_LOADFLOW_SUCCEED message (merge done)
@@ -391,11 +391,11 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "1D")
                 .build());
-        Message<byte[]> messagePtIGM = output.receive(1000);
+        Message<byte[]> messagePtIGM = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messagePtIGM.getHeaders().get("status"));
-        messagePtIGM = output.receive(1000);
+        messagePtIGM = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
-        Message<byte[]> messageMergeStarted = output.receive(1000);
+        Message<byte[]> messageMergeStarted = output.receive(1000, "merge.destination");
         assertEquals("FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
@@ -420,11 +420,11 @@ public class MergeOrchestratorIT {
 
         assertFalse(mergeOrchestratorService.getMerges(SWE_1D_UUID, dateTime, dateTime).isEmpty());
 
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
     }
 
     private void testErrorMessage(String errorMessage) {
-        assertEquals(errorMessage, output.receive(1000).getHeaders().get("error"));
+        assertEquals(errorMessage, output.receive(1000, "merge.destination").getHeaders().get("error"));
     }
 
     @Test
@@ -445,9 +445,9 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "1D")
                 .build());
-        assertEquals("AVAILABLE", output.receive(1000).getHeaders().get("status"));
+        assertEquals("AVAILABLE", output.receive(1000, "merge.destination").getHeaders().get("status"));
         testErrorMessage("Process SWE_1D (1D) : EQ and/or TP boundary not available !!");
-        assertEquals("VALIDATION_FAILED", output.receive(1000).getHeaders().get("status"));
+        assertEquals("VALIDATION_FAILED", output.receive(1000, "merge.destination").getHeaders().get("status"));
 
         // second specific boundary is now available
         Mockito.when(cgmesBoundaryService.getBoundary(SPECIFIC_BOUNDARY_TP_ID))
@@ -548,7 +548,7 @@ public class MergeOrchestratorIT {
         assertEquals(SPECIFIC_BOUNDARY_EQ_ID, igmEntities.get(2).getEqBoundary());
         assertEquals(SPECIFIC_BOUNDARY_TP_ID, igmEntities.get(2).getTpBoundary());
 
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
@@ -569,13 +569,13 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "2D")
                 .build());
-        Message<byte[]> messageFrIGMProcess1 = output.receive(1000);
+        Message<byte[]> messageFrIGMProcess1 = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messageFrIGMProcess1.getHeaders().get("status"));
-        Message<byte[]> messageFrIGMProcess2 = output.receive(1000);
+        Message<byte[]> messageFrIGMProcess2 = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messageFrIGMProcess2.getHeaders().get("status"));
-        messageFrIGMProcess1 = output.receive(1000);
+        messageFrIGMProcess1 = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messageFrIGMProcess1.getHeaders().get("status"));
-        messageFrIGMProcess2 = output.receive(1000);
+        messageFrIGMProcess2 = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messageFrIGMProcess2.getHeaders().get("status"));
 
         List<MergeEntity> mergeEntities = mergeRepository.findAll();
@@ -617,15 +617,15 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "2D")
                 .build());
-        Message<byte[]> messageEsIGMProcess1 = output.receive(1000);
+        Message<byte[]> messageEsIGMProcess1 = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messageEsIGMProcess1.getHeaders().get("status"));
-        Message<byte[]> messageEsIGMProcess2 = output.receive(1000);
+        Message<byte[]> messageEsIGMProcess2 = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messageEsIGMProcess2.getHeaders().get("status"));
-        messageEsIGMProcess1 = output.receive(1000);
+        messageEsIGMProcess1 = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messageEsIGMProcess1.getHeaders().get("status"));
-        messageEsIGMProcess2 = output.receive(1000);
+        messageEsIGMProcess2 = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messageEsIGMProcess2.getHeaders().get("status"));
-        Message<byte[]> messageMergeStarted = output.receive(1000);
+        Message<byte[]> messageMergeStarted = output.receive(1000, "merge.destination");
         assertEquals("FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
@@ -674,11 +674,11 @@ public class MergeOrchestratorIT {
                 .setHeader("format", "CGMES")
                 .setHeader("businessProcess", "2D")
                 .build());
-        Message<byte[]> messagePtIGM = output.receive(1000);
+        Message<byte[]> messagePtIGM = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messagePtIGM.getHeaders().get("status"));
-        messagePtIGM = output.receive(1000);
+        messagePtIGM = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
-        messageMergeStarted = output.receive(1000);
+        messageMergeStarted = output.receive(1000, "merge.destination");
         assertEquals("FIRST_LOADFLOW_SUCCEED", messageMergeStarted.getHeaders().get("status"));
 
         mergeEntities = mergeRepository.findAll();
@@ -711,7 +711,7 @@ public class MergeOrchestratorIT {
         assertFalse(mergeOrchestratorService.getMerges(SWE_2D_UUID, dateTime, dateTime).isEmpty());
         assertFalse(mergeOrchestratorService.getMerges(FRES_2D_UUID, dateTime, dateTime).isEmpty());
 
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
         // test delete config
         List<MergeEntity> merges = mergeRepository.findAll();
         assertEquals(2, merges.size());
@@ -743,15 +743,15 @@ public class MergeOrchestratorIT {
 
     private void testImportIgmMessages(int nbOfTimes, boolean withMerge, boolean withValidationSucceed) {
         IntStream.range(0, nbOfTimes).forEach(i ->
-                assertEquals("AVAILABLE", output.receive(1000).getHeaders().get("status"))
+                assertEquals("AVAILABLE", output.receive(1000, "merge.destination").getHeaders().get("status"))
         );
 
         IntStream.range(0, nbOfTimes).forEach(i ->
-                assertEquals(withValidationSucceed ? "VALIDATION_SUCCEED" : "VALIDATION_FAILED", output.receive(1000).getHeaders().get("status"))
+                assertEquals(withValidationSucceed ? "VALIDATION_SUCCEED" : "VALIDATION_FAILED", output.receive(1000, "merge.destination").getHeaders().get("status"))
         );
 
         if (withMerge) {
-            assertEquals("FIRST_LOADFLOW_SUCCEED", output.receive(1000).getHeaders().get("status"));
+            assertEquals("FIRST_LOADFLOW_SUCCEED", output.receive(1000, "merge.destination").getHeaders().get("status"));
         }
     }
 
@@ -860,7 +860,7 @@ public class MergeOrchestratorIT {
         assertEquals(0, igmRepository.findAll().size());
         assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
 
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
@@ -903,7 +903,7 @@ public class MergeOrchestratorIT {
 
         assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
 
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
@@ -946,7 +946,7 @@ public class MergeOrchestratorIT {
 
         assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
 
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
@@ -1076,7 +1076,7 @@ public class MergeOrchestratorIT {
         assertEquals(1, mergeInfos.size());
         testMergeOk(mergeInfos.get(0), List.of("FR", "PT"));
 
-        assertNull(output.receive(1000));
+        assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
@@ -1188,11 +1188,11 @@ public class MergeOrchestratorIT {
         assertEquals("2D", igmEntities.get(2).getReplacingBusinessProcess());
 
         // test message has been sent for ES igm
-        Message<byte[]> messageEsIGM = output.receive(1000);
+        Message<byte[]> messageEsIGM = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messageEsIGM.getHeaders().get("status"));
         assertEquals("ES", messageEsIGM.getHeaders().get("tso"));
         assertEquals(SWE_2D_UUID, messageEsIGM.getHeaders().get("processUuid"));
-        messageEsIGM = output.receive(1000);
+        messageEsIGM = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messageEsIGM.getHeaders().get("status"));
         assertEquals("ES", messageEsIGM.getHeaders().get("tso"));
         assertEquals(SWE_2D_UUID, messageEsIGM.getHeaders().get("processUuid"));
@@ -1250,17 +1250,17 @@ public class MergeOrchestratorIT {
         assertEquals("2D", igmEntities.get(2).getReplacingBusinessProcess());
 
         // test message has been sent for PT igm
-        Message<byte[]> messagePtIGM = output.receive(1000);
+        Message<byte[]> messagePtIGM = output.receive(1000, "merge.destination");
         assertEquals("AVAILABLE", messagePtIGM.getHeaders().get("status"));
         assertEquals("PT", messagePtIGM.getHeaders().get("tso"));
         assertEquals(SWE_2D_UUID, messagePtIGM.getHeaders().get("processUuid"));
-        messagePtIGM = output.receive(1000);
+        messagePtIGM = output.receive(1000, "merge.destination");
         assertEquals("VALIDATION_SUCCEED", messagePtIGM.getHeaders().get("status"));
         assertEquals("PT", messagePtIGM.getHeaders().get("tso"));
         assertEquals(SWE_2D_UUID, messagePtIGM.getHeaders().get("processUuid"));
 
         // test message has been sent for merge load flow
-        Message<byte[]> messageMerge = output.receive(1000);
+        Message<byte[]> messageMerge = output.receive(1000, "merge.destination");
         assertEquals("FIRST_LOADFLOW_SUCCEED", messageMerge.getHeaders().get("status"));
         assertEquals(SWE_2D_UUID, messageEsIGM.getHeaders().get("processUuid"));
     }
