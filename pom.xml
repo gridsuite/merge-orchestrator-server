@@ -13,7 +13,7 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent-ws</artifactId>
-        <version>12</version>
+        <version>15</version>
         <relativePath/>
     </parent>
 
@@ -42,7 +42,7 @@
     </developers>
 
     <properties>
-        <gridsuite-dependencies.version>25</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>26</gridsuite-dependencies.version>
         <commons-lang3.version>3.9</commons-lang3.version>
         <liquibase-hibernate-package>org.gridsuite.merge.orchestrator.server</liquibase-hibernate-package>
     </properties>
@@ -62,8 +62,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
@@ -146,7 +146,7 @@
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-ui</artifactId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
         <!-- Runtime dependencies -->
@@ -209,10 +209,8 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-stream</artifactId>
-            <type>test-jar</type>
+            <artifactId>spring-cloud-stream-test-binder</artifactId>
             <scope>test</scope>
-            <classifier>test-binder</classifier>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
