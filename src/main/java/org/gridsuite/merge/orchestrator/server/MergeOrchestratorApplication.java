@@ -14,17 +14,14 @@ import com.powsybl.ws.commons.Utils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-@SpringBootApplication
-@ComponentScan(basePackageClasses = {MergeOrchestratorApplication.class, NetworkStoreService.class})
+@SpringBootApplication(scanBasePackageClasses = { MergeOrchestratorApplication.class, NetworkStoreService.class })
 public class MergeOrchestratorApplication {
-
     public static void main(String[] args) {
         Utils.initProperties();
         SpringApplication.run(MergeOrchestratorApplication.class, args);
