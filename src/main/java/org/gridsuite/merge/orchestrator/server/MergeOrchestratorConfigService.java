@@ -8,9 +8,10 @@ package org.gridsuite.merge.orchestrator.server;
 
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.reporter.ReporterModel;
-import com.powsybl.commons.reporter.ReporterModelDeserializer;
-import com.powsybl.commons.reporter.ReporterModelJsonModule;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeDeserializer;
+import com.powsybl.commons.report.ReportNodeImpl;
+import com.powsybl.commons.report.ReportNodeJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
@@ -96,9 +97,9 @@ public class MergeOrchestratorConfigService {
     private MappingJackson2HttpMessageConverter getJackson2HttpMessageConverter() {
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new ReporterModelJsonModule());
+        objectMapper.registerModule(new ReportNodeJsonModule());
         objectMapper.setInjectableValues(
-                new InjectableValues.Std().addValue(ReporterModelDeserializer.DICTIONARY_VALUE_ID, null));
+                new InjectableValues.Std().addValue(ReportNodeDeserializer.DICTIONARY_VALUE_ID, null));
         converter.setObjectMapper(objectMapper);
         return converter;
     }
@@ -136,12 +137,12 @@ public class MergeOrchestratorConfigService {
         processConfigRepository.save(entity);
     }
 
-    public ReporterModel getReport(UUID report) {
+    public ReportNode getReport(UUID report) {
         Objects.requireNonNull(report);
         try {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
-            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReporterModel.class, report.toString())
+            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReportNodeImpl.class, report.toString())
                     .getBody();
         } catch (HttpClientErrorException e) {
             throw (e.getStatusCode() == HttpStatus.NOT_FOUND)
@@ -157,7 +158,7 @@ public class MergeOrchestratorConfigService {
         try {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
-            reportRestClient.exchange(uri, HttpMethod.DELETE, null, ReporterModel.class, report.toString());
+            reportRestClient.exchange(uri, HttpMethod.DELETE, null, ReportNode.class, report.toString());
         } catch (HttpClientErrorException e) {
             throw (e.getStatusCode() == HttpStatus.NOT_FOUND)
                     ? new MergeOrchestratorException(MERGE_REPORT_NOT_FOUND, e)

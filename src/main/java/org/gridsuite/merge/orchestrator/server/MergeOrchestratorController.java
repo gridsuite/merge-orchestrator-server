@@ -6,7 +6,7 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.report.ReportNode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -105,8 +105,8 @@ public class MergeOrchestratorController {
     @GetMapping(value = "{processUuid}/{date}/report", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Get merge report")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The report for process"), @ApiResponse(responseCode = "404", description = "The process not found")})
-    public ResponseEntity<ReporterModel> getReport(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
-                                                   @Parameter(description = "Process date") @PathVariable("date") String date) {
+    public ResponseEntity<ReportNode> getReport(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
+                                                @Parameter(description = "Process date") @PathVariable("date") String date) {
         LOGGER.debug("Get report for merge process {} : {}", processUuid, date);
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         LocalDateTime dateTime = LocalDateTime.ofInstant(ZonedDateTime.parse(decodedDate).toInstant(), ZoneOffset.UTC);
