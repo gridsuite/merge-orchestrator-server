@@ -7,7 +7,7 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.network.store.client.NetworkStoreService;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -305,7 +305,7 @@ public class MergeOrchestratorService {
         return networkConversionService.exportMerge(networkUuids, caseUuid, format, baseFileName, boundaries);
     }
 
-    ReporterModel getReport(UUID processUuid, LocalDateTime processDate) {
+    ReportNode getReport(UUID processUuid, LocalDateTime processDate) {
         MergeEntity mergeEntity = mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, processDate).orElseThrow(() -> new MergeOrchestratorException(MERGE_NOT_FOUND, "<" + processUuid + ", " + processDate + ">"));
         return mergeConfigService.getReport(mergeEntity.getReportUUID());
     }
