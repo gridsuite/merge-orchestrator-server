@@ -79,7 +79,9 @@ public class MergeOrchestratorController {
     public ResponseEntity<byte[]> exportNetwork(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
                                                 @Parameter(description = "Process date") @PathVariable("date") String date,
                                                 @Parameter(description = "Export format") @PathVariable("format") String format) {
-        LOGGER.debug("Exporting merge for process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Exporting merge for process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        }
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
 
@@ -95,7 +97,9 @@ public class MergeOrchestratorController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "IGMs replaced")})
     public ResponseEntity<Map<String, IgmReplacingInfo>> replaceIGMs(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
                                                                      @Parameter(description = "Process date") @PathVariable("date") String date) {
-        LOGGER.debug("Replacing igms for merge process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Replacing igms for merge process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        }
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         ZonedDateTime dateTime = ZonedDateTime.parse(decodedDate);
 
@@ -108,7 +112,9 @@ public class MergeOrchestratorController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The report for process"), @ApiResponse(responseCode = "404", description = "The process not found")})
     public ResponseEntity<ReportNode> getReport(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
                                                 @Parameter(description = "Process date") @PathVariable("date") String date) {
-        LOGGER.debug("Get report for merge process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Get report for merge process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        }
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         LocalDateTime dateTime = LocalDateTime.ofInstant(ZonedDateTime.parse(decodedDate).toInstant(), ZoneOffset.UTC);
 
@@ -120,7 +126,9 @@ public class MergeOrchestratorController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The report for process deleted"), @ApiResponse(responseCode = "404", description = "The process not found")})
     public ResponseEntity<Void> deleteReport(@Parameter(description = "Process uuid") @PathVariable("processUuid") UUID processUuid,
                                              @Parameter(description = "Process date") @PathVariable("date") String date) {
-        LOGGER.debug("Delete report for merge process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Delete report for merge process {} : {}", LogUtils.sanitizeParam(processUuid.toString()), LogUtils.sanitizeParam(date));
+        }
 
         String decodedDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
         LocalDateTime dateTime = LocalDateTime.ofInstant(ZonedDateTime.parse(decodedDate).toInstant(), ZoneOffset.UTC);
