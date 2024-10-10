@@ -9,16 +9,16 @@ package org.gridsuite.merge.orchestrator.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
-import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.gridsuite.merge.orchestrator.server.repositories.BoundaryRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.IgmRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.MergeRepository;
+import org.gridsuite.merge.orchestrator.server.repositories.ProcessConfigRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -37,11 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(classes = {MergeOrchestratorApplication.class})
 @AutoConfigureMockMvc
-@ContextConfiguration(classes = {MergeOrchestratorApplication.class})
-public class ProcessConfigControllerTest {
+class ProcessConfigControllerTest {
     @Autowired
     private MockMvc mvc;
 
@@ -67,8 +65,8 @@ public class ProcessConfigControllerTest {
     private static final UUID SWE_RT_UUID = UUID.fromString("33333333-f60e-4766-bc5c-8f312c1984e4");
     private static final UUID SWE_WK_UUID = UUID.fromString("44444444-f60e-4766-bc5c-8f312c1984e4");
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         processConfigRepository.deleteAll();
         MockitoAnnotations.initMocks(this);
         tsos.clear();
@@ -88,7 +86,7 @@ public class ProcessConfigControllerTest {
     }
 
     @Test
-    public void configTest() throws Exception {
+    void configTest() throws Exception {
         assertEquals(4, processConfigRepository.findAll().size());
         assertEquals(4, boundaryRepository.findAll().size());
 

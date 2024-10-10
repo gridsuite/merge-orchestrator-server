@@ -8,26 +8,27 @@ package org.gridsuite.merge.orchestrator.server;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.InputStreamReader;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-public class ReplaceIGMGroovyTest {
+class ReplaceIGMGroovyTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplaceIGMGroovyTest.class);
 
     GroovyShell shell;
     Script replacingIGMScript;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         shell = new GroovyShell();
         try {
             replacingIGMScript = shell.parse(new InputStreamReader(new ClassPathResource("replaceIGM.groovy").getInputStream()));
@@ -37,8 +38,8 @@ public class ReplaceIGMGroovyTest {
     }
 
     @Test
-    public void test() {
-        Assert.assertEquals("[date:2021-01-11T02:30:00Z businessProcess:1D, date:2021-01-11T04:30:00Z businessProcess:1D, " +
+    void test() {
+        assertEquals("[date:2021-01-11T02:30:00Z businessProcess:1D, date:2021-01-11T04:30:00Z businessProcess:1D, " +
                         "date:2021-01-11T01:30:00Z businessProcess:1D, date:2021-01-11T05:30:00Z businessProcess:1D, " +
                         "date:2021-01-11T00:30:00Z businessProcess:1D, date:2021-01-08T03:30:00Z businessProcess:1D, " +
                         "date:2021-01-08T02:30:00Z businessProcess:1D, date:2021-01-08T04:30:00Z businessProcess:1D, " +
@@ -55,7 +56,7 @@ public class ReplaceIGMGroovyTest {
                         "date:2021-01-11T23:30:00Z businessProcess:1D]",
                 MergeOrchestratorService.execReplaceGroovyScript(replacingIGMScript, "2021-01-11T03:30:00Z", "SWE_1D", "1D").toString());
 
-        Assert.assertEquals("[date:2021-01-14T10:30:00Z businessProcess:2D, date:2021-01-14T08:30:00Z businessProcess:2D, " +
+        assertEquals("[date:2021-01-14T10:30:00Z businessProcess:2D, date:2021-01-14T08:30:00Z businessProcess:2D, " +
                         "date:2021-01-14T11:30:00Z businessProcess:2D, date:2021-01-14T12:30:00Z businessProcess:2D, " +
                         "date:2021-01-13T09:30:00Z businessProcess:2D, date:2021-01-13T10:30:00Z businessProcess:2D, " +
                         "date:2021-01-13T08:30:00Z businessProcess:2D, date:2021-01-13T11:30:00Z businessProcess:2D, " +
@@ -71,7 +72,7 @@ public class ReplaceIGMGroovyTest {
                         "date:2021-01-14T22:30:00Z businessProcess:2D, date:2021-01-14T23:30:00Z businessProcess:2D]",
                 MergeOrchestratorService.execReplaceGroovyScript(replacingIGMScript, "2021-01-14T09:30:00Z", "SWE_2D", "2D").toString());
 
-        Assert.assertEquals("[date:2021-01-16T20:30:00Z businessProcess:SN, date:2021-01-16T22:30:00Z businessProcess:SN, " +
+        assertEquals("[date:2021-01-16T20:30:00Z businessProcess:SN, date:2021-01-16T22:30:00Z businessProcess:SN, " +
                         "date:2021-01-16T19:30:00Z businessProcess:SN, date:2021-01-16T23:30:00Z businessProcess:SN, " +
                         "date:2021-01-09T21:30:00Z businessProcess:SN, date:2021-01-09T20:30:00Z businessProcess:SN, " +
                         "date:2021-01-09T22:30:00Z businessProcess:SN, date:2021-01-09T19:30:00Z businessProcess:SN, " +
@@ -87,7 +88,7 @@ public class ReplaceIGMGroovyTest {
                         "date:2021-01-16T17:30:00Z businessProcess:SN, date:2021-01-16T18:30:00Z businessProcess:SN]",
                 MergeOrchestratorService.execReplaceGroovyScript(replacingIGMScript, "2021-01-16T21:30:00Z", "SWE_SN", "SN").toString());
 
-        Assert.assertEquals("[date:2021-01-17T16:30:00Z businessProcess:2D, date:2021-01-17T17:30:00Z businessProcess:2D, " +
+        assertEquals("[date:2021-01-17T16:30:00Z businessProcess:2D, date:2021-01-17T17:30:00Z businessProcess:2D, " +
                         "date:2021-01-17T14:30:00Z businessProcess:2D, date:2021-01-17T13:30:00Z businessProcess:2D, " +
                         "date:2021-01-17T12:30:00Z businessProcess:2D, date:2021-01-10T15:30:00Z businessProcess:2D, " +
                         "date:2021-01-10T16:30:00Z businessProcess:2D, date:2021-01-10T17:30:00Z businessProcess:2D, " +

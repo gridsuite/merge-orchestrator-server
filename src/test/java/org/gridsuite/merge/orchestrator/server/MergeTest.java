@@ -10,24 +10,24 @@ import org.gridsuite.merge.orchestrator.server.dto.Igm;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
 import org.gridsuite.merge.orchestrator.server.dto.Merge;
 import org.gridsuite.merge.orchestrator.server.dto.MergeStatus;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
-public class MergeTest {
+class MergeTest {
 
     private static final UUID SWE_1D_UUID = UUID.fromString("11111111-f60e-4766-bc5c-8f312c1984e4");
 
     @Test
-    public void test() {
+    void test() {
         ZonedDateTime date = ZonedDateTime.now();
         Merge merge1 = new Merge(SWE_1D_UUID, date, MergeStatus.LOADFLOW_FAILED, Collections.singletonList(new Igm("FR", IgmStatus.AVAILABLE, null, null)));
         assertEquals(SWE_1D_UUID, merge1.getProcessUuid());

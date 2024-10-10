@@ -1,20 +1,20 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-public class CaseInfosTest {
+class CaseInfosTest {
 
     @Test
-    public void test() {
+    void test() {
         UUID uuid = UUID.fromString("0e14e487-5182-470a-ba33-859a9d4a5061");
         CaseInfos caseInfos = new CaseInfos("case", uuid, "XIIDM", "FR", "1D");
         assertEquals("XIIDM", caseInfos.getFormat());

@@ -14,8 +14,7 @@ import org.hamcrest.TypeSafeMatcher;
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
 public class MatcherReport extends TypeSafeMatcher<ReportNode> {
-
-    ReportNode reference;
+    private final ReportNode reference;
 
     public MatcherReport(ReportNode report) {
         this.reference = report;

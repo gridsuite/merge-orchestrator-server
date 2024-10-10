@@ -11,13 +11,13 @@ import org.apache.commons.io.FilenameUtils;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryContent;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
 import org.gridsuite.merge.orchestrator.server.dto.NetworkInfos;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.web.client.RestClientException;
@@ -25,8 +25,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -34,9 +32,7 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
@@ -45,8 +41,8 @@ import static org.mockito.Mockito.when;
  * @author Etienne Homer <etienne.homer at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@RunWith(MockitoJUnitRunner.class)
-public class NetworkConversionServiceTest {
+@ExtendWith(MockitoExtension.class)
+class NetworkConversionServiceTest {
     @Mock
     private RestTemplate networkConversionServerRest;
 
@@ -63,14 +59,14 @@ public class NetworkConversionServiceTest {
     private UUID networkUuid3 = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
     private byte[] response = "TestFileContent".getBytes();
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         MockitoAnnotations.initMocks(this);
         networkConversionService = new NetworkConversionService(networkConversionServerRest, caseFetcherService);
     }
 
     @Test
-    public void testExportXiidm() {
+    void testExportXiidm() {
         HttpHeaders header = new HttpHeaders();
         header.setContentDisposition(ContentDisposition.builder("attachment").filename("test_file.xiidm", StandardCharsets.UTF_8).build());
         when(networkConversionServerRest.exchange(anyString(),
@@ -86,7 +82,7 @@ public class NetworkConversionServiceTest {
     }
 
     @Test
-    public void testExportCgmes() throws IOException, URISyntaxException {
+    void testExportCgmes() throws Exception {
         byte[] fileContentBe = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("MicroGridTestConfiguration_T4_BE_BB_Complete_v2.zip").toURI()));
         byte[] fileContentNl = Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("MicroGridTestConfiguration_T4_NL_BB_Complete_v2.zip").toURI()));
 
@@ -152,7 +148,7 @@ public class NetworkConversionServiceTest {
     }
 
     @Test
-    public void importCaseTest() {
+    void importCaseTest() {
         List<BoundaryContent> boundaries = new ArrayList<>();
         String boundary1Id = "idBoundary1";
         String boundary1Filename = "boundary1.xml";

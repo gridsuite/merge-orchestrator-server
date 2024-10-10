@@ -19,8 +19,7 @@ import java.util.UUID;
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
 public class MatcherMerge extends TypeSafeMatcher<Merge> {
-
-    Merge reference;
+    private final Merge reference;
 
     public MatcherMerge(UUID processUuid, ZonedDateTime date, MergeStatus status) {
         this.reference = new Merge(processUuid, date, status, List.of());

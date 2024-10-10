@@ -8,21 +8,21 @@ package org.gridsuite.merge.orchestrator.server;
 
 import org.gridsuite.merge.orchestrator.server.dto.IgmReplacingInfo;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-public class IgmReplacingInfoTest {
+class IgmReplacingInfoTest {
 
     @Test
-    public void test() {
+    void test() {
         UUID networkUuid = UUID.fromString("47b85a5c-44ec-4afc-9f7e-29e63368e83d");
         UUID caseUuid = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
 
