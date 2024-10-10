@@ -16,7 +16,6 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
 import org.gridsuite.merge.orchestrator.server.dto.ProcessConfig;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpMethod;
@@ -62,7 +61,6 @@ public class MergeOrchestratorConfigService {
 
     private RestTemplate reportRestClient;
 
-    @Autowired
     public MergeOrchestratorConfigService(
             @Value("${gridsuite.services.report-server.base-uri:https://report-server}") String reportServerBaseURI,
             ProcessConfigRepository processConfigRepository,

@@ -19,8 +19,7 @@ import java.util.UUID;
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
 public class MatcherIgmEntity extends TypeSafeMatcher<IgmEntity> {
-
-    IgmEntity reference;
+    private final IgmEntity reference;
 
     public MatcherIgmEntity(UUID processUuid, LocalDateTime date, String tso, IgmStatus status, UUID networkUuid) {
         this.reference = new IgmEntity(new IgmEntityKey(processUuid, date, tso), status.name(), networkUuid, networkUuid, null, null, null, null);

@@ -10,12 +10,11 @@ import com.fasterxml.jackson.core.util.ByteArrayBuilder;
 import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
-import lombok.SneakyThrows;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,13 +26,12 @@ import org.springframework.cloud.stream.binder.test.TestChannelBinderConfigurati
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
@@ -60,11 +58,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(classes = {MergeOrchestratorApplication.class, TestChannelBinderConfiguration.class})
 @AutoConfigureMockMvc
-@ContextConfiguration(classes = {MergeOrchestratorApplication.class, TestChannelBinderConfiguration.class})
-public class MergeOrchestratorControllerTest {
+class MergeOrchestratorControllerTest {
 
     private static final UUID UUID_NETWORK = UUID.fromString("db9b8260-0e8d-4e0c-aad4-56994c151925");
     private static final UUID UUID_NETWORK_MERGE_1 = UUID.fromString("a7a38a4c-a733-4d5e-a38d-8c6ab121c497");
@@ -90,13 +86,13 @@ public class MergeOrchestratorControllerTest {
     private MockMvc mvc;
 
     @Autowired
-    MergeRepository mergeRepository;
+    private MergeRepository mergeRepository;
 
     @Autowired
-    IgmRepository igmRepository;
+    private IgmRepository igmRepository;
 
     @Autowired
-    ProcessConfigRepository processConfigRepository;
+    private ProcessConfigRepository processConfigRepository;
 
     @MockBean
     private NetworkStoreService networkStoreService;
@@ -121,16 +117,17 @@ public class MergeOrchestratorControllerTest {
     private MockRestServiceServer mockReportServer;
 
     @Autowired
-    InputDestination input;
+    private InputDestination input;
 
-    private void cleanDB() {
+    @AfterEach
+    void cleanDB() {
         igmRepository.deleteAll();
         mergeRepository.deleteAll();
         processConfigRepository.deleteAll();
     }
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         MockitoAnnotations.initMocks(this);
 
         mockReportServer = MockRestServiceServer.createServer(mergeConfigService.getReportRestClient());
@@ -152,12 +149,10 @@ public class MergeOrchestratorControllerTest {
 
         Mockito.when(loadFlowService.run(any(), any()))
                 .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
-
-        cleanDB();
     }
 
     @Test
-    public void test() throws Exception {
+    void test() throws Exception {
         ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 10, 0, 0, 0, ZoneId.of("UTC"));
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null, null));
@@ -235,14 +230,12 @@ public class MergeOrchestratorControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_OCTET_STREAM));
     }
 
-    @SneakyThrows
-    private URI getReportServerURI(String uri) {
+    private URI getReportServerURI(String uri) throws URISyntaxException {
         return new URI(mergeConfigService.getReportServerURI() + uri);
     }
 
-    @SneakyThrows
     @Test
-    public void testReport() {
+    void testReport() throws Exception {
         mergeConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
         ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 10, 0, 0, 0, ZoneId.of("UTC"));
         String mergeDate = DATE_FORMATTER.format(dateTime);

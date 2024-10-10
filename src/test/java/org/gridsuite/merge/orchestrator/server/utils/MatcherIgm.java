@@ -17,8 +17,7 @@ import java.util.Objects;
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
 public class MatcherIgm extends TypeSafeMatcher<Igm> {
-
-    Igm reference;
+    private final Igm reference;
 
     public MatcherIgm(String tso, IgmStatus status) {
         this.reference = new Igm(tso, status, null, null);

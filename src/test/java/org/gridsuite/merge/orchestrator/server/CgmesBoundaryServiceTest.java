@@ -7,22 +7,26 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryContent;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -30,21 +34,21 @@ import static org.mockito.Mockito.when;
  * @author Etienne Homer <etienne.homer at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@RunWith(MockitoJUnitRunner.class)
-public class CgmesBoundaryServiceTest {
+@ExtendWith(MockitoExtension.class)
+class CgmesBoundaryServiceTest {
     @Mock
     private RestTemplate cgmesBoundaryServiceRest;
 
     private CgmesBoundaryService cgmesBoundaryService;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         MockitoAnnotations.initMocks(this);
         cgmesBoundaryService = new CgmesBoundaryService(cgmesBoundaryServiceRest);
     }
 
     @Test
-    public void testLastBoundaries() {
+    void testLastBoundaries() {
         List<Map<String, String>> response = new ArrayList<>(List.of(
             Map.of("id", "id1", "filename", "name1", "boundary", "boundary1"),
             Map.of("id", "id2", "filename", "name2", "boundary", "boundary2")
@@ -67,7 +71,7 @@ public class CgmesBoundaryServiceTest {
     }
 
     @Test
-    public void testSpecificBoundaries() {
+    void testSpecificBoundaries() {
         Map<String, String> response = Map.of("id", "id1", "filename", "name1", "boundary", "boundary1");
 
         when(cgmesBoundaryServiceRest.exchange(eq("/v1/boundaries/id1"),
@@ -90,4 +94,3 @@ public class CgmesBoundaryServiceTest {
         assertFalse(res.isPresent());
     }
 }
-

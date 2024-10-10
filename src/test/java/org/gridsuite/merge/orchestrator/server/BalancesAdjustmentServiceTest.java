@@ -6,11 +6,11 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -18,17 +18,15 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@RunWith(MockitoJUnitRunner.class)
-public class BalancesAdjustmentServiceTest {
+@ExtendWith(MockitoExtension.class)
+class BalancesAdjustmentServiceTest {
 
     @Mock
     private RestTemplate balancesAdjustmentServerRest;
@@ -39,13 +37,13 @@ public class BalancesAdjustmentServiceTest {
     private UUID networkUuid2 = UUID.fromString("da47a173-22d2-47e8-8a84-aa66e2d0fafb");
     private UUID networkUuid3 = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         balancesAdjustmentService = new BalancesAdjustmentService(balancesAdjustmentServerRest);
     }
 
     @Test
-    public void test() {
+    void test() {
         when(balancesAdjustmentServerRest.exchange(anyString(),
                 eq(HttpMethod.PUT),
                 any(),

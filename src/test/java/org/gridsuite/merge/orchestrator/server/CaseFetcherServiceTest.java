@@ -9,34 +9,31 @@ package org.gridsuite.merge.orchestrator.server;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.CaseInfos;
 import org.gridsuite.merge.orchestrator.server.dto.FileInfos;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@RunWith(MockitoJUnitRunner.class)
-public class CaseFetcherServiceTest {
+@ExtendWith(MockitoExtension.class)
+class CaseFetcherServiceTest {
 
     @Mock
     private RestTemplate caseServerRest;
@@ -52,8 +49,8 @@ public class CaseFetcherServiceTest {
     @Mock
     private NetworkStoreService networkStoreService;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         caseFetcherService = new CaseFetcherService(caseServerRest);
 
         listCases = new ArrayList<>();
@@ -63,7 +60,7 @@ public class CaseFetcherServiceTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         when(caseServerRest.exchange(eq("/v1/cases/search?q={q}"),
             eq(HttpMethod.GET),
             eq(HttpEntity.EMPTY),

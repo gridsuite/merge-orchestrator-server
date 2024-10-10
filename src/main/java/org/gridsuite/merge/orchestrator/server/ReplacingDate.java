@@ -21,6 +21,7 @@ public class ReplacingDate {
 
     private String businessProcess;
 
+    @Override
     public String toString() {
         return "date:" + date + " " + "businessProcess:" + businessProcess;
     }

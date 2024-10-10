@@ -15,18 +15,18 @@ import com.powsybl.iidm.network.ValidationException;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import lombok.SneakyThrows;
+import mockwebserver3.Dispatcher;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
+import okhttp3.Headers;
 import okhttp3.HttpUrl;
-import okhttp3.mockwebserver.Dispatcher;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.gridsuite.merge.orchestrator.server.utils.*;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
@@ -38,13 +38,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.binder.test.InputDestination;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -58,8 +58,7 @@ import java.util.stream.IntStream;
 
 import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException.Type.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -67,31 +66,29 @@ import static org.mockito.ArgumentMatchers.eq;
  * @author Jon Harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(
-        webEnvironment = WebEnvironment.MOCK)
+@SpringBootTest(webEnvironment = WebEnvironment.MOCK)
 @ContextHierarchy({@ContextConfiguration(classes = {MergeOrchestratorApplication.class, TestChannelBinderConfiguration.class})})
-public class MergeOrchestratorIT {
+class MergeOrchestratorIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MergeOrchestratorIT.class);
 
     @Autowired
-    InputDestination input;
+    private InputDestination input;
 
     @Autowired
-    OutputDestination output;
+    private OutputDestination output;
 
     @Autowired
-    MergeRepository mergeRepository;
+    private MergeRepository mergeRepository;
 
     @Autowired
-    IgmRepository igmRepository;
+    private IgmRepository igmRepository;
 
     @Autowired
-    ProcessConfigRepository processConfigRepository;
+    private ProcessConfigRepository processConfigRepository;
 
     @Autowired
-    BoundaryRepository boundaryRepository;
+    private BoundaryRepository boundaryRepository;
 
     @MockBean
     private IgmQualityCheckService igmQualityCheckService;
@@ -115,14 +112,9 @@ public class MergeOrchestratorIT {
     private MergeOrchestratorService mergeOrchestratorService;
 
     @Autowired
-    MergeOrchestratorConfigService mergeOrchestratorConfigService;
+    private MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
-    private boolean runBalancesAdjustment;
-
-    @Autowired
-    private ObjectMapper mapper;
-
-    private MockWebServer mockServer;
+    private boolean runBalancesAdjustment; //FIXME field is never assigned
 
     private static final UUID UUID_CASE_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
     private static final UUID UUID_NETWORK_ID_FR = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
@@ -174,15 +166,16 @@ public class MergeOrchestratorIT {
                 new BoundaryInfo(SPECIFIC_BOUNDARY_TP_ID, "20210315T0000Z__ENTSOE_TPBD_002.xml", LocalDateTime.of(2021, 5, 20, 9, 30, 0))));
     }
 
-    private void cleanDB() {
+    @AfterEach
+    void cleanDB() {
         processConfigRepository.deleteAll();
         igmRepository.deleteAll();
         mergeRepository.deleteAll();
         boundaryRepository.deleteAll();
     }
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp(final MockWebServer mockWebServer) {
         MockitoAnnotations.initMocks(this);
 
         Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_FR), any()))
@@ -223,41 +216,25 @@ public class MergeOrchestratorIT {
         Mockito.when(loadFlowService.run(any(), any()))
                 .thenReturn(MergeStatus.FIRST_LOADFLOW_SUCCEED);
 
-        initMockServer();
-
-        cleanDB();
+        initMockServer(mockWebServer);
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown(final MockWebServer mockWebServer) {
         Set<String> httpRequest = null;
         try {
-            httpRequest = getRequestsDone(1);
+            httpRequest = getRequestsDone(mockWebServer, 1);
         } catch (NullPointerException e) {
             // Ignoring
         }
-
-        // Shut down the server. Instances cannot be reused.
-        try {
-            mockServer.shutdown();
-        } catch (Exception e) {
-            // Ignoring
-        }
-
-        assertNull("Should not be any messages", output.receive(1000, "merge.destination"));
-        assertNull("Should not be any http requests", httpRequest);
+        assertNull(output.receive(1000, "merge.destination"), "Should not be any messages");
+        assertNull(httpRequest, "Should not be any http requests");
     }
 
-    @SneakyThrows
-    private void initMockServer() {
-        mockServer = new MockWebServer();
-
+    private void initMockServer(final MockWebServer mockServer) {
         // FIXME: remove lines when dicos will be used on the front side
-        mapper = new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new ReportNodeJsonModule());
-
-        // Start the server.
-        mockServer.start();
 
         // Ask the server for its URL. You'll need this to make HTTP requests.
         HttpUrl baseHttpUrl = mockServer.url("");
@@ -271,35 +248,35 @@ public class MergeOrchestratorIT {
                 String path = Objects.requireNonNull(request.getPath());
                 //Buffer body = request.getBody();
                 if (path.matches("/v1/reports/" + reportUuid) && "GET".equals(request.getMethod())) {
-                    return new MockResponse().setResponseCode(HttpStatus.OK.value()).setBody(mapper.writeValueAsString(REPORT_TEST))
-                            .addHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+                    return new MockResponse(HttpStatus.OK.value(), Headers.of(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE), mapper.writeValueAsString(REPORT_TEST));
                 } else if (path.matches("/v1/reports/" + reportUuid) && "DELETE".equals(request.getMethod())) {
-                    return new MockResponse().setResponseCode(HttpStatus.OK.value());
+                    return new MockResponse(HttpStatus.OK.value());
                 } else if (path.matches("/v1/reports/" + reportErrorUuid)) {
-                    return new MockResponse().setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                    return new MockResponse(HttpStatus.INTERNAL_SERVER_ERROR.value());
                 } else {
                     LOGGER.error("Path not supported: " + request.getPath());
-                    return new MockResponse().setResponseCode(HttpStatus.NOT_FOUND.value());
-
+                    return new MockResponse(HttpStatus.NOT_FOUND.value());
                 }
             }
         };
         mockServer.setDispatcher(dispatcher);
     }
 
-    private Set<String> getRequestsDone(int n) {
+    private Set<String> getRequestsDone(final MockWebServer mockServer, final int n) {
         return IntStream.range(0, n).mapToObj(i -> {
             try {
                 return mockServer.takeRequest(0, TimeUnit.SECONDS).getPath();
             } catch (InterruptedException e) {
-                LOGGER.error("Error while attempting to get the request done : ", e);
+                LOGGER.error("Error while attempting to get the request done :", e);
+                return null;
+            } catch (NullPointerException e) {
+                return "[error]getPath()";
             }
-            return null;
         }).collect(Collectors.toSet());
     }
 
     @Test
-    public void testSingleMerge() {
+    void testSingleMerge() {
         createProcessConfigs();
 
         // send first tso FR with business process = 1D, expect only one AVAILABLE and one VALIDATION_SUCCEED message
@@ -429,7 +406,7 @@ public class MergeOrchestratorIT {
     }
 
     @Test
-    public void testMergeWithSpecificBoundaries() {
+    void testMergeWithSpecificBoundaries() {
         createProcessConfigWithSpecificBoundaries();
 
         // first specific boundary available
@@ -553,7 +530,7 @@ public class MergeOrchestratorIT {
     }
 
     @Test
-    public void testMultipleMerge() {
+    void testMultipleMerge(final MockWebServer mockWebServer) {
         createProcessConfigs();
 
         // send first tso FR with business process = 2D, expect two AVAILABLE and two VALIDATION_SUCCEED message
@@ -724,7 +701,7 @@ public class MergeOrchestratorIT {
         reportUuid = merges.get(0).getReportUUID();
         mergeOrchestratorConfigService.deleteConfig(SWE_2D_UUID);
 
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         assertEquals("[MergeEntity(key=MergeEntityKey(processUuid=" + FRES_2D_UUID + ", date=2019-05-01T09:00), status=FIRST_LOADFLOW_SUCCEED, reportUUID=" + reportFres2Duuid + ")]",
                 mergeRepository.findAll().toString());
@@ -764,7 +741,7 @@ public class MergeOrchestratorIT {
     }
 
     @Test
-    public void testDeleteMerge() {
+    void testDeleteMerge(final MockWebServer mockWebServer) {
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRPT_2D_UUID, "FRPT_2D", "2D", List.of("FR", "PT"), false, true, null, null));
 
@@ -815,57 +792,57 @@ public class MergeOrchestratorIT {
 
         assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorConfigService.getReport(randomUuid))
                 .getMessage().contains(MERGE_REPORT_NOT_FOUND.name()));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", randomUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", randomUuid)));
 
         reportErrorUuid = UUID.randomUUID();
         assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorConfigService.getReport(reportErrorUuid))
                 .getMessage().contains(MERGE_REPORT_ERROR.name()));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportErrorUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportErrorUuid)));
 
         reportUuid = merges.get(0).getReportUUID();
         assertThat(mergeOrchestratorConfigService.getReport(reportUuid), new MatcherReport(REPORT_TEST));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         reportUuid = merges.get(1).getReportUUID();
         assertThat(mergeOrchestratorConfigService.getReport(reportUuid), new MatcherReport(REPORT_TEST));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorService.deleteReport(randomUuid, dateNow))
                 .getMessage().contains(MERGE_NOT_FOUND.name()));
 
         assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorConfigService.deleteReport(randomUuid))
                 .getMessage().contains(MERGE_REPORT_NOT_FOUND.name()));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", randomUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", randomUuid)));
 
         assertTrue(assertThrows(MergeOrchestratorException.class, () -> mergeOrchestratorConfigService.deleteReport(reportErrorUuid))
                 .getMessage().contains(MERGE_REPORT_ERROR.name()));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportErrorUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportErrorUuid)));
 
         reportUuid = merges.get(0).getReportUUID();
         mergeOrchestratorService.deleteReport(FRES_2D_UUID, LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         reportUuid = merges.get(1).getReportUUID();
         mergeOrchestratorService.deleteReport(FRPT_2D_UUID, LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         reportUuid = merges.get(0).getReportUUID();
         mergeOrchestratorConfigService.deleteConfig(FRES_2D_UUID);
         assertEquals(1, mergeRepository.findAll().size());
         assertEquals(2, igmRepository.findAll().size());
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         reportUuid = merges.get(1).getReportUUID();
         mergeOrchestratorConfigService.deleteConfig(FRPT_2D_UUID);
         assertEquals(0, mergeRepository.findAll().size());
         assertEquals(0, igmRepository.findAll().size());
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
-    public void testDeleteIgmMergeWithImportError() {
+    void testDeleteIgmMergeWithImportError(final MockWebServer mockWebServer) {
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
 
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
@@ -902,13 +879,13 @@ public class MergeOrchestratorIT {
         assertEquals(0, mergeRepository.findAll().size());
         assertEquals(0, igmRepository.findAll().size());
 
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
-    public void testDeleteIgmMergeWithValidationFailed() {
+    void testDeleteIgmMergeWithValidationFailed(final MockWebServer mockWebServer) {
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
 
         Mockito.when(cgmesBoundaryService.getLastBoundaries())
@@ -945,13 +922,13 @@ public class MergeOrchestratorIT {
         assertEquals(0, mergeRepository.findAll().size());
         assertEquals(0, igmRepository.findAll().size());
 
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/reports/%s", reportUuid)));
+        assertTrue(getRequestsDone(mockWebServer, 1).contains(String.format("/v1/reports/%s", reportUuid)));
 
         assertNull(output.receive(1000, "merge.destination"));
     }
 
     @Test
-    public void testImportIgmByOnlyMatchingConfigs() {
+    void testImportIgmByOnlyMatchingConfigs() {
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRES_2D_UUID, "FRES_2D", "2D", List.of("FR", "ES"), false, true, null, null));
         mergeOrchestratorConfigService.addConfig(new ProcessConfig(FRPT_2D_UUID, "FRPT_2D", "2D", List.of("FR", "PT"), false, true, null, null));
         MergeStatus mergeStatusOk = runBalancesAdjustment ? MergeStatus.BALANCE_ADJUSTMENT_SUCCEED : MergeStatus.FIRST_LOADFLOW_SUCCEED;
@@ -1081,7 +1058,7 @@ public class MergeOrchestratorIT {
     }
 
     @Test
-    public void parametersRepositoryTest() {
+    void parametersRepositoryTest() {
         createProcessConfigs();
         List<ProcessConfig> configs = mergeOrchestratorConfigService.getConfigs();
         assertEquals(3, configs.size());
@@ -1115,7 +1092,7 @@ public class MergeOrchestratorIT {
     }
 
     @Test
-    public void replacingIGMsTest() {
+    void replacingIGMsTest() {
         // process dateTime : 2019-05_01T09:30:00Z
         ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 30, 0, 0, ZoneId.of("UTC"));
 
@@ -1267,7 +1244,7 @@ public class MergeOrchestratorIT {
     }
 
     @Test
-    public void testGetMerges() {
+    void testGetMerges() {
         ZonedDateTime dateTime = ZonedDateTime.of(2020, 7, 20, 8, 30, 0, 0, ZoneId.of("UTC"));
         ZonedDateTime replacingTime1 = ZonedDateTime.of(2020, 7, 21, 5, 30, 0, 0, ZoneId.of("UTC"));
         ZonedDateTime replacingTime2 = ZonedDateTime.of(2020, 7, 22, 12, 30, 0, 0, ZoneId.of("UTC"));

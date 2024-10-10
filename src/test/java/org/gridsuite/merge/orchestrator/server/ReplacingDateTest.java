@@ -6,18 +6,18 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-public class ReplacingDateTest {
+class ReplacingDateTest {
 
     @Test
-    public void test() {
+    void test() {
         ReplacingDate rDate = new ReplacingDate("2021-01-14T09:30:00Z", "1D");
         assertEquals("2021-01-14T09:30:00Z", rDate.getDate());
         assertEquals("1D", rDate.getBusinessProcess());

@@ -20,8 +20,7 @@ import java.util.UUID;
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
 public class MatcherMergeEntity extends TypeSafeMatcher<MergeEntity> {
-
-    MergeEntity reference;
+    private final MergeEntity reference;
 
     public MatcherMergeEntity(UUID processUuid, LocalDateTime date, MergeStatus status) {
         this.reference = new MergeEntity(new MergeEntityKey(processUuid, date), status == null ? null : status.name());

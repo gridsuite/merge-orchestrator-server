@@ -7,30 +7,26 @@
 package org.gridsuite.merge.orchestrator.server;
 
 import com.powsybl.commons.PowsyblException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@RunWith(MockitoJUnitRunner.class)
-public class IgmQualityCheckServiceTest {
+@ExtendWith(MockitoExtension.class)
+class IgmQualityCheckServiceTest {
 
     @Mock
     private RestTemplate caseValidationServerRest;
@@ -42,13 +38,13 @@ public class IgmQualityCheckServiceTest {
     private UUID networkUuid3 = UUID.fromString("4d6ac8c0-eaea-4b1c-8d28-a4297ad480b5");
     private UUID reportId = UUID.fromString("12345691-5478-7412-2589-a4297ad480b5");
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         igmQualityCheckService = new IgmQualityCheckService(caseValidationServerRest);
     }
 
     @Test
-    public void test() {
+    void test() {
         when(caseValidationServerRest.exchange(anyString(),
             eq(HttpMethod.PUT),
             any(),
