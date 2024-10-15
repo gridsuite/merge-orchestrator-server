@@ -19,14 +19,17 @@ import mockwebserver3.Dispatcher;
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import mockwebserver3.RecordedRequest;
+import mockwebserver3.junit5.internal.MockWebServerExtension;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import org.gridsuite.merge.orchestrator.server.dto.*;
 import org.gridsuite.merge.orchestrator.server.repositories.*;
 import org.gridsuite.merge.orchestrator.server.utils.*;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
@@ -66,6 +69,7 @@ import static org.mockito.ArgumentMatchers.eq;
  * @author Jon Harper <jon.harper at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
+@ExtendWith(MockWebServerExtension.class)
 @SpringBootTest(webEnvironment = WebEnvironment.MOCK)
 @ContextHierarchy({@ContextConfiguration(classes = {MergeOrchestratorApplication.class, TestChannelBinderConfiguration.class})})
 class MergeOrchestratorIT {
@@ -148,6 +152,8 @@ class MergeOrchestratorIT {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
 
+    private static final String ERROR_TAKE_REQUEST = "[error]takeRequest()";
+
     private final NetworkFactory networkFactory = NetworkFactory.find("Default");
     private final ZonedDateTime dateTime = ZonedDateTime.of(2019, 5, 1, 9, 0, 0, 0, ZoneId.of("UTC"));
 
@@ -228,7 +234,7 @@ class MergeOrchestratorIT {
             // Ignoring
         }
         assertNull(output.receive(1000, "merge.destination"), "Should not be any messages");
-        assertNull(httpRequest, "Should not be any http requests");
+        assertEquals(Set.of(ERROR_TAKE_REQUEST), httpRequest, "Should not be any http requests");
     }
 
     private void initMockServer(final MockWebServer mockServer) {
@@ -242,6 +248,7 @@ class MergeOrchestratorIT {
         mergeOrchestratorConfigService.setReportServerBaseURI(baseUrl);
 
         final Dispatcher dispatcher = new Dispatcher() {
+            @NotNull
             @SneakyThrows
             @Override
             public MockResponse dispatch(RecordedRequest request) {
@@ -270,7 +277,7 @@ class MergeOrchestratorIT {
                 LOGGER.error("Error while attempting to get the request done :", e);
                 return null;
             } catch (NullPointerException e) {
-                return "[error]getPath()";
+                return ERROR_TAKE_REQUEST;
             }
         }).collect(Collectors.toSet());
     }
