@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.ReportNodeDeserializer;
-import com.powsybl.commons.report.ReportNodeImpl;
 import com.powsybl.commons.report.ReportNodeJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.gridsuite.merge.orchestrator.server.dto.BoundaryInfo;
@@ -142,7 +141,7 @@ public class MergeOrchestratorConfigService {
         try {
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/{reportId}");
             String uri = uriBuilder.build().toUriString();
-            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReportNodeImpl.class, report.toString())
+            return reportRestClient.exchange(uri, HttpMethod.GET, null, ReportNode.class, report.toString())
                     .getBody();
         } catch (HttpClientErrorException e) {
             throw (e.getStatusCode() == HttpStatus.NOT_FOUND)
