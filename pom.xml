@@ -46,6 +46,8 @@
         <commons-lang3.version>3.9</commons-lang3.version>
         <liquibase-hibernate-package>org.gridsuite.merge.orchestrator.server</liquibase-hibernate-package>
         <groovy.version>4.0.21</groovy.version>
+        <sonar.organization>gridsuite</sonar.organization>
+        <sonar.projectKey>org.gridsuite:merge-orchestrator-server</sonar.projectKey>
     </properties>
 
     <build>
