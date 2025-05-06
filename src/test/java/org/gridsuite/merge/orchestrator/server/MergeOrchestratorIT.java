@@ -152,7 +152,7 @@ public class MergeOrchestratorIT {
     private static final String SPECIFIC_BOUNDARY_EQ_ID = "66666666-d9e2-4ea0-afdc-dba189ab4358";
     private static final String SPECIFIC_BOUNDARY_TP_ID = "77777777-aab9-4284-a965-71d5cd151f71";
 
-    private static final ReportNode REPORT_TEST = new ReportNodeRootBuilderImpl().withMessageTemplate("test", "test").build();
+    private static final ReportNode REPORT_TEST = new ReportNodeRootBuilderImpl().withMessageTemplate("test").build();
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
 
