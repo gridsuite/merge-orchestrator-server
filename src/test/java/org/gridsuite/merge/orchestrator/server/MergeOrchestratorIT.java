@@ -11,7 +11,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.ReportNodeJsonModule;
 import com.powsybl.commons.report.ReportNodeRootBuilderImpl;
 import com.powsybl.iidm.network.NetworkFactory;
-import com.powsybl.iidm.network.ValidationException;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import lombok.SneakyThrows;
@@ -34,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.binder.test.InputDestination;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
@@ -44,6 +42,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
@@ -93,22 +92,22 @@ public class MergeOrchestratorIT {
     @Autowired
     BoundaryRepository boundaryRepository;
 
-    @MockBean
+    @MockitoBean
     private IgmQualityCheckService igmQualityCheckService;
 
-    @MockBean
+    @MockitoBean
     private NetworkStoreService networkStoreService;
 
-    @MockBean
+    @MockitoBean
     private CaseFetcherService caseFetcherService;
 
-    @MockBean
+    @MockitoBean
     private LoadFlowService loadFlowService;
 
-    @MockBean
+    @MockitoBean
     private NetworkConversionService networkConversionService;
 
-    @MockBean
+    @MockitoBean
     private CgmesBoundaryService cgmesBoundaryService;
 
     @Autowired
@@ -196,8 +195,7 @@ public class MergeOrchestratorIT {
         Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_ES_VALIDATION_FAILED), any()))
                 .thenReturn(UUID_CASE_ID_ES_VALIDATION_FAILED);
         Mockito.when(networkConversionService.importCase(eq(UUID_CASE_ID_ES_IMPORT_ERROR), any()))
-                .thenThrow(new ValidationException(UUID_CASE_ID_ES_IMPORT_ERROR::toString, "Inconsistent voltage limit range"));
-
+                .thenThrow(new RuntimeException("Inconsistent voltage limit range"));
         Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_FR, PreloadingStrategy.COLLECTION))
                 .thenReturn(networkFactory.createNetwork("fr", "iidm"));
         Mockito.when(networkStoreService.getNetwork(UUID_NETWORK_ID_ES, PreloadingStrategy.COLLECTION))

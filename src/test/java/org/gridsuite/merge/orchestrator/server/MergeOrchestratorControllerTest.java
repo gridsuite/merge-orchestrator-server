@@ -21,13 +21,13 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.binder.test.InputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -98,19 +98,19 @@ public class MergeOrchestratorControllerTest {
     @Autowired
     ProcessConfigRepository processConfigRepository;
 
-    @MockBean
+    @MockitoBean
     private NetworkStoreService networkStoreService;
 
-    @MockBean
+    @MockitoBean
     private IgmQualityCheckService igmQualityCheckService;
 
-    @MockBean
+    @MockitoBean
     private CgmesBoundaryService cgmesBoundaryService;
 
-    @MockBean
+    @MockitoBean
     private LoadFlowService loadFlowService;
 
-    @MockBean
+    @MockitoBean
     private NetworkConversionService networkConversionService;
 
     @Autowired
