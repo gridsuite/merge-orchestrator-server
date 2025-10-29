@@ -14,8 +14,8 @@ import org.junit.runner.RunWith;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -48,34 +48,34 @@ public class MergeOrchestratorControllerReplaceIGMTest {
     @Autowired
     private MockMvc mvc;
 
-    @MockBean
+    @MockitoBean
     private IgmQualityCheckService igmQualityCheckService;
 
-    @MockBean
+    @MockitoBean
     private CaseFetcherService caseFetcherService;
 
-    @MockBean
+    @MockitoBean
     private CgmesBoundaryService cgmesBoundaryService;
 
-    @MockBean
+    @MockitoBean
     private BalancesAdjustmentService balancesAdjustmentService;
 
-    @MockBean
+    @MockitoBean
     private LoadFlowService loadFlowService;
 
-    @MockBean
+    @MockitoBean
     private NetworkConversionService networkConversionService;
 
-    @MockBean
+    @MockitoBean
     private MergeOrchestratorConfigService mergeOrchestratorConfigService;
 
-    @MockBean
+    @MockitoBean
     private MergeEventService mergeEventService;
 
-    @MockBean
+    @MockitoBean
     private MergeOrchestratorService mergeOrchestratorService;
 
-    @MockBean
+    @MockitoBean
     private NotificationService notificationService;
 
     @Before
