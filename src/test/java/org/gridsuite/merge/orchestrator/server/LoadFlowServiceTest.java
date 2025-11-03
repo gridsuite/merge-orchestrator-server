@@ -79,7 +79,7 @@ public class LoadFlowServiceTest {
         // first loadflow succeeds
         LoadFlowParameters params1 = new LoadFlowParameters()
             .setTransformerVoltageControlOn(true)
-            .setSimulShunt(true)
+            .setShuntCompensatorVoltageControlOn(true)
             .setDistributedSlack(true)
             .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
             .setReadSlackBus(true)
@@ -94,7 +94,7 @@ public class LoadFlowServiceTest {
 
         LoadFlowParameters params2 = new LoadFlowParameters()
             .setTransformerVoltageControlOn(false)
-            .setSimulShunt(false)
+            .setShuntCompensatorVoltageControlOn(false)
             .setDistributedSlack(true)
             .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
             .setReadSlackBus(true)
@@ -110,12 +110,12 @@ public class LoadFlowServiceTest {
 
         LoadFlowParameters params3 = new LoadFlowParameters()
             .setTransformerVoltageControlOn(false)
-            .setSimulShunt(false)
+            .setShuntCompensatorVoltageControlOn(false)
             .setDistributedSlack(true)
             .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
             .setReadSlackBus(true)
             .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES)
-            .setNoGeneratorReactiveLimits(true);
+            .setUseReactiveLimits(false);
         addLoadFlowResultExpectation(networkUuid1, componentResultsOk, params3);
 
         status = loadFlowService.run(Arrays.asList(networkUuid1, networkUuid2, networkUuid3), reportId);
