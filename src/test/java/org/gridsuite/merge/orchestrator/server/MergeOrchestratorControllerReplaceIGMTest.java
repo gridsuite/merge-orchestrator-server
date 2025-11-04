@@ -6,12 +6,11 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
+import com.powsybl.network.store.client.RestClientImpl;
 import org.gridsuite.merge.orchestrator.server.dto.IgmReplacingInfo;
 import org.gridsuite.merge.orchestrator.server.dto.IgmStatus;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.ContextConfiguration;
@@ -78,10 +77,8 @@ public class MergeOrchestratorControllerReplaceIGMTest {
     @MockitoBean
     private NotificationService notificationService;
 
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-    }
+    @MockitoBean
+    private RestClientImpl networkStoreRestClient;
 
     @Test
     public void testReplaceIGM() throws Exception {
