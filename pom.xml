@@ -42,7 +42,7 @@
     </developers>
 
     <properties>
-        <gridsuite-dependencies.version>44.1.0-SNAPSHOT</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>44.1.0</gridsuite-dependencies.version>
         <commons-lang3.version>3.9</commons-lang3.version>
         <liquibase-hibernate-package>org.gridsuite.merge.orchestrator.server</liquibase-hibernate-package>
         <groovy.version>4.0.21</groovy.version>
