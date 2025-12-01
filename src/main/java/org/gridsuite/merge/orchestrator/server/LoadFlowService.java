@@ -114,7 +114,7 @@ public class LoadFlowService {
         // first run with initial settings
         LoadFlowParameters params = new LoadFlowParameters()
                 .setTransformerVoltageControlOn(true)
-                .setSimulShunt(true)
+                .setShuntCompensatorVoltageControlOn(true)
                 .setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
                 .setReadSlackBus(true)
@@ -129,7 +129,7 @@ public class LoadFlowService {
 
         // second run : disabling transformer tap and switched shunt adjustment
         params.setTransformerVoltageControlOn(false);
-        params.setSimulShunt(false);
+        params.setShuntCompensatorVoltageControlOn(false);
         if (stepRun(Step.SECOND, params, uri, networksIds)) {
             return MergeStatus.SECOND_LOADFLOW_SUCCEED;
         }
@@ -139,7 +139,7 @@ public class LoadFlowService {
         uri = uriBuilder.build().toUriString();
 
         // third run : relaxing reactive power limits
-        params.setNoGeneratorReactiveLimits(true);
+        params.setUseReactiveLimits(false);
         return stepRun(Step.THIRD, params, uri, networksIds) ? MergeStatus.THIRD_LOADFLOW_SUCCEED
                 : MergeStatus.LOADFLOW_FAILED;
     }
