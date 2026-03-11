@@ -128,7 +128,12 @@ public class MergeOrchestratorService {
     }
 
     @Bean
-    public Consumer<Message<String>> consumeNotification() {
+    public Consumer<Message<String>> consumeNotification1() {
+        return this::consume;
+    }
+
+    @Bean
+    public Consumer<Message<String>> consumeNotification2() {
         return this::consume;
     }
 

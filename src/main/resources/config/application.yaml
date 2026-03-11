@@ -4,14 +4,14 @@ spring:
 
   cloud:
     function:
-      definition: consumeNotification
+      definition: consumeNotification1;consumeNotification2
     stream:
       bindings:
-        consumeNotification-in-0:
+        consumeNotification1-in-0: &consumeNotificationConfig
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}case.import
           group: mergeOrchestratorCaseImportGroup
-          consumer:
-            concurrency: 2
+        consumeNotification2-in-0:
+          <<: *consumeNotificationConfig
         publishMerge-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}merge
       output-bindings: publishMerge-out-0
