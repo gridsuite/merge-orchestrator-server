@@ -4,6 +4,10 @@ spring:
     properties:
       dialect: org.hibernate.dialect.H2Dialect
       hibernate.format_sql: true
+  cloud:
+    function:
+      # disable consumeNotification2 during test - all of them receive the "mergeOrchestratorCaseImportGroup" messages otherwise
+      definition: consumeNotification1
 
 logging:
   level:
