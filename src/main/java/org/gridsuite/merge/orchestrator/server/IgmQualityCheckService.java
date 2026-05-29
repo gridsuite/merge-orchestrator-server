@@ -22,7 +22,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
 public class IgmQualityCheckService {

@@ -6,11 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.List;
-import java.util.UUID;
-
 import com.powsybl.commons.PowsyblException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,10 +23,14 @@ import org.springframework.util.ResourceUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
 public class BalancesAdjustmentService {

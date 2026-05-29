@@ -14,7 +14,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 public final class CgmesUtils {
     public static final int MAX_ZIP_ENTRIES_COUNT = 100;

@@ -6,9 +6,6 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -20,11 +17,13 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @NoArgsConstructor
 @Getter

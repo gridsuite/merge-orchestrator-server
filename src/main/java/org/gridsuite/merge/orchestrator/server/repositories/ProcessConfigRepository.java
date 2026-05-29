@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Repository
 public interface ProcessConfigRepository extends JpaRepository<ProcessConfigEntity, UUID> {

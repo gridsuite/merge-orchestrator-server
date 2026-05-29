@@ -6,17 +6,16 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
+import jakarta.persistence.Embeddable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-
-import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Getter
 @EqualsAndHashCode

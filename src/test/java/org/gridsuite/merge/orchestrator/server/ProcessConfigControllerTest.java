@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com>
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -96,13 +96,29 @@ public class ProcessConfigControllerTest {
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":true,\"eqBoundary\":null,\"tpBoundary\":null},{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_RT_UUID + "\",\"process\":\"SWE_RT\",\"businessProcess\":\"RT\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id2EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id2TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_WK_UUID + "\",\"process\":\"SWE_WK\",\"businessProcess\":\"WK\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
+                                .andExpect(content().json("[{\"processUuid\":\"" + SWE_1D_UUID
+                        + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,"
+                        + "\"useLastBoundarySet\":true,\"eqBoundary\":null,\"tpBoundary\":null},{\"processUuid\":\"" + SWE_2D_UUID
+                        + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,"
+                        + "\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\","
+                        + "\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\","
+                        + "\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_RT_UUID
+                        + "\",\"process\":\"SWE_RT\",\"businessProcess\":\"RT\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,"
+                        + "\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id2EQ\",\"filename\":\"filename_EQ.xml\","
+                        + "\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id2TP\",\"filename\":\"filename_TP.xml\","
+                        + "\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_WK_UUID
+                        + "\",\"process\":\"SWE_WK\",\"businessProcess\":\"WK\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,"
+                        + "\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\","
+                        + "\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\","
+                        + "\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
 
         mvc.perform(get("/" + VERSION + "/configs/" + SWE_1D_UUID)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("{\"processUuid\":\"" + SWE_1D_UUID + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":true,\"eqBoundary\":null,\"tpBoundary\":null}", true));
+                .andExpect(content().json("{\"processUuid\":\"" + SWE_1D_UUID
+                        + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":true,\"eqBoundary\":null,"
+                                + "\"tpBoundary\":null}", true));
 
         mvc.perform(delete("/" + VERSION + "/configs/" + SWE_1D_UUID)
                 .contentType(APPLICATION_JSON))
@@ -115,7 +131,18 @@ public class ProcessConfigControllerTest {
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(content().json("[{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_RT_UUID + "\",\"process\":\"SWE_RT\",\"businessProcess\":\"RT\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id2EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id2TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_WK_UUID + "\",\"process\":\"SWE_WK\",\"businessProcess\":\"WK\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
+                .andExpect(content().json("[{\"processUuid\":\"" + SWE_2D_UUID
+                        + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,"
+                                + "\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\","
+                                        + "\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},{\"processUuid\":\"" + SWE_RT_UUID + "\",\"process\":\"SWE_RT\","
+                                                + "\"businessProcess\":\"RT\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,"
+                                                        + "\"eqBoundary\":{\"id\":\"id2EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},"
+                                                                + "\"tpBoundary\":{\"id\":\"id2TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}},"
+                                                                        + "{\"processUuid\":\"" + SWE_WK_UUID + "\",\"process\":\"SWE_WK\",\"businessProcess\":\"WK\",\"tsos\":[\"FR\",\"ES\","
+                                                                                + "\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\","
+                                                                                        + "\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},"
+                                                                                                + "\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\","
+                                                                                                        + "\"scenarioTime\":\"2021-04-06T07:30:00\"}}]", true));
 
         mvc.perform(post("/" + VERSION + "/configs")
                 .contentType(APPLICATION_JSON)
@@ -129,13 +156,18 @@ public class ProcessConfigControllerTest {
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-            .andExpect(content().json("{\"processUuid\":\"" + SWE_1D_UUID + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":true,\"eqBoundary\":null,\"tpBoundary\":null}"));
+            .andExpect(content().json("{\"processUuid\":\"" + SWE_1D_UUID
+                    + "\",\"process\":\"SWE_1D\",\"businessProcess\":\"1D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":true,\"eqBoundary\":null,"
+                            + "\"tpBoundary\":null}"));
 
         mvc.perform(get("/" + VERSION + "/configs/" + SWE_2D_UUID)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-            .andExpect(content().json("{\"processUuid\":\"" + SWE_2D_UUID + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\",\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}"));
+            .andExpect(content().json("{\"processUuid\":\"" + SWE_2D_UUID
+                    + "\",\"process\":\"SWE_2D\",\"businessProcess\":\"2D\",\"tsos\":[\"FR\",\"ES\",\"PT\"],\"runBalancesAdjustment\":false,\"useLastBoundarySet\":false,"
+                            + "\"eqBoundary\":{\"id\":\"id1EQ\",\"filename\":\"filename_EQ.xml\",\"scenarioTime\":\"2021-05-10T10:30:00\"},\"tpBoundary\":{\"id\":\"id1TP\","
+                                    + "\"filename\":\"filename_TP.xml\",\"scenarioTime\":\"2021-04-06T07:30:00\"}}"));
 
         mvc.perform(delete("/" + VERSION + "/configs/" + SWE_1D_UUID)
             .contentType(APPLICATION_JSON))

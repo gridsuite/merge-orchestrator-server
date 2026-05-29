@@ -6,18 +6,18 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
-import org.springframework.data.domain.Persistable;
-
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Transient;
+import org.springframework.data.domain.Persistable;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 // Official documentation: https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.entity-persistence.saving-entites.strategies
 @MappedSuperclass
+@SuppressWarnings("checkstyle:ClassTypeParameterName")
 public abstract class AbstractManuallyAssignedIdentifierEntity<ID> implements Persistable<ID> {
 
     @Transient

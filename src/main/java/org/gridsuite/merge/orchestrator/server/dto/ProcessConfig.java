@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com
+ * @author Chamseddine Benhamed <chamseddine.benhamed at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Getter

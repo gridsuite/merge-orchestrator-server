@@ -17,7 +17,7 @@ import java.util.UUID;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Repository
 public interface MergeRepository extends JpaRepository<MergeEntity, MergeEntityKey> {
@@ -45,9 +45,13 @@ public interface MergeRepository extends JpaRepository<MergeEntity, MergeEntityK
 
     Optional<MergeEntity> findByKeyProcessUuidAndKeyDate(UUID processUuid, LocalDateTime date);
 
-    @Query(value = "SELECT m.key.processUuid AS processUuid, m.key.date AS date, m.status AS status, igm.key.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.key.processUuid = igm.key.processUuid AND m.key.date = igm.key.date WHERE m.key.processUuid = :processUuid")
+    @Query(value = "SELECT m.key.processUuid AS processUuid, m.key.date AS date, m.status AS status, igm.key.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, "
+            + "igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.key.processUuid = igm.key.processUuid AND m.key.date = igm.key.date WHERE "
+                    + "m.key.processUuid = :processUuid")
     List<MergeIgm> findMergeWithIgmsByProcessUuid(UUID processUuid);
 
-    @Query(value = "SELECT m.key.processUuid AS processUuid, m.key.date AS date, m.status AS status, igm.key.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.key.processUuid = igm.key.processUuid AND m.key.date = igm.key.date WHERE m.key.processUuid = :processUuid and m.key.date >= :minDate and m.key.date <= :maxDate")
+    @Query(value = "SELECT m.key.processUuid AS processUuid, m.key.date AS date, m.status AS status, igm.key.tso AS tso, igm.status AS igmStatus, igm.replacingDate AS replacingDate, "
+            + "igm.replacingBusinessProcess AS replacingBusinessProcess from MergeEntity m JOIN IgmEntity igm ON m.key.processUuid = igm.key.processUuid AND m.key.date = igm.key.date WHERE "
+                    + "m.key.processUuid = :processUuid and m.key.date >= :minDate and m.key.date <= :maxDate")
     List<MergeIgm> findMergeWithIgmsByProcessUuidAndInterval(UUID processUuid, LocalDateTime minDate, LocalDateTime maxDate);
 }

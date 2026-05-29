@@ -158,7 +158,8 @@ public class MergeOrchestratorService {
                 LOGGER.info("Merge {} of process {} {} : IGM in format {} from TSO {} received", date, processConfig.getProcess(), processConfig.getBusinessProcess(), format, tso);
 
                 // if already received delete old network
-                Optional<IgmEntity> igmEntityOptional = igmRepository.findByKeyProcessUuidAndKeyDateAndKeyTso(processConfig.getProcessUuid(), LocalDateTime.ofInstant(dateTime.toInstant(), ZoneOffset.UTC), tso);
+                Optional<IgmEntity> igmEntityOptional = igmRepository.findByKeyProcessUuidAndKeyDateAndKeyTso(processConfig.getProcessUuid(), LocalDateTime.ofInstant(dateTime.toInstant(),
+                        ZoneOffset.UTC), tso);
                 igmEntityOptional.map(IgmEntity::getNetworkUuid).filter(Objects::nonNull).ifPresent(networkStoreService::deleteNetwork);
 
                 mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.AVAILABLE, null, null, null, null, null, null);
@@ -187,7 +188,8 @@ public class MergeOrchestratorService {
 
                     merge(processConfig, dateTime, date, tso, valid, networkUuid, caseUuid, null, null, eqBoundary, tpBoundary);
                 } catch (Exception e) {
-                    mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.VALIDATION_FAILED, null, null, null, null, null, null);
+                    mergeEventService.addMergeIgmEvent(processConfig.getProcessUuid(), processConfig.getBusinessProcess(), dateTime, tso, IgmStatus.VALIDATION_FAILED, null, null, null, null, null,
+                            null);
                 }
             }
         } catch (Exception e) {
@@ -311,12 +313,14 @@ public class MergeOrchestratorService {
     }
 
     ReportNode getReport(UUID processUuid, LocalDateTime processDate) {
-        MergeEntity mergeEntity = mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, processDate).orElseThrow(() -> new MergeOrchestratorException(MERGE_NOT_FOUND, "<" + processUuid + ", " + processDate + ">"));
+        MergeEntity mergeEntity = mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, processDate).orElseThrow(() -> new MergeOrchestratorException(MERGE_NOT_FOUND,
+                "<" + processUuid + ", " + processDate + ">"));
         return mergeConfigService.getReport(mergeEntity.getReportUUID());
     }
 
     void deleteReport(UUID processUuid, LocalDateTime processDate) {
-        MergeEntity mergeEntity = mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, processDate).orElseThrow(() -> new MergeOrchestratorException(MERGE_NOT_FOUND, "<" + processUuid + ", " + processDate + ">"));
+        MergeEntity mergeEntity = mergeRepository.findByKeyProcessUuidAndKeyDate(processUuid, processDate).orElseThrow(() -> new MergeOrchestratorException(MERGE_NOT_FOUND,
+                "<" + processUuid + ", " + processDate + ">"));
         mergeConfigService.deleteReport(mergeEntity.getReportUUID());
     }
 
@@ -504,7 +508,8 @@ public class MergeOrchestratorService {
         String finalEqBoundary = eqBoundary;
         String finalTpBoundary = tpBoundary;
         // check if boundaries id used for each igm during import are different
-        if (!igmEntities.stream().skip(1).allMatch(e -> e.getEqBoundary() != null && finalEqBoundary != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary) && e.getTpBoundary() != null && finalTpBoundary != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary))) {
+        if (!igmEntities.stream().skip(1).allMatch(e -> e.getEqBoundary() != null && finalEqBoundary != null && StringUtils.equals(e.getEqBoundary(),
+                finalEqBoundary) && e.getTpBoundary() != null && finalTpBoundary != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary))) {
             LOGGER.warn("IGMs for merge process {} {} at {} have been imported with different boundaries !!!", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
         } else {
             // check if boundaries id used for each igm differ from boundaries now available
@@ -519,8 +524,10 @@ public class MergeOrchestratorService {
 
             String finalTpBoundary2 = tpBoundary;
             String finalEqBoundary2 = eqBoundary;
-            if (!igmEntities.stream().allMatch(e -> e.getEqBoundary() != null && finalEqBoundary2 != null && StringUtils.equals(e.getEqBoundary(), finalEqBoundary2) && e.getTpBoundary() != null && finalTpBoundary2 != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary2))) {
-                LOGGER.warn("IGMs have been imported with different boundaries than the current boundaries now available for merge process {} {} at {}", processConfig.getProcess(), processConfig.getBusinessProcess(), date);
+            if (!igmEntities.stream().allMatch(e -> e.getEqBoundary() != null && finalEqBoundary2 != null && StringUtils.equals(e.getEqBoundary(),
+                    finalEqBoundary2) && e.getTpBoundary() != null && finalTpBoundary2 != null && StringUtils.equals(e.getTpBoundary(), finalTpBoundary2))) {
+                LOGGER.warn("IGMs have been imported with different boundaries than the current boundaries now available for merge process {} {} at {}", processConfig.getProcess(),
+                        processConfig.getBusinessProcess(), date);
             }
         }
     }

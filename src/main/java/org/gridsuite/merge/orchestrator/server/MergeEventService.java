@@ -25,7 +25,7 @@ import java.util.UUID;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
 public class MergeEventService {
