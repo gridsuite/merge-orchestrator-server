@@ -95,7 +95,8 @@ public class NetworkConversionService {
                 uriBuilder = uriBuilder.queryParam("networkUuid", networkUuids.get(i).toString());
             }
             String uri = uriBuilder.build().toUriString();
-            ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networkUuids.get(0).toString(), format);
+            ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { },
+                    networkUuids.get(0).toString(), format);
             String exportedFileExtension;
             try {
                 String exportedFileName = responseEntity.getHeaders().getContentDisposition().getFilename();
@@ -121,7 +122,7 @@ public class NetworkConversionService {
                 fileName = FilenameUtils.getName(entry.getName());
 
                 //Check if it is a boundary file or SV profile
-                isEntryToAdd = !fileName.equals("") && !fileName.matches(CgmesUtils.EQBD_FILE_REGEX) && !fileName.matches(CgmesUtils.TPBD_FILE_REGEX) && !fileName.matches(CgmesUtils.SV_PROFILE_REGEX);
+                isEntryToAdd = !"".equals(fileName) && !fileName.matches(CgmesUtils.EQBD_FILE_REGEX) && !fileName.matches(CgmesUtils.TPBD_FILE_REGEX) && !fileName.matches(CgmesUtils.SV_PROFILE_REGEX);
                 //If true, we don't add it to the result zip
                 if (isEntryToAdd) {
                     repackagedZip.putNextEntry(new ZipEntry(fileName));
@@ -138,7 +139,8 @@ public class NetworkConversionService {
     private FileInfos getSvProfile(List<UUID> networksIds, String baseFileName) {
         String uri = DELIMITER + NETWORK_CONVERSION_API_VERSION + "/networks/{networkUuid}/export-sv-cgmes?";
         uri += networksIds.stream().skip(1).map(s -> "networkUuid=" + s.toString()).collect(Collectors.joining("&"));
-        ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networksIds.get(0).toString(), CGMES_FORMAT);
+        ResponseEntity<byte[]> responseEntity = networkConversionServerRest.exchange(uri, HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<byte[]>() { }, networksIds.get(0).toString(),
+                CGMES_FORMAT);
         return new FileInfos(baseFileName.concat(UNDERSCORE + SV_PROFILE + UNDERSCORE + FILE_VERSION + XML_EXTENSION), responseEntity.getBody());
     }
 

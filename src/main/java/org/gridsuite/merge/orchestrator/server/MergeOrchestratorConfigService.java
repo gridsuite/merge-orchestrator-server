@@ -42,7 +42,7 @@ import static org.gridsuite.merge.orchestrator.server.MergeOrchestratorException
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
 public class MergeOrchestratorConfigService {

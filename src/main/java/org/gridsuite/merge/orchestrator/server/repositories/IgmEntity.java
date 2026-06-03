@@ -6,19 +6,18 @@
  */
 package org.gridsuite.merge.orchestrator.server.repositories;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Entity
 @Getter

@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Getter
 @AllArgsConstructor

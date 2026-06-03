@@ -162,7 +162,8 @@ public class MergeOrchestratorControllerTest {
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null, null));
 
-        String resExpected = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"" + DATE_FORMATTER.format(dateTime) + "\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
+        String resExpected = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"" + DATE_FORMATTER.format(dateTime)
+                + "\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
 
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/merges")
                 .contentType(APPLICATION_JSON))
@@ -192,7 +193,8 @@ public class MergeOrchestratorControllerTest {
         ZonedDateTime dateTime2 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime2.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
         igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime2.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK, UUID_CASE, null, null, null, null));
-        String resExpected2 = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
+        String resExpected2 = "[{\"processUuid\":\"" + SWE_1D_UUID
+                + "\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/merges?minDate=" + date + "&maxDate=" + date)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -203,7 +205,8 @@ public class MergeOrchestratorControllerTest {
         ZonedDateTime maxDateTime = ZonedDateTime.of(2020, 7, 20, 12, 0, 0, 0, ZoneId.of("UTC"));
         String minDate = URLEncoder.encode(DATE_FORMATTER.format(minDateTime), StandardCharsets.UTF_8);
         String maxDate = URLEncoder.encode(DATE_FORMATTER.format(maxDateTime), StandardCharsets.UTF_8);
-        String resExpected3 = "[{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}," +
+        String resExpected3 = "[{\"processUuid\":\"" + SWE_1D_UUID
+                + "\",\"date\":\"2020-07-20T10:00:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"FR\",\"status\":\"VALIDATION_SUCCEED\"}]}," +
                 "{\"processUuid\":\"" + SWE_1D_UUID + "\",\"date\":\"2020-07-20T10:30:00Z\",\"status\":\"FIRST_LOADFLOW_SUCCEED\",\"igms\":[{\"tso\":\"ES\",\"status\":\"VALIDATION_SUCCEED\"}]}]";
         mvc.perform(get("/" + VERSION + "/" + SWE_1D_UUID + "/merges?minDate=" + minDate + "&maxDate=" + maxDate)
                 .contentType(APPLICATION_JSON))
@@ -214,9 +217,12 @@ public class MergeOrchestratorControllerTest {
         mergeConfigService.addConfig(new ProcessConfig(SWE_1D_UUID, "FRESPT_2D", "2D", List.of("FR", "ES", "PT"), false, true, null, null));
         ZonedDateTime dateTime3 = ZonedDateTime.of(2020, 7, 20, 10, 30, 0, 0, ZoneId.of("UTC"));
         mergeRepository.save(new MergeEntity(new MergeEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime()), MergeStatus.FIRST_LOADFLOW_SUCCEED.name()));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1, UUID_CASE_MERGE_1, null, null, null, null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2, UUID_CASE_MERGE_2, null, null, null, null));
-        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3, UUID_CASE_MERGE_3, null, null, null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "FR"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_1, UUID_CASE_MERGE_1, null, null,
+                null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "ES"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_2, UUID_CASE_MERGE_2, null, null,
+                null, null));
+        igmRepository.save(new IgmEntity(new IgmEntityKey(SWE_1D_UUID, dateTime3.toLocalDateTime(), "PT"), IgmStatus.VALIDATION_SUCCEED.name(), UUID_NETWORK_MERGE_3, UUID_CASE_MERGE_3, null, null,
+                null, null));
         String processDate = URLEncoder.encode(DATE_FORMATTER.format(dateTime3), StandardCharsets.UTF_8);
         given(cgmesBoundaryService.getLastBoundaries())
                 .willReturn(List.of(new BoundaryContent("idEQ", "EQ_boundary.xml", "fake eq boundary"), new BoundaryContent("idTP", "TP_boundary.xml", "fake tp boundary")));
